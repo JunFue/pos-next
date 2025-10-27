@@ -1,10 +1,10 @@
-import SplitScreenSlider from "@/components/SplitScreenSlider";
+import MainWindow from "@/app/components/window-layouts/MainWindow";
 
 export default function Home() {
   return (
     // No 'main' tag or extra classes needed here
     <div>
-      <SplitScreenSlider />
+      <MainWindow />
     </div>
   );
 }
