@@ -1,15 +1,14 @@
 "use client";
 
 import React from "react";
+import { useView } from "./ViewContext";
 
 // --- Prop Types ---
 type ControlsProps = {
   isMobile: boolean;
   isInitial: boolean;
   mobileView: "left" | "right";
-  viewState: number;
   onToggleClick: () => void;
-  onSliderChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
 // --- Icon Components ---
@@ -52,10 +51,12 @@ export function SplitScreenControls({
   isMobile,
   isInitial,
   mobileView,
-  viewState,
   onToggleClick,
-  onSliderChange,
 }: ControlsProps) {
+  const { viewState, setViewState } = useView();
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setViewState(Number(e.target.value));
+  };
   return (
     <div className="group bottom-0 left-1/2 z-10 absolute flex justify-center items-center w-72 h-20 -translate-x-1/2">
       <div
@@ -91,7 +92,7 @@ export function SplitScreenControls({
               max="2"
               step="1"
               value={viewState}
-              onChange={onSliderChange}
+              onChange={handleSliderChange}
               className="bg-gray-300 rounded-lg w-52 h-2 accent-blue-600 appearance-none cursor-pointer"
               aria-label="View switcher"
             />

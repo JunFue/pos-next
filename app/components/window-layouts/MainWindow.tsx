@@ -6,17 +6,14 @@ import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { SplitScreenControls } from "./SplitScreenControls";
 import LeftWindow from "./LeftWindow";
 import RightWindow from "./RightWindow";
+import { useView } from "./ViewContext";
 
 export default function MainWindow() {
-  const [viewState, setViewState] = useState(1);
   const [mobileView, setMobileView] = useState<"left" | "right">("left");
   const [isInitial, setIsInitial] = useState(true);
+  const { viewState } = useView();
 
   const isMobile = useMediaQuery("(max-width: 768px)");
-
-  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setViewState(Number(e.target.value));
-  };
 
   const handleToggleClick = () => {
     setMobileView((current) => (current === "left" ? "right" : "left"));
@@ -61,9 +58,7 @@ export default function MainWindow() {
         isMobile={isMobile}
         isInitial={isInitial}
         mobileView={mobileView}
-        viewState={viewState}
         onToggleClick={handleToggleClick}
-        onSliderChange={handleSliderChange}
       />
     </div>
   );
