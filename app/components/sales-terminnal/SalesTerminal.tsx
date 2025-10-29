@@ -1,3 +1,5 @@
+import FormFields from "./components/FormFields";
+
 const SalesTerminal = () => {
   return (
     <div className="flex flex-col p-1 border-2 border-white h-full">
@@ -8,41 +10,15 @@ const SalesTerminal = () => {
       </div>
       <div className="gap-1 grid grid-cols-2 grid-rows-2 grow">
         {/* Terminal Input Fields */}
-        <form action="">
-          <div className="gap-0 grid grid-cols-6 grid-rows-4 border border-amber-100 w-full h-full text-white">
-            <label htmlFor="">Example</label>
-            <input type="text" />
-            <label htmlFor="">Example</label>
-            <input type="text" />
-            <label htmlFor="">Example</label>
-            <input type="text" />
-            <label htmlFor="">Example</label>
-            <input type="text" />
-            <label htmlFor="">Example</label>
-            <input type="text" />
-            <label htmlFor="">Example</label>
-            <input type="text" />
-            <label htmlFor="">Example</label>
-            <input type="text" />
-            <label htmlFor="">Example</label>
-            <input type="text" />
-            <label htmlFor="">Example</label>
-            <input type="text" />
-            <label htmlFor="">Example</label>
-            <input type="text" />
-            <label htmlFor="">Example</label>
-            <input type="text" />
-            <label htmlFor="">Example</label>
-            <input type="text" />
-          </div>
-        </form>
+
+        <FormFields />
         {/* Terminal Cart */}
         <div className="flex justify-center items-center row-span-2 border-2 border-amber-100 text-white text-5xl">
           TERMINAL CART
         </div>
         {/* Terminal Button */}
         <div className="border border-amber-100">
-          <button className="btn-3d-glass">Press Me</button>
+          <button className="btn-keyboard">Press Me</button>
         </div>
       </div>
     </div>
