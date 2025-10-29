@@ -5,18 +5,26 @@ export const FormFields = () => {
   // Added IDs for 'htmlFor' and 'key' props
   // Corrected spelling of "Customer", "Time", etc.
   const fields = [
-    { id: "cashierName", label: "Cashier Name:" },
-    { id: "transactionTime", label: "Transaction Time:" },
-    { id: "payment", label: "Payment:" },
-    { id: "customerName", label: "Customer Name:" },
-    { id: "transactionNo", label: "Transaction No:" },
-    { id: "discount", label: "Discount:" },
-    { id: "barcode", label: "Barcode:" },
-    { id: "availableStocks", label: "Available Stocks:" },
-    { id: "grandTotal", label: "Grand Total:" },
-    { id: "quantity", label: "Quantity:" },
-    { id: "customerPrice", label: "Customer Price:" },
-    { id: "change", label: "Change:" },
+    { title: "Cashier Name", id: "cashierName", label: "Cashier Name:" },
+    {
+      title: "Transaction Time",
+      id: "transactionTime",
+      label: "Transaction Time:",
+    },
+    { title: "Payment", id: "payment", label: "Payment:" },
+    { title: "Costumer Name", id: "customerName", label: "Customer Name:" },
+    { title: "Transaction No.", id: "transactionNo", label: "Transaction No:" },
+    { title: "Discount", id: "discount", label: "Discount:" },
+    { title: "Barcode", id: "barcode", label: "Barcode:" },
+    {
+      title: "Available Stocks",
+      id: "availableStocks",
+      label: "Available Stocks:",
+    },
+    { title: "Grand Total", id: "grandTotal", label: "Grand Total:" },
+    { title: "Quantity", id: "quantity", label: "Quantity:" },
+    { title: "Costumer Price", id: "customerPrice", label: "Customer Price:" },
+    { title: "Change", id: "change", label: "Change:" },
   ];
 
   return (
@@ -35,7 +43,8 @@ export const FormFields = () => {
           <React.Fragment key={field.id}>
             <label
               htmlFor={field.id}
-              className="flex justify-end items-center text-[50%] sm:text-[30%] truncate"
+              title={field.title}
+              className="right-trim flex items-center text-[50%] sm:text-[65%]"
             >
               {field.label}
             </label>
@@ -44,7 +53,7 @@ export const FormFields = () => {
               <input
                 type="text"
                 id={field.id}
-                className="w-full text-xs sm:text-sm truncate input-dark"
+                className="w-full h-3 text-xs sm:text-sm truncate input-dark"
               />
             </div>
           </React.Fragment>
