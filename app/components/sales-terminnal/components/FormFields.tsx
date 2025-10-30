@@ -1,6 +1,6 @@
 import React from "react"; // Added for React.Fragment
 
-export const FormFields = () => {
+export const FormFields = React.memo(() => {
   // Helper array for fields to avoid repetition
   // Added IDs for 'htmlFor' and 'key' props
   // Corrected spelling of "Customer", "Time", etc.
@@ -38,13 +38,13 @@ export const FormFields = () => {
         - w-full h-full: Take up full space given by parent
         - text-white: Default text color
       */}
-      <div className="gap-x-4 gap-y-2 grid grid-cols-6 grid-rows-4 p-4 border border-amber-100 w-full h-full text-white">
+      <div className="gap-2 grid grid-cols-6 grid-rows-4 p-4 w-full h-full text-white">
         {fields.map((field) => (
           <React.Fragment key={field.id}>
             <label
               htmlFor={field.id}
               title={field.title}
-              className="right-trim flex items-center text-[50%] sm:text-[65%]"
+              className="right-trim flex justify-end items-center text-[50%] sm:text-[65%]"
             >
               {field.label}
             </label>
@@ -61,6 +61,8 @@ export const FormFields = () => {
       </div>
     </form>
   );
-};
+});
+
+FormFields.displayName = "FormFields";
 
 export default FormFields;

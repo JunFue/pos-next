@@ -15,7 +15,7 @@ body {
 
 :root {
   --color-background: #0a192f;
-  --color-primary-light: #112240;
+  --color-primary-light: #6c6c6c33;
   --color-primary-dark: #0c1f3a;
   --color-text-primary: #ccd6f6;
   --color-text-secondary: #8892b0;
@@ -69,5 +69,27 @@ body {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+  }
+  /*-----------Glassmorphic containers---------*/
+  .glass-effect {
+    background: linear-gradient(
+      135deg,
+      rgba(40, 39, 39, 0.15),
+      rgba(96, 96, 96, 0.366),
+      rgba(66, 65, 65, 0.15),
+      rgba(96, 96, 96, 0.366)
+    );
+
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    border-left: 1px solid rgba(255, 255, 255, 0.3);
+
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   }
 }
