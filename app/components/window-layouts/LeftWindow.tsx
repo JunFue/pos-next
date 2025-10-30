@@ -11,7 +11,7 @@ const LeftWindow = ({ leftWidth }: LeftWindowProps) => {
       style={{ width: leftWidth }}
     >
       <div className="box-border pt-8 pr-4 pb-8 pl-8 w-full h-full">
-        <div className="p-1 rounded-3xl w-full h-full glass-effect">
+        <div className="p-1 w-full h-full glass-effect">
           <SalesTerminal />
         </div>
       </div>

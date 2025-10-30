@@ -8,7 +8,12 @@ import LeftWindow from "./LeftWindow";
 import RightWindow from "./RightWindow";
 import { useView } from "./ViewContext";
 
-export default function MainWindow() {
+// STEP 1: Update the function to accept 'children'
+export default function MainWindow({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [mobileView, setMobileView] = useState<"left" | "right">("left");
   const [isInitial, setIsInitial] = useState(true);
   const { viewState } = useView();
@@ -52,7 +57,8 @@ export default function MainWindow() {
     <div className="relative flex bg-background w-full min-h-screen overflow-hidden">
       <LeftWindow leftWidth={leftWidth} />
 
-      <RightWindow rightWidth={rightWidth} />
+      {/* STEP 2: Pass 'children' down to the RightWindow */}
+      <RightWindow rightWidth={rightWidth}>{children}</RightWindow>
 
       <SplitScreenControls
         isMobile={isMobile}
