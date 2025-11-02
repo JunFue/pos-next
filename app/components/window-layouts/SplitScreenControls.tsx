@@ -54,21 +54,29 @@ export function SplitScreenControls({
   onToggleClick,
 }: ControlsProps) {
   const { viewState, setViewState, setIsSplit } = useView();
+
+  // 1. onChange handler: Only updates the slider's visual state.
+  // This is a fast operation.
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Convert the string value to a number once
     const numericValue = Number(e.target.value);
-
     setViewState(numericValue);
+  };
 
-    // Now, compare the numericValue to the number 1
-    if (numericValue !== 1) {
+  // 2. onMouseUp/onTouchEnd handler: Triggers the expensive layout change ONCE.
+  // This fires when the user lets go of the slider.
+  const handleSliderRelease = () => {
+    // We can use the viewState directly since it was updated by onChange
+    if (viewState !== 1) {
       setIsSplit(false);
     } else {
       setIsSplit(true);
     }
   };
+
   return (
-    <div className="group bottom-0 left-1/2 z-10 absolute flex justify-center items-center w-72 h-20 -translate-x-1/2">
+    // We add `will-change-transform` here to hint to the browser
+    // This element should be optimized, preventing layout shift.
+    <div className="group bottom-0 left-1/2 z-10 absolute flex justify-center items-center w-72 h-20 -translate-x-1/2 will-change-transform">
       <div
         className={`
           transition-opacity duration-300 ease-in-out
@@ -95,14 +103,19 @@ export function SplitScreenControls({
             )}
           </button>
         ) : (
-          <div className="bg-white/80 shadow-lg backdrop-blur-sm p-2 px-4 rounded-full">
+          // This div with backdrop-blur is the source of the presentation delay.
+          // Adding will-change-transform tells the browser to promote it
+          // to its own layer, isolating it from child (input) updates.
+          <div className="bg-white/80 shadow-lg backdrop-blur-sm p-2 px-4 rounded-full will-change-transform">
             <input
               type="range"
               min="0"
               max="2"
               step="1"
               value={viewState}
-              onChange={handleSliderChange}
+              onChange={handleSliderChange} // 3. Fast update
+              onMouseUp={handleSliderRelease} // 4. Expensive update on release
+              onTouchEnd={handleSliderRelease} // 5. Expensive update on release
               className="bg-gray-300 rounded-lg w-52 h-2 accent-blue-600 appearance-none cursor-pointer"
               aria-label="View switcher"
             />
