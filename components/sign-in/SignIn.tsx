@@ -1,21 +1,54 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, Lock, LogIn } from "lucide-react";
+// 1. Import Supabase client and new icons
 
-export function SignIn() {
+import { Mail, Lock, LogIn, AlertTriangle, Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
+
+// 2. Add 'onSuccess' to the props
+interface SignInProps {
+  onSwitchToSignUp: () => void;
+  onSuccess: () => void; // This will be the 'closeModal' function
+}
+
+export function SignIn({ onSwitchToSignUp, onSuccess }: SignInProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // 3. Add loading and error states
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // 4. Update handleSubmit to be async and use Supabase
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, you would handle authentication here
-    console.log("Signing in with:", { email, password });
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (error) throw error;
+
+      console.log("Sign in successful:", data.session);
+      onSuccess(); // Call the function to close the modal
+    } catch (err) {
+      if (err instanceof Error) {
+        console.error("Error creating store:", err);
+        setError(err.message);
+      } else {
+        setError("An unknown error occurred.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    // You can place this component inside any page,
-    // e.g., a new app/login/page.tsx
     <div className="flex justify-center items-center p-6">
       <div className="p-8 rounded-2xl w-full max-w-md glass-effect">
         <h2 className="mb-8 font-bold text-white text-3xl text-center">
@@ -25,6 +58,7 @@ export function SignIn() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Email Input */}
           <div>
+            {/* ... (email input is unchanged) ... */}
             <label
               htmlFor="email"
               className="block mb-2 font-medium text-slate-300 text-sm"
@@ -49,6 +83,7 @@ export function SignIn() {
 
           {/* Password Input */}
           <div>
+            {/* ... (password input is unchanged) ... */}
             <label
               htmlFor="password"
               className="block mb-2 font-medium text-slate-300 text-sm"
@@ -71,15 +106,39 @@ export function SignIn() {
             </div>
           </div>
 
-          {/* Submit Button */}
+          {/* 5. Show error message if it exists */}
+          {error && (
+            <div className="flex items-center gap-2 text-red-300 text-sm">
+              <AlertTriangle className="w-5 h-5" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* 6. Update Submit Button to show loading state */}
           <button
             type="submit"
             className="flex justify-center items-center gap-2 w-full btn-3d-glass"
+            disabled={loading}
           >
-            <LogIn className="w-5 h-5" />
-            <span>Sign In</span>
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <LogIn className="w-5 h-5" />
+            )}
+            <span>{loading ? "Signing In..." : "Sign In"}</span>
           </button>
         </form>
+
+        {/* 2. Add the "Switch to Sign Up" link (unchanged) */}
+        <p className="pt-6 text-slate-300 text-sm text-center">
+          First time user?{" "}
+          <button
+            onClick={onSwitchToSignUp}
+            className="font-medium text-blue-300 hover:text-blue-200"
+          >
+            Sign up with your company code.
+          </button>
+        </p>
       </div>
     </div>
   );

@@ -4,18 +4,24 @@ import FormFields from "./components/FormFields";
 import TerminalButtons from "./components/buttons/TerminalButtons";
 import { useState } from "react";
 import { SignIn } from "../sign-in/SignIn";
+import { SignUp } from "../sign-in/SignUp"; // 1. Import the new SignUp component
 import { X } from "lucide-react";
+
+// 2. Define the states for our modal
+type AuthModalState = "hidden" | "signIn" | "signUp";
 
 const SalesTerminal = () => {
   const { isSplit } = useView();
   const isMobile = useMediaQuery("(max-width: 768px)");
-  const [isSignInVisible, setIsSignInVisible] = useState(false);
 
-  const openSignInModal = () => {
-    setIsSignInVisible(true);
-    console.log(isSignInVisible);
-  };
-  const closeSignInModal = () => setIsSignInVisible(false);
+  // 3. Change state from boolean to our new type
+  const [authModalState, setAuthModalState] =
+    useState<AuthModalState>("hidden");
+
+  // 4. Update modal control functions
+  const openSignInModal = () => setAuthModalState("signIn");
+  const openSignUpModal = () => setAuthModalState("signUp");
+  const closeModal = () => setAuthModalState("hidden");
 
   function ScreenLogic() {
     if (isSplit && !isMobile) {
@@ -48,29 +54,36 @@ const SalesTerminal = () => {
           TERMINAL CART
         </div>
       </div>
-      {isSignInVisible && (
+
+      {/* 5. Update modal visibility check */}
+      {authModalState !== "hidden" && (
         <div
           // Backdrop
           className="z-40 fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm"
-          onClick={closeSignInModal} // Close modal on backdrop click
+          onClick={closeModal} // Close modal on backdrop click
         >
           <div
             // Modal Content wrapper
-            // We stop propagation so clicking the modal doesn't close it
             className="relative"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
             <button
-              onClick={closeSignInModal}
+              onClick={closeModal}
               className="top-4 right-4 z-50 absolute p-2 text-slate-400 hover:text-white transition-colors"
             >
               <X className="w-6 h-6" />
             </button>
 
-            {/* Render the SignIn component */}
-            {/* Your SignIn.tsx already includes the glass-effect div */}
-            <SignIn />
+            {/* 6. Conditionally render the correct component */}
+            {authModalState === "signIn" ? (
+              <SignIn
+                onSwitchToSignUp={openSignUpModal}
+                onSuccess={closeModal}
+              />
+            ) : (
+              <SignUp onSwitchToSignIn={openSignInModal} />
+            )}
           </div>
         </div>
       )}

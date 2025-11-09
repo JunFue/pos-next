@@ -1,4 +1,4 @@
-import Navigation from "./components/navigation/Navigation";
+import Navigation from "../components/navigation/Navigation";
 
 // This is the content for the RIGHT window when at /dashboard
 export default function DashboardHomePage() {

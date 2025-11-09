@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useMediaQuery } from "../../hooks/useMediaQuery";
+import { useMediaQuery } from "../../app/hooks/useMediaQuery";
 import { SplitScreenControls } from "./SplitScreenControls";
 import LeftWindow from "./LeftWindow";
 import RightWindow from "./RightWindow";
