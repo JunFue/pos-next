@@ -1,6 +1,13 @@
+// SignUp.tsx (Refactored with useMutation)
+
 "use client";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+// 1. Import useMutation from TanStack Query
+import { useMutation } from "@tanstack/react-query";
 
 import {
   Mail,
@@ -13,67 +20,81 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
-// Prop to allow switching back to the sign-in modal
+// Import schema and type from types.ts
+import { signUpSchema, SignUpFormValues } from "@/lib/types";
+
 interface SignUpProps {
   onSwitchToSignIn: () => void;
 }
 
-export function SignUp({ onSwitchToSignIn }: SignUpProps) {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [jobTitle, setJobTitle] = useState(""); // Added Job Title state
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [enrollmentId, setEnrollmentId] = useState(""); // Renamed from companyCode
+// 2. Define the asynchronous sign-up function outside the component
+const signUpUser = async (values: SignUpFormValues) => {
+  const { error: authError } = await supabase.auth.signUp({
+    email: values.email,
+    password: values.password,
+    options: {
+      data: {
+        signup_type: "member",
+        role: "member",
+        first_name: values.firstName,
+        last_name: values.lastName,
+        contact_email: values.email,
+        job_title: values.jobTitle,
+        enrollment_id: values.enrollmentId,
+      },
+    },
+  });
 
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  if (authError) {
+    // TanStack Query relies on thrown errors to set the 'isError' state
+    throw authError;
+  }
+};
+
+export function SignUp({ onSwitchToSignIn }: SignUpProps) {
+  // We keep the success state to show the post-signup message
   const [success, setSuccess] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setSuccess(false);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setError: setFormError,
+  } = useForm<SignUpFormValues>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      jobTitle: "",
+      email: "",
+      password: "",
+      enrollmentId: "",
+    },
+  });
 
-    try {
-      // Step 1: Sign up the new user and pass ALL custom data (including enrollment ID)
-      // The Supabase trigger will use this 'data' object to populate the members table.
-      const { error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            signup_type: "member", // Crucial for the SQL trigger function
-            role: "member", // Assign member role in public.users
-            first_name: firstName,
-            last_name: lastName,
-            contact_email: email, // Use email as contact_email for member
-            job_title: jobTitle,
-            enrollment_id: enrollmentId, // This is the company code/ID needed
-          },
-        },
-      });
-
-      if (authError) {
-        // Supabase error messages often indicate the exact problem (e.g., invalid enrollment_id)
-        throw authError;
-      }
-
-      // If signup is successful, the trigger has already run and created the member record.
-
-      // All steps successful!
+  // 3. Setup useMutation
+  const mutation = useMutation({
+    mutationFn: signUpUser,
+    onSuccess: () => {
+      // 4. Show success message on successful sign-up
       setSuccess(true);
-    } catch (err) {
-      if (err instanceof Error) {
-        console.error("Error creating account:", err);
-        setError(err.message);
-      } else {
-        setError("An unknown error occurred.");
-      }
-    } finally {
-      setLoading(false);
-    }
+    },
+    onError: (err: Error) => {
+      // 5. Use RHF's setError to show the server-side error message
+      console.error("Error creating account:", err);
+      setFormError("root.serverError", {
+        type: "server",
+        message: err.message,
+      });
+    },
+  });
+
+  // 6. The onSubmit handler is simplified to just call mutation.mutate
+  const onSubmit = (values: SignUpFormValues) => {
+    // Clear any previous server errors and success state before submitting
+    setFormError("root.serverError", { message: "" });
+    setSuccess(false);
+    mutation.mutate(values);
   };
 
   return (
@@ -85,7 +106,7 @@ export function SignUp({ onSwitchToSignIn }: SignUpProps) {
 
         {success ? (
           <div className="text-green-300 text-center">
-            <p className="font-semibold">Success!</p>
+            <p className="font-semibold">Success! 🎉</p>
             <p>
               A confirmation email has been sent. You can sign in once
               confirmed.
@@ -98,118 +119,149 @@ export function SignUp({ onSwitchToSignIn }: SignUpProps) {
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* First Name */}
-            <div className="relative">
-              <span className="left-0 absolute inset-y-0 flex items-center pl-3">
-                <User className="w-5 h-5 text-slate-400" />
-              </span>
-              <input
-                type="text"
-                placeholder="First Name"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="pl-10 w-full input-dark"
-                required
-              />
+            <div>
+              <div className="relative">
+                <span className="left-0 absolute inset-y-0 flex items-center pl-3">
+                  <User className="w-5 h-5 text-slate-400" />
+                </span>
+                <input
+                  type="text"
+                  placeholder="First Name"
+                  {...register("firstName")}
+                  className="pl-10 w-full input-dark"
+                />
+              </div>
+              {errors.firstName && (
+                <p className="mt-1 text-red-300 text-sm">
+                  {errors.firstName.message}
+                </p>
+              )}
             </div>
 
             {/* Last Name */}
-            <div className="relative">
-              <span className="left-0 absolute inset-y-0 flex items-center pl-3">
-                <User className="w-5 h-5 text-slate-400" />
-              </span>
-              <input
-                type="text"
-                placeholder="Last Name"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="pl-10 w-full input-dark"
-                required
-              />
+            <div>
+              <div className="relative">
+                <span className="left-0 absolute inset-y-0 flex items-center pl-3">
+                  <User className="w-5 h-5 text-slate-400" />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Last Name"
+                  {...register("lastName")}
+                  className="pl-10 w-full input-dark"
+                />
+              </div>
+              {errors.lastName && (
+                <p className="mt-1 text-red-300 text-sm">
+                  {errors.lastName.message}
+                </p>
+              )}
             </div>
 
             {/* Job Title */}
-            <div className="relative">
-              <span className="left-0 absolute inset-y-0 flex items-center pl-3">
-                {/* Reusing User icon, or maybe a Briefcase icon if available */}
-                <User className="w-5 h-5 text-slate-400" />
-              </span>
-              <input
-                type="text"
-                placeholder="Job Title (e.g., Sales Associate)"
-                value={jobTitle}
-                onChange={(e) => setJobTitle(e.target.value)}
-                className="pl-10 w-full input-dark"
-                required
-              />
+            <div>
+              <div className="relative">
+                <span className="left-0 absolute inset-y-0 flex items-center pl-3">
+                  <User className="w-5 h-5 text-slate-400" />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Job Title (e.g., Sales Associate)"
+                  {...register("jobTitle")}
+                  className="pl-10 w-full input-dark"
+                />
+              </div>
+              {errors.jobTitle && (
+                <p className="mt-1 text-red-300 text-sm">
+                  {errors.jobTitle.message}
+                </p>
+              )}
             </div>
 
             {/* Email */}
-            <div className="relative">
-              <span className="left-0 absolute inset-y-0 flex items-center pl-3">
-                <Mail className="w-5 h-5 text-slate-400" />
-              </span>
-              <input
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="pl-10 w-full input-dark"
-                required
-              />
+            <div>
+              <div className="relative">
+                <span className="left-0 absolute inset-y-0 flex items-center pl-3">
+                  <Mail className="w-5 h-5 text-slate-400" />
+                </span>
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  {...register("email")}
+                  className="pl-10 w-full input-dark"
+                />
+              </div>
+              {errors.email && (
+                <p className="mt-1 text-red-300 text-sm">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             {/* Password */}
-            <div className="relative">
-              <span className="left-0 absolute inset-y-0 flex items-center pl-3">
-                <Lock className="w-5 h-5 text-slate-400" />
-              </span>
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 w-full input-dark"
-                required
-              />
+            <div>
+              <div className="relative">
+                <span className="left-0 absolute inset-y-0 flex items-center pl-3">
+                  <Lock className="w-5 h-5 text-slate-400" />
+                </span>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  {...register("password")}
+                  className="pl-10 w-full input-dark"
+                />
+              </div>
+              {errors.password && (
+                <p className="mt-1 text-red-300 text-sm">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
-            {/* Enrollment ID (previously Company Code) */}
-            <div className="relative">
-              <span className="left-0 absolute inset-y-0 flex items-center pl-3">
-                <Hash className="w-5 h-5 text-slate-400" />
-              </span>
-              <input
-                type="text"
-                placeholder="Enrollment ID (e.g., A7B2C9)"
-                value={enrollmentId}
-                onChange={(e) => setEnrollmentId(e.target.value)}
-                className="pl-10 w-full input-dark"
-                required
-              />
+            {/* Enrollment ID */}
+            <div>
+              <div className="relative">
+                <span className="left-0 absolute inset-y-0 flex items-center pl-3">
+                  <Hash className="w-5 h-5 text-slate-400" />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Enrollment ID (e.g., A7B2C9)"
+                  {...register("enrollmentId")}
+                  className="pl-10 w-full input-dark"
+                />
+              </div>
+              {errors.enrollmentId && (
+                <p className="mt-1 text-red-300 text-sm">
+                  {errors.enrollmentId.message}
+                </p>
+              )}
             </div>
 
-            {/* Error Message */}
-            {error && (
+            {/* 7. Use mutation.isError and RHF errors for displaying the server message */}
+            {mutation.isError && errors.root?.serverError && (
               <div className="flex items-center gap-2 text-red-300 text-sm">
                 <AlertTriangle className="w-5 h-5" />
-                <span>{error}</span>
+                <span>{errors.root.serverError.message}</span>
               </div>
             )}
 
-            {/* Submit Button */}
+            {/* 8. Use mutation.isPending for the button state */}
             <button
               type="submit"
               className="flex justify-center items-center gap-2 w-full btn-3d-glass"
-              disabled={loading}
+              disabled={mutation.isPending}
             >
-              {loading ? (
+              {mutation.isPending ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <LogIn className="w-5 h-5" />
               )}
-              <span>{loading ? "Creating..." : "Create Account"}</span>
+              <span>
+                {mutation.isPending ? "Creating..." : "Create Account"}
+              </span>
             </button>
 
             {/* Switch to Sign In */}

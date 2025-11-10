@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ViewProvider } from "../components/window-layouts/ViewContext";
 import MainWindow from "../components/window-layouts/MainWindow";
+import { QueryProvider } from "@/context/QueryProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,10 +30,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ViewProvider>
-          {" "}
-          <MainWindow>{children}</MainWindow>
-        </ViewProvider>
+        <QueryProvider>
+          <ViewProvider>
+            {" "}
+            <MainWindow>{children}</MainWindow>
+          </ViewProvider>
+        </QueryProvider>
       </body>
     </html>
   );
