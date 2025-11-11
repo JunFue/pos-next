@@ -13,12 +13,12 @@ const RightWindow = ({ rightWidth, children }: RightWindowProps) => {
       className="h-screen overflow-hidden transition-all duration-500 ease-in-out shrink-0"
       style={{ width: rightWidth }}
     >
-      <div className="box-border pt-8 pr-8 pb-8 pl-4 w-full h-full">
+      <div className="box-border pt-4 pr-4 pb-4 pl-2 w-full h-full">
         {/* STEP 3: Render 'children' inside this div.
             I've also added 'overflow-y-auto' so your
             pages can scroll if they are long.
         */}
-        <div className="bg-primary-dark p-8 rounded-3xl w-full h-full overflow-y-auto">
+        <div className="bg-primary-dark p-2 rounded-3xl w-full h-full overflow-y-auto">
           {children}
         </div>
       </div>

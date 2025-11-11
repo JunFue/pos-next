@@ -10,7 +10,7 @@ const LeftWindow = ({ leftWidth }: LeftWindowProps) => {
       className="h-screen overflow-hidden transition-all duration-500 ease-in-out shrink-0"
       style={{ width: leftWidth }}
     >
-      <div className="box-border pt-8 pr-4 pb-8 pl-8 w-full h-full">
+      <div className="box-border pt-4 pr-2 pb-4 pl-4 w-full h-full">
         <div className="p-1 w-full h-full glass-effect">
           <SalesTerminal />
         </div>
