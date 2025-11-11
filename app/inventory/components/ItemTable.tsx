@@ -1,9 +1,9 @@
 // ItemTable.tsx
-// (Corrected to use React.memo)
+// (Corrected to handle null costPrice)
 
 "use client";
 
-import React from "react"; // 1. Import React
+import React from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -21,7 +21,6 @@ interface ItemTableProps {
 
 const columnHelper = createColumnHelper<Item>();
 
-// 2. Wrap the entire component in React.memo
 export const ItemTable: React.FC<ItemTableProps> = React.memo(
   ({ data, onEdit, onDelete }) => {
     const columns = React.useMemo(
@@ -36,15 +35,28 @@ export const ItemTable: React.FC<ItemTableProps> = React.memo(
         }),
         columnHelper.accessor("category", {
           header: "Category",
-          cell: (info) => info.getValue() || "N/A",
+          cell: (info) => info.getValue() || "N/A", // This one is already safe
         }),
+
+        // --- START OF FIX ---
+        // We need to safely handle cases where costPrice might be null or undefined
         columnHelper.accessor("costPrice", {
           header: "Cost Price",
-          cell: (info) => `$${info.getValue().toFixed(2)}`,
+          cell: (info) => {
+            const price = info.getValue();
+            // Check if price is a valid number before calling .toFixed()
+            if (typeof price === "number") {
+              return `$${price.toFixed(2)}`;
+            }
+            // Otherwise, display a fallback
+            return "N/A";
+          },
         }),
+        // --- END OF FIX ---
+
         columnHelper.accessor("description", {
           header: "Description",
-          cell: (info) => info.getValue() || "N/A",
+          cell: (info) => info.getValue() || "N/A", // This one is also safe
         }),
         columnHelper.display({
           id: "actions",
@@ -116,5 +128,4 @@ export const ItemTable: React.FC<ItemTableProps> = React.memo(
   }
 );
 
-// 3. Add a display name for better debugging (optional but good)
 ItemTable.displayName = "ItemTable";

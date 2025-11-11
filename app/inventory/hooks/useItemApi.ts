@@ -24,8 +24,6 @@ export const useInsertItem = () => {
             category: newItem.category,
             cost_price: newItem.costPrice,
             description: newItem.description,
-            admin_user_id: newItem.admin_user_id,
-            stores_id: newItem.stores_id,
           },
         ])
         .select()

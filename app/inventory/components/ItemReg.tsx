@@ -1,74 +1,177 @@
-// ItemReg.tsx
-// (Updated to use useInsertItem hook for data persistence)
-
 "use client";
 
 import React, { useState } from "react";
 import { ItemForm } from "./ItemForm";
 import { ItemTable } from "./ItemTable";
 import { Item } from "../utils/itemTypes";
-import { useInsertItem } from "../hooks/useItemApi";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabaseClient";
 
+// --- Supabase Insertion Function (WITH NEW LOGGING) ---
+const insertItem = async (item: Item) => {
+  // --- LOG 8.1 ---
+  console.log("Inside insertItem function. Received item:", item);
+
+  // Destructure to omit 'id' from the payload for insertion
+  const {
+    id, // Omitted
+    itemName,
+    sku,
+    category,
+    costPrice,
+    description,
+  } = item;
+
+  // Create the payload for Supabase
+  const insertPayload = {
+    item_name: itemName,
+    sku: sku,
+    category: category,
+    cost_price: costPrice,
+    description: description,
+  };
+
+  // --- LOG 8.2 (THE MOST IMPORTANT ONE) ---
+  console.log("Payload being sent to INSERT:", insertPayload);
+
+  const { data, error } = await supabase
+    .from("items")
+    .insert(insertPayload) // Send the payload *without* 'id'
+    .select()
+    .single();
+
+  if (error) {
+    // --- LOG 8.3 ---
+    console.error("Supabase call threw an error inside insertItem:", error);
+    throw error;
+  }
+
+  // --- LOG 8.4 ---
+  console.log("Insert call was successful.");
+  return data;
+};
+// --- End of insertItem function ---
+
+// --- Component Start ---
 const ItemReg = () => {
   const [data, setData] = useState<Item[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
-  // 2. Initialize the mutation hook
-  const insertItemMutation = useInsertItem();
+  const queryClient = useQueryClient();
 
-  // MOCK IDs: Replace these with actual values from your auth/app context
-  const currentAdminId = "d0e9c39a-7f23-4a8b-9c4d-1e2f3a4b5c6d"; // Example UUID
-  const currentStoreId = "a1b2c3d4-e5f6-7890-1234-567890abcdef"; // Example UUID
+  React.useEffect(() => {
+    const checkUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      console.log("CURRENTLY LOGGED IN AS:", user);
 
-  const handleFormSubmit = (formData: Item) => {
-    // --- DUPLICATE CHECK (Keep existing local check for immediate feedback) ---
-    const isDuplicate = data.some((item, index) => {
-      if (editingIndex !== null && index === editingIndex) {
-        return false;
-      }
-      return (
-        item.itemName.toLowerCase() === formData.itemName.toLowerCase() ||
-        item.sku.toLowerCase() === formData.sku.toLowerCase()
-      );
-    });
+      if (user) {
+        // You can also run the RLS check manually
+        const { data: member, error } = await supabase
+          .from("members")
+          .select("user_id")
+          .eq("user_id", user.id)
+          .single();
 
-    if (isDuplicate) {
-      alert("Error: An item with this Name or SKU already exists.");
-      return;
-    }
-
-    if (editingIndex !== null) {
-      // --- UPDATE LOGIC (Local only for now, implement update hook later) ---
-      setData((prevData) =>
-        prevData.map((item, index) =>
-          index === editingIndex ? formData : item
-        )
-      );
-      setEditingIndex(null);
-    } else {
-      // --- INSERT LOGIC (Using Supabase Hook) ---
-      insertItemMutation.mutate(
-        {
-          ...formData,
-          admin_user_id: currentAdminId,
-          stores_id: currentStoreId,
-        },
-        {
-          onSuccess: () => {
-            // On success, update local state for immediate UI feedback.
-            // Later, when you have a fetch query, you can just rely on
-            // invalidating that query instead of manually updating local state here.
-            setData((prevData) => [...prevData, formData]);
-            // Optional: Success message
-            // alert("Item saved successfully to database!");
-          },
-          onError: (error) => {
-            // Handle error (e.g., network error, database constraint violation not caught locally)
-            alert(`Failed to save item to database: ${error.message}`);
-          },
+        if (member) {
+          console.log(
+            "This user IS in the members table. Inserts should work."
+          );
+        } else {
+          console.error(
+            "THIS USER IS NOT IN THE MEMBERS TABLE. RLS will fail."
+          );
         }
-      );
-    }
+      }
+    };
+    checkUser();
+  }, []);
+
+  // --- MUTATION HOOK (with logging from previous step) ---
+  const itemMutation = useMutation({
+    mutationFn: async (itemData: Item) => {
+      // --- LOG 1 ---
+      console.log("Mutation function has started.");
+
+      const { id, ...itemPayload } = itemData;
+
+      if (editingIndex !== null) {
+        // --- LOG 2 ---
+        console.log("Entering UPDATE logic...");
+
+        const idToUpdate = data[editingIndex]?.id;
+
+        if (!idToUpdate) {
+          // --- LOG 3 ---
+          console.error(
+            "Update failed: ID was missing *before* Supabase call."
+          );
+          throw new Error("Item ID not found for update.");
+        }
+
+        // --- LOG 4 ---
+        console.log(`Preparing to update row with ID: ${idToUpdate}`);
+
+        const updatePayload = {
+          item_name: itemPayload.itemName,
+          sku: itemPayload.sku,
+          category: itemPayload.category,
+          cost_price: itemPayload.costPrice,
+          description: itemPayload.description,
+        };
+
+        // --- LOG 5 ---
+        console.log("Payload being sent to UPDATE:", updatePayload);
+
+        const { data: updatedData, error } = await supabase
+          .from("items")
+          .update(updatePayload)
+          .eq("id", idToUpdate)
+          .select()
+          .single();
+
+        if (error) {
+          // --- LOG 6 ---
+          console.error("Supabase call threw an error:", error);
+          throw error;
+        }
+
+        // --- LOG 7 ---
+        console.log("Update call was successful.");
+        return updatedData;
+      } else {
+        // --- LOG 8 ---
+        console.log("Entering INSERT logic... (calling insertItem)");
+        return insertItem(itemData); // Call the separate function
+      }
+    },
+    onSuccess: (newItem) => {
+      queryClient.invalidateQueries({ queryKey: ["items"] });
+
+      if (editingIndex !== null) {
+        setData((prevData) =>
+          prevData.map((item, i) =>
+            i === editingIndex ? (newItem as Item) : item
+          )
+        );
+        console.log("Item updated successfully!");
+      } else {
+        setData((prevData) => [...prevData, newItem as Item]);
+        console.log("New Item registered successfully!");
+      }
+      setEditingIndex(null);
+    },
+    onError: (error) => {
+      // --- LOG 9 (This is what you're seeing) ---
+      console.error("This log is from the 'onError' handler:", error);
+      alert(`Operation failed: ${error.message}`);
+    },
+  });
+
+  // --- Rest of Component ---
+  const handleFormSubmit = (formData: Item) => {
+    itemMutation.mutate(formData);
   };
 
   const handleEdit = (index: number) => {
@@ -81,6 +184,7 @@ const ItemReg = () => {
       if (editingIndex === index) {
         setEditingIndex(null);
       }
+      // TODO: Implement the Supabase DELETE mutation here
     }
   };
 
@@ -89,21 +193,16 @@ const ItemReg = () => {
   };
 
   const itemToEdit = editingIndex !== null ? data[editingIndex] : undefined;
+  const isLoading = itemMutation.isPending;
 
   return (
     <div className="space-y-8 p-6 glass-effect">
-      {/* Optionally show a loading indicator if mutation is pending */}
-      {insertItemMutation.isPending && (
-        <div className="text-blue-400 text-sm animate-pulse">
-          Saving item to database...
-        </div>
-      )}
-
       <ItemForm
         onFormSubmit={handleFormSubmit}
         itemToEdit={itemToEdit}
         onCancelEdit={handleCancelEdit}
       />
+      {isLoading && <p className="text-blue-400 text-center">Processing...</p>}
       {data.length > 0 && (
         <ItemTable data={data} onEdit={handleEdit} onDelete={handleDelete} />
       )}
