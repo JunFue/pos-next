@@ -1,35 +1,74 @@
-// SignIn.tsx (Refactored with useMutation)
+// SignIn.tsx (Refactored with useMutation and Role-Check)
 
 "use client";
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-
-// 1. Import useMutation from TanStack Query
 import { useMutation } from "@tanstack/react-query";
-
 import { Mail, Lock, LogIn, AlertTriangle, Loader2 } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
+// Fix: Use relative paths for imports as aliases are not resolving
 
-// Import schema and type from types.ts
 import { signInSchema, SignInFormValues } from "@/lib/types";
+import { supabase } from "@/lib/supabaseClient";
 
 interface SignInProps {
   onSwitchToSignUp: () => void;
   onSuccess: () => void;
 }
 
-// 2. Define the asynchronous sign-in function outside the component
+// 2. Define the asynchronous sign-in function
 const signInUser = async (values: SignInFormValues) => {
-  const { error } = await supabase.auth.signInWithPassword({
-    email: values.email,
-    password: values.password,
-  });
+  // 2a. Define the required role for this app
+  const APP_TYPE = "member";
 
-  if (error) {
-    // TanStack Query relies on thrown errors to set the 'isError' state
-    throw error;
+  // 2b. Sign in the user
+  const { data: sessionData, error: signInError } =
+    await supabase.auth.signInWithPassword({
+      email: values.email,
+      password: values.password,
+    });
+
+  if (signInError) {
+    // If sign-in fails (e.g., wrong password), throw the error
+    throw signInError;
   }
+
+  if (!sessionData?.user) {
+    // This should be impossible if signInError is null, but good to check
+    throw new Error("Sign in successful but no user data found.");
+  }
+
+  // 2c. POST-LOGIN CHECK: Immediately fetch the user's role from public.users
+  const { data: userData, error: profileError } = await supabase
+    .from("users")
+    .select("role")
+    .eq("user_id", sessionData.user.id)
+    .single();
+
+  if (profileError) {
+    // User is signed in, but we can't get their profile. Sign them out.
+    await supabase.auth.signOut();
+    console.error("Error fetching user profile:", profileError.message);
+    throw new Error("Could not verify user role. Please try again.");
+  }
+
+  // 2d. PERFORM THE ROLE CHECK
+  if (userData.role !== APP_TYPE) {
+    // Role mismatch! Sign the user out immediately.
+    await supabase.auth.signOut();
+
+    // Throw a specific error to be caught by useMutation's onError
+    if (userData.role === "admin") {
+      throw new Error("Access denied. Admins must sign in via the admin app.");
+    } else {
+      throw new Error(
+        `Access denied. Your role (${userData.role}) is not 'member'.`
+      );
+    }
+  }
+
+  // 2e. If we get here, sign-in was successful AND role check passed.
+  // The useMutation's onSuccess will now be called.
 };
 
 export function SignIn({ onSwitchToSignUp, onSuccess }: SignInProps) {
@@ -51,11 +90,12 @@ export function SignIn({ onSwitchToSignUp, onSuccess }: SignInProps) {
     mutationFn: signInUser,
     onSuccess: () => {
       // 4. Close the modal on successful sign-in
-      console.log("Sign in successful.");
+      console.log("Sign in successful and role verified.");
       onSuccess();
     },
     onError: (err: Error) => {
       // 5. Use RHF's setError to show the server-side error message
+      // This will now catch both "Invalid login" and our custom "Access denied" errors
       console.error("Error signing in:", err);
       setFormError("root.serverError", {
         type: "server",
