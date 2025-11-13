@@ -2,9 +2,10 @@
 
 "use client";
 
+// 1. 'useEffect' is no longer needed for this logic, so we can remove it.
 import React, { useState, useMemo, useRef } from "react";
-import { createPortal } from "react-dom"; // Required for the dropdown to float above headers
-import { DataGrid, Column } from "react-data-grid";
+import { createPortal } from "react-dom";
+import { DataGrid, Column, RenderHeaderCellProps } from "react-data-grid";
 import "react-data-grid/lib/styles.css";
 import { Item } from "./utils/itemTypes";
 import { Edit, Trash2, Filter, XCircle } from "lucide-react";
@@ -20,45 +21,40 @@ interface ItemTableProps {
 const safeString = (val: unknown) =>
   val === null || val === undefined ? "(Blanks)" : String(val);
 
-// --- Component: Header with Portal Filter ---
-const HeaderWithFilter = ({
-  column,
-  allData,
-  filters,
-  onApplyFilter,
-}: {
-  column: Column<Item>;
+// --- Component: Header with Portal Filter (Unchanged) ---
+interface HeaderWithFilterProps extends RenderHeaderCellProps<Item> {
   allData: Item[];
   filters: Record<string, string[]>;
-  // Updated type to accept null (for clearing filters)
   onApplyFilter: (
     key: string,
     vals: string[] | null,
     sort?: "ASC" | "DESC"
   ) => void;
-}) => {
+}
+
+const HeaderWithFilter = ({
+  column,
+  allData,
+  filters,
+  onApplyFilter,
+}: HeaderWithFilterProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   const buttonRef = useRef<HTMLButtonElement>(null);
   const columnKey = column.key as keyof Item;
-
-  // Check if a filter is active for this specific column
   const isActive = !!filters[columnKey];
 
-  // Toggle logic with position calculation
   const toggleOpen = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isOpen) {
       setIsOpen(false);
       return;
     }
-
-    // Calculate position to show portal relative to the button
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       setCoords({
-        top: rect.bottom + window.scrollY, // Just below the button
-        left: rect.right + window.scrollX, // Align to right edge
+        top: rect.bottom + window.scrollY,
+        left: rect.right + window.scrollX,
       });
       setIsOpen(true);
     }
@@ -68,9 +64,8 @@ const HeaderWithFilter = ({
     <>
       <div className="group flex justify-between items-center w-full h-full">
         <span className="truncate">{column.name}</span>
-
         <button
-          ref={buttonRef} // Attach ref here for positioning
+          ref={buttonRef}
           onClick={toggleOpen}
           className={`p-1 rounded hover:bg-gray-700 transition-opacity ml-1 ${
             isActive || isOpen
@@ -81,22 +76,19 @@ const HeaderWithFilter = ({
           <Filter className="w-3 h-3" />
         </button>
       </div>
-
-      {/* Render Dropdown via Portal */}
       {isOpen &&
         createPortal(
           <div
-            className="z-2 isolate fixed inset-0" // High Z-index to float above everything
-            onClick={() => setIsOpen(false)} // Click backdrop to close
+            className="z-2 isolate fixed inset-0"
+            onClick={() => setIsOpen(false)}
           >
-            {/* Wrapper to position the dropdown */}
             <div
               style={{
                 position: "absolute",
                 top: coords.top,
                 left: coords.left,
               }}
-              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside menu
+              onClick={(e) => e.stopPropagation()}
             >
               <FilterDropdown
                 columnKey={columnKey}
@@ -110,7 +102,7 @@ const HeaderWithFilter = ({
               />
             </div>
           </div>,
-          document.body // Render into body
+          document.body
         )}
     </>
   );
@@ -130,15 +122,17 @@ export const ItemTable: React.FC<ItemTableProps> = ({
     dir: "ASC" | "DESC" | null;
   }>({ col: null, dir: null });
 
-  // --- Filter & Sort Logic ---
+  // --- PAGINATION STATE (Unchanged) ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(20);
+  const paginationOptions = [20, 50, 100, 200, 500];
+
+  // --- Filter & Sort Logic (Unchanged) ---
   const processedRows = useMemo(() => {
     let rows = [...data];
-
     // A. Filter
     Object.keys(activeFilters).forEach((key) => {
       const allowedValues = new Set(activeFilters[key]);
-      // If allowedValues is empty, it effectively filters everything out unless logic is changed,
-      // but typically we only add the key to activeFilters if it has values.
       if (allowedValues.size > 0) {
         rows = rows.filter((row) => {
           const val = safeString(row[key as keyof Item]);
@@ -146,23 +140,18 @@ export const ItemTable: React.FC<ItemTableProps> = ({
         });
       }
     });
-
     // B. Sort
     if (sortState.col && sortState.dir) {
       rows.sort((a, b) => {
+        // ... (sort logic unchanged) ...
         const colKey = sortState.col!;
         const valA = a[colKey];
         const valB = b[colKey];
-
-        // Numeric sort
         if (typeof valA === "number" && typeof valB === "number") {
           return sortState.dir === "ASC" ? valA - valB : valB - valA;
         }
-
-        // String sort
         const strA = valA !== null && valA !== undefined ? String(valA) : "";
         const strB = valB !== null && valB !== undefined ? String(valB) : "";
-
         return sortState.dir === "ASC"
           ? strA.localeCompare(strB)
           : strB.localeCompare(strA);
@@ -170,6 +159,31 @@ export const ItemTable: React.FC<ItemTableProps> = ({
     }
     return rows;
   }, [data, activeFilters, sortState]);
+
+  // --- CALCULATE TOTALS ---
+  const totalRows = processedRows.length;
+  const totalPages = Math.ceil(totalRows / rowsPerPage) || 1; // Ensure at least 1 page
+
+  // --- 2. NEW LOGIC: Create a "safe" page number ---
+  // This is the derived value we will use instead of 'currentPage' directly
+  // It's guaranteed to be a valid page number.
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+  // --- 3. (REMOVED) The problematic useEffect is gone. ---
+
+  // --- CALCULATE PAGE-SPECIFIC VALUES ---
+  // 4. Use 'safeCurrentPage' for calculations
+  const startRow = totalRows > 0 ? (safeCurrentPage - 1) * rowsPerPage + 1 : 0;
+  const endRow = Math.min(safeCurrentPage * rowsPerPage, totalRows);
+
+  // --- CREATE THE FINAL 'PAGINATED' ROWS ---
+  const paginatedRows = useMemo(() => {
+    // 5. Use 'safeCurrentPage' for slicing
+    const startIndex = (safeCurrentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    return processedRows.slice(startIndex, endIndex);
+    // 6. Depend on 'safeCurrentPage'
+  }, [processedRows, safeCurrentPage, rowsPerPage]);
 
   // --- Handler for Filter/Sort ---
   const handleApplyFilter = (
@@ -180,10 +194,8 @@ export const ItemTable: React.FC<ItemTableProps> = ({
     setActiveFilters((prev) => {
       const next = { ...prev };
       if (values === null) {
-        // Remove filter if value is null (Clear Filter clicked)
         delete next[key];
       } else {
-        // Otherwise update it
         next[key] = values;
       }
       return next;
@@ -192,19 +204,24 @@ export const ItemTable: React.FC<ItemTableProps> = ({
     if (sortDir) {
       setSortState({ col: key as keyof Item, dir: sortDir });
     }
+
+    // 7. NEW: Reset to page 1 when a filter is applied
+    setCurrentPage(1);
   };
 
   // --- Clear All Filters ---
   const handleClearAllFilters = () => {
     setActiveFilters({});
     setSortState({ col: null, dir: null });
+    // 8. NEW: Reset to page 1 when clearing filters
+    setCurrentPage(1);
   };
 
-  // --- Columns Definition ---
+  // --- Columns Definition (Unchanged) ---
   const columns: Column<Item>[] = useMemo(() => {
+    // ... (column definitions are unchanged) ...
     const tailwindHeaderClass =
-      "bg-transparent text-gray-400 border-b border-gray-700 font-semibold uppercase text-xs flex items-center";
-
+      "bg-transparent text-gray-400 border-b border-gray-700 font-semibold uppercase text-xs flex items-center backdrop-blur-2xl ";
     const createColumn = (
       key: keyof Item,
       name: string,
@@ -216,7 +233,7 @@ export const ItemTable: React.FC<ItemTableProps> = ({
       headerCellClass: tailwindHeaderClass,
       renderHeaderCell: (props) => (
         <HeaderWithFilter
-          column={props.column}
+          {...props}
           allData={data}
           filters={activeFilters}
           onApplyFilter={handleApplyFilter}
@@ -245,7 +262,6 @@ export const ItemTable: React.FC<ItemTableProps> = ({
           <div className="flex gap-2">
             <button
               onClick={() => {
-                // CRITICAL: Find index in ORIGINAL data, not sorted/filtered view
                 const originalIndex = data.findIndex((i) => i.id === row.id);
                 if (originalIndex !== -1) onEdit(originalIndex);
               }}
@@ -256,7 +272,6 @@ export const ItemTable: React.FC<ItemTableProps> = ({
             </button>
             <button
               onClick={() => {
-                // CRITICAL: Find index in ORIGINAL data
                 const originalIndex = data.findIndex((i) => i.id === row.id);
                 if (originalIndex !== -1) onDelete(originalIndex);
               }}
@@ -269,16 +284,15 @@ export const ItemTable: React.FC<ItemTableProps> = ({
         ),
       },
     ];
-  }, [data, activeFilters, onEdit, onDelete]);
+  }, [data, activeFilters, onEdit, onDelete]); // handleApplyFilter is memoized
 
   return (
-    <div className="pb-40 overflow-x-auto">
+    <div className="flex flex-col h-full">
       <div className="flex items-center gap-4 mb-4">
+        {/* ... (Header/Clear button unchanged) ... */}
         <h3 className="font-semibold text-gray-200 text-lg">
           Registered Items
         </h3>
-
-        {/* "Clear All" Button - Only shows when filters are active */}
         {Object.keys(activeFilters).length > 0 && (
           <button
             onClick={handleClearAllFilters}
@@ -291,13 +305,72 @@ export const ItemTable: React.FC<ItemTableProps> = ({
 
       <DataGrid<Item>
         columns={columns}
-        rows={processedRows} // Use the filtered/sorted rows here
+        rows={paginatedRows}
         rowKeyGetter={(row: Item) => row.id!}
         className="border-none"
+        style={{ height: "auto", flexGrow: 1, minHeight: 0 }}
         rowClass={(_, index) =>
           `rdg-row bg-transparent text-[80%] text-gray-200 hover:bg-gray-700/40 border-b border-gray-800`
         }
       />
+
+      {/* --- PAGINATION FOOTER --- */}
+      <div className="flex justify-between items-center gap-4 bg-gray-900/50 p-3 border-gray-800 border-t text-sm">
+        <div className="text-gray-400">
+          {/* 9. Use 'safeCurrentPage' in the display string */}
+          Showing {startRow} - {endRow} of {totalRows} items
+        </div>
+
+        <div className="flex items-center gap-4">
+          {/* Rows per page selector (Unchanged) */}
+          <div className="flex items-center gap-2">
+            <label htmlFor="rowsPerPage" className="text-gray-400">
+              Rows:
+            </label>
+            <select
+              id="rowsPerPage"
+              value={rowsPerPage}
+              onChange={(e) => {
+                setRowsPerPage(Number(e.target.value));
+                setCurrentPage(1); // Reset to first page
+              }}
+              className="bg-gray-800 p-1 border border-gray-700 focus:border-blue-500 rounded focus:ring-1 focus:ring-blue-500 text-sm"
+            >
+              {paginationOptions.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Page navigation */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              // 10. Use 'safeCurrentPage' for disabling
+              disabled={safeCurrentPage === 1}
+              className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 px-2 py-1 rounded disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <span className="px-2 font-medium text-gray-300">
+              {/* 11. Use 'safeCurrentPage' for display */}
+              Page {safeCurrentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+              // 12. Use 'safeCurrentPage' for disabling
+              disabled={safeCurrentPage === totalPages || totalRows === 0}
+              className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 px-2 py-1 rounded disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
