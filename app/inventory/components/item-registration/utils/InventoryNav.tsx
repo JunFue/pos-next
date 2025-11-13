@@ -1,3 +1,5 @@
+// InventoryNav.tsx
+
 "use client";
 
 import React from "react";
@@ -23,20 +25,25 @@ const InventoryNav: React.FC<InventoryNavProps> = ({
   ];
 
   return (
-    // Use a 3-column grid for the navigation
-    <nav className="gap-4 grid grid-cols-1 md:grid-cols-3 mb-8">
+    // 1. Use flex layout instead of grid to keep tabs grouped
+    <nav className="flex items-center gap-6 pb-1 border-slate-700 border-b w-full overflow-x-auto">
       {navItems.map((item) => (
         <button
           key={item.id}
-          // Use btn-3d-glass and add flex for icon alignment
-          className={`btn-3d-glass flex items-center justify-center gap-2 ${
-            activeView === item.id
-              ? "bg-white/20" // Active state
-              : ""
-          }`}
+          // 2. Remove bulky 'btn-3d-glass' and use padding/border for tabs
+          className={`
+            flex items-center gap-2 px-3 py-2 text-sm font-medium whitespace-nowrap 
+            transition-colors duration-200 ease-in-out
+            
+            ${
+              activeView === item.id
+                ? "text-blue-400 border-b-2 border-blue-400" // Active state: Blue underline
+                : "text-gray-400 hover:text-gray-200 hover:border-b-2 hover:border-slate-500" // Inactive state: Subtle hover
+            }
+          `}
           onClick={() => setActiveView(item.id as InventoryView)}
         >
-          <item.Icon className="w-5 h-5" />
+          <item.Icon className="w-4 h-4" />
           <span>{item.text}</span>
         </button>
       ))}

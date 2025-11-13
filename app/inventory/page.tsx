@@ -1,3 +1,5 @@
+// page.tsx
+
 "use client";
 
 import { useState } from "react";
@@ -17,7 +19,6 @@ import StocksMonitor from "./components/StocksMonitor";
 export default function InventoryPage() {
   const [activeView, setActiveView] = useState<InventoryView>("register");
 
-  // This function remains the same
   const renderView = () => {
     switch (activeView) {
       case "register":
@@ -32,25 +33,29 @@ export default function InventoryPage() {
   };
 
   return (
-    <div className="p-6 text-white">
-      {/* --- BACK BUTTON --- */}
-      <Link
-        href="/"
-        className="inline-flex items-center gap-2 mb-4 text-slate-400 hover:text-white text-sm transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        <span>Back to Home</span>
-      </Link>
+    <div className="text-white">
+      <div className="bg-primary-light">
+        {/* --- BACK BUTTON --- */}
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 mb-2 pt-2 pl-2 text-slate-400 hover:text-white text-sm transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Home</span>
+        </Link>
 
-      {/* --- HEADER --- */}
-      <h1 className="mb-4 font-bold text-2xl">Inventory Management</h1>
-      <div className="mb-5 border border-slate-700"></div>
+        {/* --- HEADER & NAVIGATION --- */}
+        <div className="flex justify-between items-end">
+          <h1 className="pl-4 font-bold text-3xl">Inventory Management</h1>
+          {/* Placeholder for future global actions, currently empty */}
+        </div>
+      </div>
 
-      {/* --- NEW NAVIGATION COMPONENT --- */}
-      <InventoryNav activeView={activeView} setActiveView={setActiveView} />
+      <div className="top-0 z-10 sticky bg-primary-light backdrop-blur-2xl">
+        <InventoryNav activeView={activeView} setActiveView={setActiveView} />
+      </div>
 
-      {/* --- DYNAMIC COMPONENT AREA --- */}
-      <div className="mt-6">{renderView()}</div>
+      <div>{renderView()}</div>
     </div>
   );
 }
