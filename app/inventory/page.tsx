@@ -1,15 +1,9 @@
-// page.tsx
-
 "use client";
 
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-
-// Import the view type and new nav component
 import InventoryNav, { InventoryView } from "./components/InventoryNav";
-
-// Adjust component import paths to be relative
 import ItemReg from "./components/item-registration/ItemReg";
 import StockMgt from "./components/StockMgt";
 import StocksMonitor from "./components/StocksMonitor";

@@ -1,30 +1,18 @@
-// ItemReg.tsx
-
 "use client";
 
 import React, { useState } from "react";
-import { ItemForm } from "./ItemForm";
-
+import { ItemForm } from "./item-form/ItemForm";
 import { Item } from "./utils/itemTypes";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
-
-// --- 1. Import the new API functions ---
 import { fetchItems, insertItem, updateItem, deleteItem } from "./lib/item.api";
-// ---
-// vvv 1. IMPORT YOUR NEW STATUS COMPONENT vvv
-// ---
 import { StatusDisplay } from "@/utils/StatusDisplay"; // Adjust path if needed
 import { ItemTable } from "./item-table/ItemTable";
-// ---
-
-// ... (Rest of the imports and component start) ...
 
 const ItemReg = () => {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
-  // ... (checkUser useEffect) ...
   React.useEffect(() => {
     const checkUser = async () => {
       const {
