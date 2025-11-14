@@ -1,135 +1,162 @@
-// lib/item.api.ts
+// app/inventory/components/item-registration/lib/item.api.ts
 
 import { supabase } from "@/lib/supabaseClient";
-import { Item } from "../utils/itemTypes"; // Adjust path as needed
+import { Item } from "../utils/itemTypes";
 
-// ---
-// --- TYPES & MAPPERS
-// ---
-
-// The type for the row as it comes from Supabase (snake_case)
-type SupabaseItemRow = {
+// 1. Interface for the database row (snake_case)
+interface ItemDbRow {
   id: string;
   item_name: string;
   sku: string;
-  category: string;
+  category: string | null;
   cost_price: number;
   description: string | null;
-  created_at?: string;
+}
+
+// 2. NEW: A specific type for the object we send to Supabase
+// This is a Partial version of a DB row, replacing 'any'
+type DbItemObject = Partial<ItemDbRow>;
+
+// 3. FIX: 'toDatabaseObject' is now fully type-safe, with NO 'any'
+// It explicitly maps fields from the JS 'Item' to the 'DbItemObject'
+const toDatabaseObject = (item: Partial<Item>): DbItemObject => {
+  const dbItem: DbItemObject = {};
+
+  // Pass-through fields (if they exist on the partial item)
+  if (item.id !== undefined) dbItem.id = item.id;
+  if (item.sku !== undefined) dbItem.sku = item.sku;
+
+  // Mapped fields
+  if (item.itemName !== undefined) dbItem.item_name = item.itemName;
+  if (item.costPrice !== undefined) dbItem.cost_price = item.costPrice;
+
+  // Mapped fields that handle 'undefined' -> 'null'
+  if (item.category !== undefined) {
+    dbItem.category = item.category ?? null;
+  }
+  if (item.description !== undefined) {
+    dbItem.description = item.description ?? null;
+  }
+
+  return dbItem;
 };
 
-// Helper to map from Supabase (snake_case) to our app (camelCase)
-const mapRowToItem = (row: SupabaseItemRow): Item => ({
-  id: row.id,
-  itemName: row.item_name,
-  sku: row.sku,
-  category: row.category,
-  costPrice: row.cost_price,
-  description: row.description ?? "",
-});
+// 4. 'fromDatabaseObject' remains the same, correctly typed
+// Maps DB snake_case (ItemDbRow) to JS camelCase (Item)
+const fromDatabaseObject = (dbItem: ItemDbRow): Item => {
+  const { item_name, cost_price, category, description, ...rest } = dbItem;
+  return {
+    ...rest,
+    itemName: item_name,
+    costPrice: cost_price,
+    // Convert 'null' from DB to 'undefined' for Zod/react-hook-form
+    category: category ?? undefined,
+    description: description ?? undefined,
+  };
+};
 
-// Helper to map from our app (camelCase) to Supabase (snake_case)
-const mapItemToPayload = (item: Omit<Item, "id">) => ({
-  item_name: item.itemName,
-  sku: item.sku,
-  category: item.category,
-  cost_price: item.costPrice,
-  description: item.description,
-});
+// --- API Functions (No further changes needed) ---
 
-// ---
-// --- EXPORTED API FUNCTIONS
-// ---
-
-/**
- * Fetches all items from the database
- */
 export const fetchItems = async (): Promise<Item[]> => {
   const { data, error } = await supabase
     .from("items")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .select("id, sku, category, description, item_name, cost_price");
 
   if (error) {
-    throw error;
+    console.error("Supabase fetch error:", error);
+    throw new Error(error.message);
   }
-  return data.map(mapRowToItem);
+
+  return data.map(fromDatabaseObject);
 };
 
-/**
- * Inserts a new item into the database
- */
 export const insertItem = async (item: Item): Promise<Item> => {
-  const insertPayload = mapItemToPayload(item);
+  const { id, ...rest } = item;
+  const dbItem = toDatabaseObject(rest); // 'rest' has no 'id'
 
   const { data, error } = await supabase
     .from("items")
-    .insert(insertPayload)
+    .insert(dbItem)
     .select()
     .single();
 
   if (error) {
-    throw error;
+    console.error("Supabase insert error:", error);
+    throw new Error(error.message);
   }
-  return mapRowToItem(data as SupabaseItemRow);
+
+  return fromDatabaseObject(data);
 };
 
-/**
- * Updates an existing item in the database
- */
 export const updateItem = async (item: Item): Promise<Item> => {
-  if (!item.id) throw new Error("ID is required for an update.");
+  if (!item.id) throw new Error("Item ID is required for update");
 
-  const updatePayload = mapItemToPayload(item);
+  const dbItem = toDatabaseObject(item); // 'item' includes 'id'
 
   const { data, error } = await supabase
     .from("items")
-    .update(updatePayload)
+    .update(dbItem)
     .eq("id", item.id)
     .select()
     .single();
 
   if (error) {
-    throw error;
+    console.error("Supabase update error:", error);
+    throw new Error(error.message);
   }
-  return mapRowToItem(data as SupabaseItemRow);
+  return fromDatabaseObject(data);
 };
 
-/**
- * Deletes an item from the database by its ID
- */
 export const deleteItem = async (id: string): Promise<void> => {
   const { error } = await supabase.from("items").delete().eq("id", id);
 
   if (error) {
-    throw error;
+    console.error("Supabase delete error:", error);
+    throw new Error(error.message);
   }
 };
 
 export const checkItemExistence = async (
-  field: "sku" | "itemName",
+  field: "itemName" | "sku",
   value: string,
   ignoreId?: string
 ): Promise<boolean> => {
-  // Supabase uses 'item_name' for item name
-  const dbField = field === "itemName" ? "item_name" : field;
+  const dbField = field === "itemName" ? "item_name" : "sku";
 
   let query = supabase
     .from("items")
-    // Select only 'id' for a quick count
-    .select("id", { count: "exact" })
+    .select("id", { count: "exact", head: true })
     .eq(dbField, value);
 
-  // If we are editing an item, exclude its own ID from the check
   if (ignoreId) {
-    query = query.neq("id", ignoreId);
+    query = query.not("id", "eq", ignoreId);
   }
 
-  const { count, error } = await query.maybeSingle();
+  const { count, error } = await query;
 
   if (error) {
-    throw error;
+    console.error("Supabase check existence error:", error);
+    throw new Error(error.message);
   }
-  // Returns true if count > 0
+
   return (count ?? 0) > 0;
+};
+
+export const insertManyItems = async (items: Item[]): Promise<Item[]> => {
+  const itemsToInsert = items.map((item) => {
+    const { id, ...rest } = item;
+    return toDatabaseObject(rest);
+  });
+
+  const { data, error } = await supabase
+    .from("items")
+    .insert(itemsToInsert)
+    .select();
+
+  if (error) {
+    console.error("Supabase insertMany error:", error);
+    throw new Error(error.message);
+  }
+
+  return data.map(fromDatabaseObject);
 };
