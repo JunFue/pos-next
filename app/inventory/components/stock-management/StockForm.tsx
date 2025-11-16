@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { useForm, SubmitHandler } from "react-hook-form";
+import React, { useEffect, useRef } from "react";
+import { useForm, SubmitHandler, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { stockFormSchema, StockFormSchema } from "./utils/types";
 import { StockData } from "./lib/stocks.api";
+import { ItemAutocomplete } from "@/utils/ItemAutoComplete";
 
 interface StockFormProps {
   onSubmit: SubmitHandler<StockFormSchema>;
@@ -23,6 +24,7 @@ export function StockForm({
     formState: { errors, isSubmitting },
     reset,
     setFocus,
+    control,
   } = useForm<StockFormSchema>({
     resolver: zodResolver(stockFormSchema),
     defaultValues: {
@@ -34,6 +36,30 @@ export function StockForm({
     },
   });
 
+  // --- (1) DESTRUCTURE 'onChange' FROM RHF's REGISTER ---
+  const {
+    ref: rhfStockFlowRef,
+    onChange: rhfStockFlowOnChange, // <-- (FIX) Get RHF's onChange
+    ...stockFlowRest
+  } = register("stockFlow");
+
+  const { ref: rhfQuantityRef, ...quantityRest } = register("quantity", {
+    valueAsNumber: true,
+  });
+  const { ref: rhfCapitalPriceRef, ...capitalPriceRest } = register(
+    "capitalPrice",
+    { valueAsNumber: true }
+  );
+  const { ref: rhfNotesRef, ...notesRest } = register("notes");
+
+  // Refs for focus management
+  const stockFlowRef = useRef<HTMLSelectElement>(null);
+  const quantityRef = useRef<HTMLInputElement>(null);
+  const capitalPriceRef = useRef<HTMLInputElement>(null);
+  const notesRef = useRef<HTMLTextAreaElement>(null);
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
+
+  // useEffect for resetting (no change)
   useEffect(() => {
     if (itemToEdit) {
       reset({
@@ -55,15 +81,38 @@ export function StockForm({
     }
   }, [itemToEdit, reset, setFocus]);
 
+  // handleFormSubmit (no change)
   const handleFormSubmit: SubmitHandler<StockFormSchema> = (data) => {
     onSubmit(data);
     if (!itemToEdit) reset();
   };
 
+  // handleKeyDown (Updated)
   const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
     if (e.key === "Enter" && e.shiftKey) {
       e.preventDefault();
       handleSubmit(handleFormSubmit)();
+      return;
+    }
+
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      const target = e.target as HTMLElement;
+
+      // --- (2) REMOVE 'stockFlow' LOGIC FROM HERE ---
+      // This allows 'Enter' to be used for confirming the select
+      if (target.id === "stockFlow") {
+        return; // Do nothing, let the onChange event handle it
+      }
+      // --- (END FIX) ---
+
+      if (target.id === "quantity") {
+        capitalPriceRef.current?.focus();
+      } else if (target.id === "capitalPrice") {
+        notesRef.current?.focus();
+      } else if (target.id === "notes") {
+        submitButtonRef.current?.focus();
+      }
     }
   };
 
@@ -75,6 +124,7 @@ export function StockForm({
         itemToEdit ? "bg-blue-900/20 border border-blue-500/30" : "bg-slate-900"
       }`}
     >
+      {/* Editing banner (no change) */}
       {itemToEdit && (
         <div className="flex justify-between items-center md:col-span-2 mb-2 pb-2 border-blue-500/30 border-b">
           <h3 className="font-semibold text-blue-200 text-sm">
@@ -90,7 +140,7 @@ export function StockForm({
         </div>
       )}
 
-      {/* Item Name */}
+      {/* Item Name (no change) */}
       <div>
         <label
           htmlFor="itemName"
@@ -98,22 +148,23 @@ export function StockForm({
         >
           Item Name
         </label>
-        <input
-          id="itemName"
-          type="text"
-          disabled={!!itemToEdit}
-          className={`w-full input-dark ${
-            itemToEdit ? "opacity-50 cursor-not-allowed text-slate-500" : ""
-          } ${errors.itemName ? "border-red-500" : ""}`}
-          placeholder="e.g., 'Product A'"
-          {...register("itemName")}
+        <Controller
+          name="itemName"
+          control={control}
+          render={({ field, fieldState: { error } }) => (
+            <ItemAutocomplete
+              {...field}
+              disabled={!!itemToEdit}
+              error={error?.message}
+              onItemSelect={() => {
+                stockFlowRef.current?.focus();
+              }}
+            />
+          )}
         />
-        {errors.itemName && (
-          <p className="mt-1 text-red-300 text-sm">{errors.itemName.message}</p>
-        )}
       </div>
 
-      {/* Stock Flow */}
+      {/* Stock Flow (Updated) */}
       <div>
         <label
           htmlFor="stockFlow"
@@ -123,10 +174,20 @@ export function StockForm({
         </label>
         <select
           id="stockFlow"
+          {...stockFlowRest} // Use the rest props (name, onBlur)
+          ref={(el) => {
+            rhfStockFlowRef(el);
+            stockFlowRef.current = el;
+          }}
+          // --- (3) ADD CUSTOM 'onChange' HANDLER ---
+          onChange={(e) => {
+            rhfStockFlowOnChange(e); // Call RHF's onChange
+            quantityRef.current?.focus(); // Jump to next field
+          }}
+          // --- (END FIX) ---
           className={`w-full input-dark ${
             errors.stockFlow ? "border-red-500" : ""
           }`}
-          {...register("stockFlow")}
         >
           <option value="">Select flow...</option>
           <option value="stock-in">Stock In</option>
@@ -139,7 +200,7 @@ export function StockForm({
         )}
       </div>
 
-      {/* Quantity */}
+      {/* Quantity (no change) */}
       <div>
         <label
           htmlFor="quantity"
@@ -150,18 +211,22 @@ export function StockForm({
         <input
           id="quantity"
           type="number"
+          {...quantityRest}
+          ref={(el) => {
+            rhfQuantityRef(el);
+            quantityRef.current = el;
+          }}
           className={`w-full input-dark ${
             errors.quantity ? "border-red-500" : ""
           }`}
           placeholder="0"
-          {...register("quantity", { valueAsNumber: true })}
         />
         {errors.quantity && (
           <p className="mt-1 text-red-300 text-sm">{errors.quantity.message}</p>
         )}
       </div>
 
-      {/* Capital Price */}
+      {/* Capital Price (no change) */}
       <div>
         <label
           htmlFor="capitalPrice"
@@ -173,11 +238,15 @@ export function StockForm({
           id="capitalPrice"
           type="number"
           step="0.01"
+          {...capitalPriceRest}
+          ref={(el) => {
+            rhfCapitalPriceRef(el);
+            capitalPriceRef.current = el;
+          }}
           className={`w-full input-dark ${
             errors.capitalPrice ? "border-red-500" : ""
           }`}
           placeholder="0.00"
-          {...register("capitalPrice", { valueAsNumber: true })}
         />
         {errors.capitalPrice && (
           <p className="mt-1 text-red-300 text-sm">
@@ -186,7 +255,7 @@ export function StockForm({
         )}
       </div>
 
-      {/* Notes */}
+      {/* Notes (no change) */}
       <div className="md:col-span-2">
         <label
           htmlFor="notes"
@@ -197,15 +266,19 @@ export function StockForm({
         <textarea
           id="notes"
           rows={3}
+          {...notesRest}
+          ref={(el) => {
+            rhfNotesRef(el);
+            notesRef.current = el;
+          }}
           className={`w-full input-dark ${
             errors.notes ? "border-red-500" : ""
           }`}
           placeholder="Description..."
-          {...register("notes")}
         ></textarea>
       </div>
 
-      {/* Buttons */}
+      {/* Buttons (no change) */}
       <div className="flex justify-end gap-3 md:col-span-2">
         {itemToEdit && (
           <button
@@ -218,6 +291,7 @@ export function StockForm({
         )}
         <button
           type="submit"
+          ref={submitButtonRef}
           className={`flex items-center gap-2 px-4 py-2 border rounded-md btn-3d-glass transition-all ${
             itemToEdit
               ? "bg-blue-500/30 hover:bg-blue-500/40 border-blue-500/50"

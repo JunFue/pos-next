@@ -1,5 +1,3 @@
-// app/inventory/components/item-registration/context/ItemsContext.tsx
-
 "use client";
 
 import React, { createContext, useContext, ReactNode } from "react";
