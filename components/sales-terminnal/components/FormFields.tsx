@@ -1,23 +1,35 @@
 // FormFields.tsx
 import React from "react";
-import { useFormContext } from "react-hook-form";
-import { PosFormValues } from "../utils/posSchema"; // Adjust path if needed
+import { useFormContext, Controller } from "react-hook-form";
+import { PosFormValues } from "../utils/posSchema";
+// Adjust this import path to where your component is located
+import { ItemAutocomplete } from "../../../utils/ItemAutoComplete";
 
 export const FormFields = React.memo(() => {
   // Get form methods from the FormProvider context
   const {
     register,
-    formState: { errors },
+    control, // Needed for the Autocomplete Controller
+    setValue, // Needed to force the SKU value
   } = useFormContext<PosFormValues>();
 
-  // Helper array for fields
-  const fields = [
+  // Define a type for the field configuration
+  type FieldConfig = {
+    title: string;
+    id: keyof PosFormValues; // Ensure id is a key of PosFormValues
+    label: string;
+    type: "text" | "number";
+    readOnly?: boolean; // Make readOnly optional
+  };
+
+  // Helper array for fields with explicit type
+  const fields: FieldConfig[] = [
     {
       title: "Cashier Name",
       id: "cashierName",
       label: "Cashier Name:",
       type: "text",
-      readOnly: true, // TODO
+      readOnly: true,
     },
     {
       title: "Transaction Time",
@@ -46,21 +58,22 @@ export const FormFields = React.memo(() => {
       id: "barcode",
       label: "Barcode:",
       type: "text",
-      readOnly: true, // TODO
+      // CHANGED: set to false so user can type "Ashitaba" to search
+      readOnly: false,
     },
     {
       title: "Available Stocks",
       id: "availableStocks",
       label: "Available Stocks:",
       type: "number",
-      readOnly: true, // TODO
+      readOnly: true,
     },
     {
       title: "Grand Total",
       id: "grandTotal",
       label: "Grand Total:",
       type: "number",
-      readOnly: true, // TODO
+      readOnly: true,
     },
     { title: "Quantity", id: "quantity", label: "Quantity:", type: "number" },
     { title: "Discount", id: "discount", label: "Discount:", type: "number" },
@@ -69,12 +82,11 @@ export const FormFields = React.memo(() => {
       id: "change",
       label: "Change:",
       type: "number",
-      readOnly: true, // TODO
+      readOnly: true,
     },
-  ] as const; // Use 'as const' for stronger type inference on 'id'
+  ];
 
   return (
-    // The <form> tag is now in the parent SalesTerminal.tsx
     <div className="w-full h-full grow">
       <div className="gap-2 grid grid-cols-6 grid-rows-4 p-4 w-full h-full text-white">
         {fields.map((field) => (
@@ -87,29 +99,54 @@ export const FormFields = React.memo(() => {
               {field.label}
             </label>
 
-            <div className="flex items-center">
-              <input
-                type={field.type}
-                id={field.id}
-                // Register the input with react-hook-form
-                {...register(field.id, {
-                  // Coerce number inputs to be stored as numbers
-                  ...(field.type === "number" && { valueAsNumber: true }),
-                })}
-                readOnly={field.readOnly}
-                className="w-full h-3 text-xs sm:text-sm truncate input-dark"
-                // Add step for 0.00 format on relevant number inputs
-                {...(field.type === "number" &&
-                  (field.id === "payment" ||
-                    field.id === "voucher" ||
-                    field.id === "discount") && { step: "0.01" })}
-              />
-              {/* Optional: Display field-specific errors
-              {errors[field.id] && (
-                <span className="-bottom-4 absolute text-red-500 text-xs">
-                  {errors[field.id]?.message}
-                </span>
-              )} */}
+            <div className="flex items-center w-full">
+              {/* CONDITIONAL RENDERING: Special logic for Barcode */}
+              {field.id === "barcode" ? (
+                <Controller
+                  control={control}
+                  name="barcode"
+                  render={({
+                    field: { onChange, value, onBlur },
+                    fieldState: { error },
+                  }) => (
+                    <div className="w-full">
+                      {/* Wrapped in div to manage width since ItemAutocomplete is w-full */}
+                      <ItemAutocomplete
+                        value={value ? String(value) : ""}
+                        onChange={onChange} // Allows typing updates
+                        onBlur={onBlur}
+                        error={error?.message}
+                        onItemSelect={(item) => {
+                          // 1. The component sets value to item.itemName internally.
+                          // 2. We immediately overwrite it with the SKU.
+                          setValue("barcode", item.sku, {
+                            shouldValidate: true,
+                          });
+
+                          // Optional: You might also want to auto-fill other fields
+                          // like price or quantity here using setValue if needed.
+                          // setValue("quantity", 1);
+                        }}
+                      />
+                    </div>
+                  )}
+                />
+              ) : (
+                // STANDARD RENDERING for all other fields
+                <input
+                  type={field.type}
+                  id={field.id}
+                  {...register(field.id, {
+                    ...(field.type === "number" && { valueAsNumber: true }),
+                  })}
+                  readOnly={field.readOnly}
+                  className="w-full h-3 text-xs sm:text-sm truncate input-dark"
+                  {...(field.type === "number" &&
+                    (field.id === "payment" ||
+                      field.id === "voucher" ||
+                      field.id === "discount") && { step: "0.01" })}
+                />
+              )}
             </div>
           </React.Fragment>
         ))}

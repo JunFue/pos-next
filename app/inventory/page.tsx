@@ -7,7 +7,6 @@ import InventoryNav, { InventoryView } from "./components/InventoryNav";
 import ItemReg from "./components/item-registration/ItemReg";
 import { StockManagement } from "./components/stock-management/StockManagement";
 import StocksMonitor from "./components/StocksMonitor";
-import { StockManagement } from "./components/stock-management/StockManagement";
 
 export default function InventoryPage() {
   const [activeView, setActiveView] = useState<InventoryView>("register");
