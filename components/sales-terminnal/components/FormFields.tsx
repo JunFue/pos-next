@@ -1,43 +1,81 @@
-import React from "react"; // Added for React.Fragment
+// FormFields.tsx
+import React from "react";
+import { useFormContext } from "react-hook-form";
+import { PosFormValues } from "../utils/posSchema"; // Adjust path if needed
 
 export const FormFields = React.memo(() => {
-  // Helper array for fields to avoid repetition
-  // Added IDs for 'htmlFor' and 'key' props
-  // Corrected spelling of "Customer", "Time", etc.
+  // Get form methods from the FormProvider context
+  const {
+    register,
+    formState: { errors },
+  } = useFormContext<PosFormValues>();
+
+  // Helper array for fields
   const fields = [
-    { title: "Cashier Name", id: "cashierName", label: "Cashier Name:" },
+    {
+      title: "Cashier Name",
+      id: "cashierName",
+      label: "Cashier Name:",
+      type: "text",
+      readOnly: true, // TODO
+    },
     {
       title: "Transaction Time",
       id: "transactionTime",
       label: "Transaction Time:",
+      type: "text",
+      readOnly: true,
     },
-    { title: "Payment", id: "payment", label: "Payment:" },
-    { title: "Costumer Name", id: "customerName", label: "Customer Name:" },
-    { title: "Transaction No.", id: "transactionNo", label: "Transaction No:" },
-    { title: "Discount", id: "discount", label: "Discount:" },
-    { title: "Barcode", id: "barcode", label: "Barcode:" },
+    { title: "Payment", id: "payment", label: "Payment:", type: "number" },
+    {
+      title: "Costumer Name",
+      id: "customerName",
+      label: "Customer Name:",
+      type: "text",
+    },
+    {
+      title: "Transaction No.",
+      id: "transactionNo",
+      label: "Transaction No:",
+      type: "text",
+      readOnly: true,
+    },
+    { title: "Voucher", id: "voucher", label: "Voucher:", type: "number" },
+    {
+      title: "Barcode",
+      id: "barcode",
+      label: "Barcode:",
+      type: "text",
+      readOnly: true, // TODO
+    },
     {
       title: "Available Stocks",
       id: "availableStocks",
       label: "Available Stocks:",
+      type: "number",
+      readOnly: true, // TODO
     },
-    { title: "Grand Total", id: "grandTotal", label: "Grand Total:" },
-    { title: "Quantity", id: "quantity", label: "Quantity:" },
-    { title: "Costumer Price", id: "customerPrice", label: "Customer Price:" },
-    { title: "Change", id: "change", label: "Change:" },
-  ];
+    {
+      title: "Grand Total",
+      id: "grandTotal",
+      label: "Grand Total:",
+      type: "number",
+      readOnly: true, // TODO
+    },
+    { title: "Quantity", id: "quantity", label: "Quantity:", type: "number" },
+    { title: "Discount", id: "discount", label: "Discount:", type: "number" },
+    {
+      title: "Change",
+      id: "change",
+      label: "Change:",
+      type: "number",
+      readOnly: true, // TODO
+    },
+  ] as const; // Use 'as const' for stronger type inference on 'id'
 
   return (
-    <form action="" className="w-full h-full grow">
-      {/* Grid container: 
-        - grid-cols-6: Defines 6 columns (3 labels + 3 inputs)
-        - grid-rows-4: Defines 4 rows
-        - gap-x-4: Horizontal gap between columns (e.g., between input and next label)
-        - gap-y-2: Vertical gap between rows
-        - p-4: Padding inside the bordered container
-        - w-full h-full: Take up full space given by parent
-        - text-white: Default text color
-      */}
+    // The <form> tag is now in the parent SalesTerminal.tsx
+    <div className="w-full h-full grow">
       <div className="gap-2 grid grid-cols-6 grid-rows-4 p-4 w-full h-full text-white">
         {fields.map((field) => (
           <React.Fragment key={field.id}>
@@ -51,15 +89,32 @@ export const FormFields = React.memo(() => {
 
             <div className="flex items-center">
               <input
-                type="text"
+                type={field.type}
                 id={field.id}
+                // Register the input with react-hook-form
+                {...register(field.id, {
+                  // Coerce number inputs to be stored as numbers
+                  ...(field.type === "number" && { valueAsNumber: true }),
+                })}
+                readOnly={field.readOnly}
                 className="w-full h-3 text-xs sm:text-sm truncate input-dark"
+                // Add step for 0.00 format on relevant number inputs
+                {...(field.type === "number" &&
+                  (field.id === "payment" ||
+                    field.id === "voucher" ||
+                    field.id === "discount") && { step: "0.01" })}
               />
+              {/* Optional: Display field-specific errors
+              {errors[field.id] && (
+                <span className="-bottom-4 absolute text-red-500 text-xs">
+                  {errors[field.id]?.message}
+                </span>
+              )} */}
             </div>
           </React.Fragment>
         ))}
       </div>
-    </form>
+    </div>
   );
 });
 
