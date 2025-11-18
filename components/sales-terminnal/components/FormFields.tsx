@@ -1,3 +1,5 @@
+// app/inventory/components/stock-management/components/FormFields.tsx
+
 import React from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import { PosFormValues } from "../utils/posSchema";
@@ -29,10 +31,18 @@ export const FormFields = React.memo(
           setFocus("barcode");
           break;
         case "payment":
+          // Keeps existing behavior: Jump to Voucher
           setFocus("voucher");
           break;
         case "voucher":
+          // 1. Trigger "Done" functionality (Form Submit)
           target.closest("form")?.requestSubmit();
+
+          // 2. Jump focus to Customer Name
+          // Using setTimeout ensures the focus moves after the submit event processing starts
+          setTimeout(() => {
+            setFocus("customerName");
+          }, 0);
           break;
         default:
           break;
@@ -133,7 +143,6 @@ export const FormFields = React.memo(
                           onBlur={onBlur}
                           error={error?.message}
                           onItemSelect={(item) => {
-                            // If you want barcode to store SKU rather than itemName:
                             setValue("barcode", item.sku, {
                               shouldValidate: true,
                             });
