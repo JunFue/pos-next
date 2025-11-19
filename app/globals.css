@@ -222,16 +222,16 @@ body {
   }
 
   .text-retro-cyan {
-    color: #38bdf8; /* Bright Cyan */
-    text-shadow: 0 0 2px #38bdf8, 0 0 8px rgba(56, 189, 248, 0.6);
+    color: #64ffda; /* Bright Cyan */
+    text-shadow: 0 0 2px #64ffda, 0 0 8px rgba(56, 189, 248, 0.6);
     letter-spacing: 2px;
   }
 
   .retro-divider {
     height: 2px;
-    background-color: #38bdf8;
+    background-color: #64ffda;
     width: 100%;
-    box-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
+    box-shadow: 0 0 8px rgba(154, 237, 201, 0.8);
     margin: 0.25rem 0;
   }
 }
