@@ -21,7 +21,7 @@ export const FormFields = React.memo(
       const target = e.target as HTMLInputElement;
       const fieldId = target.id as keyof PosFormValues;
 
-      e.preventDefault();
+      e.preventDefault(); // <--- This stops the form from submitting!
 
       switch (fieldId) {
         case "customerName":
@@ -54,8 +54,8 @@ export const FormFields = React.memo(
       label: string;
       type: "text" | "number";
       readOnly?: boolean;
-      noAutoComplete?: boolean; // Added flag
-      hideSpinners?: boolean; // Added flag
+      noAutoComplete?: boolean;
+      hideSpinners?: boolean;
     };
 
     const fields: FieldConfig[] = [
@@ -64,7 +64,7 @@ export const FormFields = React.memo(
         id: "customerName",
         label: "Customer Name:",
         type: "text",
-        noAutoComplete: true, // Request 3: Remove autocomplete
+        noAutoComplete: true,
       },
       {
         title: "Transaction No.",
@@ -78,7 +78,7 @@ export const FormFields = React.memo(
         id: "payment",
         label: "Payment:",
         type: "number",
-        hideSpinners: true, // Request 5: No step count (spinners)
+        hideSpinners: true,
       },
       { title: "Barcode", id: "barcode", label: "Barcode:", type: "text" },
       {
@@ -86,9 +86,8 @@ export const FormFields = React.memo(
         id: "voucher",
         label: "Voucher:",
         type: "number",
-        hideSpinners: true, // Request 5
+        hideSpinners: true,
       },
-
       {
         title: "Grand Total",
         id: "grandTotal",
@@ -102,7 +101,7 @@ export const FormFields = React.memo(
         id: "discount",
         label: "Discount:",
         type: "number",
-        hideSpinners: true, // Request 5
+        hideSpinners: true,
       },
       {
         title: "Change",
@@ -113,7 +112,6 @@ export const FormFields = React.memo(
       },
     ];
 
-    // CSS class to hide spinners (Chrome, Safari, Edge, Opera / Firefox)
     const noSpinnerClass =
       "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
 
@@ -141,6 +139,8 @@ export const FormFields = React.memo(
                     }) => (
                       <div className="w-full">
                         <ItemAutocomplete
+                          id="barcode"
+                          onKeyDown={handleKeyDown}
                           ref={ref}
                           value={value ? String(value) : ""}
                           onChange={onChange}
@@ -166,11 +166,9 @@ export const FormFields = React.memo(
                       ...(field.type === "number" && { valueAsNumber: true }),
                     })}
                     readOnly={field.readOnly}
-                    // Combine classes: base input styles + conditional spinner hiding
                     className={`w-full h-3 text-[60%]! truncate input-dark ${
                       field.hideSpinners ? noSpinnerClass : ""
                     }`}
-                    // Keep step for decimal validation, but spinners are hidden via CSS
                     {...(field.type === "number" &&
                       (field.id === "payment" ||
                         field.id === "voucher" ||

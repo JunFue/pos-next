@@ -6,6 +6,7 @@ import {
   useWatch,
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { useItems } from "@/app/inventory/components/item-registration/context/ItemsContext";
 import {
   getDefaultFormValues,
@@ -24,27 +25,16 @@ interface UsePosFormReturn {
   onDoneSubmit: SubmitHandler<PosFormValues>;
   triggerDoneSubmit: () => void;
   liveTime: string;
+  isSubmitting: boolean; // <--- NEW: Expose loading state
 }
 
-// Helper function defined outside to keep the effect clean
-const getNow = () =>
-  new Date()
-    .toLocaleString("en-US", {
-      month: "2-digit",
-      day: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: true,
-    })
-    .replace(/,/, "");
-
 export const usePosForm = (): UsePosFormReturn => {
+  const queryClient = useQueryClient();
   const { items: allItems } = useItems();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  // Initialize with empty string to avoid server/client hydration mismatch
+  // <--- NEW: Local state for submission loading
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [liveTime, setLiveTime] = useState("");
 
   const methods = useForm<PosFormValues>({
@@ -63,30 +53,34 @@ export const usePosForm = (): UsePosFormReturn => {
     control,
   } = methods;
 
-  // --- LIVE CLOCK EFFECT (FIXED) ---
+  // --- LIVE CLOCK (Unchanged) ---
   useEffect(() => {
-    // 1. Set initial time asynchronously to avoid "synchronous setState in effect" error
-    const initialTimeout = setTimeout(() => {
-      setLiveTime(getNow());
-    }, 0);
+    const getNow = () =>
+      new Date()
+        .toLocaleString("en-US", {
+          month: "2-digit",
+          day: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        })
+        .replace(/,/, "");
 
-    // 2. Start the interval
-    const timer = setInterval(() => {
-      setLiveTime(getNow());
-    }, 1000);
-
+    const initialTimeout = setTimeout(() => setLiveTime(getNow()), 0);
+    const timer = setInterval(() => setLiveTime(getNow()), 1000);
     return () => {
       clearTimeout(initialTimeout);
       clearInterval(timer);
     };
   }, []);
 
-  // --- CALCULATION LOGIC ---
-  const cartTotal = useMemo(() => {
-    return cartItems.reduce((sum, item) => sum + item.total, 0);
-  }, [cartItems]);
-
-  // Use useWatch to avoid React Compiler warnings about stale values
+  // --- CALCULATION LOGIC (Unchanged) ---
+  const cartTotal = useMemo(
+    () => cartItems.reduce((sum, item) => sum + item.total, 0),
+    [cartItems]
+  );
   const [payment, voucher] = useWatch({
     control,
     name: ["payment", "voucher"],
@@ -94,12 +88,7 @@ export const usePosForm = (): UsePosFormReturn => {
 
   useEffect(() => {
     setValue("grandTotal", cartTotal, { shouldValidate: false });
-
-    const grandTotal = cartTotal;
-    const paymentAmount = payment || 0;
-    const voucherAmount = voucher || 0;
-    const changeAmount = paymentAmount + voucherAmount - grandTotal;
-
+    const changeAmount = (payment || 0) + (voucher || 0) - cartTotal;
     setValue("change", changeAmount, { shouldValidate: false });
   }, [cartTotal, payment, voucher, setValue]);
 
@@ -128,28 +117,37 @@ export const usePosForm = (): UsePosFormReturn => {
       alert("Payment must be greater than zero.");
       return;
     }
-
     if (data.change < 0) {
       alert("Insufficient payment amount.");
       return;
     }
 
-    const success = await handleDone(data, cartItems);
+    // <--- NEW: Start Loading
+    setIsSubmitting(true);
 
-    if (success) {
-      handleClear({ setCartItems, reset });
-      setTimeout(() => {
-        setFocus("customerName");
-      }, 100);
+    try {
+      const success = await handleDone(data, cartItems);
+
+      if (success) {
+        // Invalidate queries to refresh tables
+        await queryClient.invalidateQueries({ queryKey: ["payments"] });
+        await queryClient.invalidateQueries({
+          queryKey: ["transaction-items"],
+        });
+
+        handleClear({ setCartItems, reset });
+        setTimeout(() => setFocus("customerName"), 100);
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
+      alert("An unexpected error occurred.");
+    } finally {
+      // <--- NEW: Stop Loading regardless of success/failure
+      setIsSubmitting(false);
     }
   };
 
   const triggerDoneSubmit = () => {
-    methods.trigger().then((isValid) => {
-      if (!isValid) {
-        console.error("Form Validation Failed:", methods.formState.errors);
-      }
-    });
     handleSubmit(onDoneSubmit)();
   };
 
@@ -162,5 +160,6 @@ export const usePosForm = (): UsePosFormReturn => {
     onDoneSubmit,
     triggerDoneSubmit,
     liveTime,
+    isSubmitting, // <--- Export this
   };
 };

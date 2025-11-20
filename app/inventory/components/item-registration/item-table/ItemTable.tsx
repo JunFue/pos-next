@@ -9,7 +9,7 @@ import { Item } from "../utils/itemTypes";
 // Imports from our new modular files
 import { useProcessedItems } from "./hooks/useProcessedItems";
 import { HeaderWithFilter } from "./HeaderWithFilter";
-import { ItemTablePagination } from "./ItemTablePagination";
+import { ItemTablePagination } from "../../../../../components/reusables/ItemTablePagination";
 import { ItemActions } from "./ItemActions";
 
 interface ItemTableProps {

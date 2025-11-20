@@ -1,4 +1,3 @@
-// ItemAutocomplete.tsx
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef, forwardRef } from "react";
@@ -13,11 +12,24 @@ export interface ItemAutocompleteProps {
   error?: string;
   onItemSelect?: (item: Item) => void;
   className?: string;
+  id?: string;
+  // 1. FIX: Add onKeyDown to the interface
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 
 const ItemAutocomplete = forwardRef<HTMLInputElement, ItemAutocompleteProps>(
   (
-    { className, value, onChange, onBlur, disabled, error, onItemSelect },
+    {
+      className,
+      value,
+      onChange,
+      onBlur,
+      disabled,
+      error,
+      onItemSelect,
+      id,
+      onKeyDown, // 2. FIX: Destructure onKeyDown from props
+    },
     ref
   ) => {
     const { items } = useItems();
@@ -43,12 +55,16 @@ const ItemAutocomplete = forwardRef<HTMLInputElement, ItemAutocompleteProps>(
       }
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleInternalKeyDown = (
+      e: React.KeyboardEvent<HTMLInputElement>
+    ) => {
+      // --- Internal Dropdown Navigation Logic ---
       if (e.key === "ArrowDown") {
         e.preventDefault();
         if (suggestions.length === 0) return;
         setActiveIndex((prev) => (prev + 1) % suggestions.length);
         setIsOpen(true);
+        return;
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         if (suggestions.length === 0) return;
@@ -56,21 +72,26 @@ const ItemAutocomplete = forwardRef<HTMLInputElement, ItemAutocompleteProps>(
           (prev) => (prev - 1 + suggestions.length) % suggestions.length
         );
         setIsOpen(true);
-      } else if (e.key === "Enter") {
-        if (activeIndex >= 0 && suggestions[activeIndex]) {
-          // Case 1: An item is highlighted/selected from the dropdown.
-          e.preventDefault();
-          handleSelect(suggestions[activeIndex]);
-        } else {
-          // Case 2: User pressed Enter on the text input without selecting a suggestion.
-          // We DO NOT call e.preventDefault() here.
-          // This allows the event to bubble up to FormFields.tsx's handleKeyDown,
-          // which will move focus to 'quantity'. The parent component will handle
-          // the form submission prevention.
-        }
+        return;
       } else if (e.key === "Escape") {
         setIsOpen(false);
         setActiveIndex(-1);
+        return;
+      } else if (e.key === "Enter") {
+        if (activeIndex >= 0 && suggestions[activeIndex]) {
+          // Case 1: Selecting from dropdown
+          e.preventDefault();
+          handleSelect(suggestions[activeIndex]);
+          return; // Stop here, don't trigger external Enter logic
+        }
+        // Case 2: Just hitting Enter (submit/next field)
+        // Fall through to external handler below
+      }
+
+      // 3. FIX: Call the external handler if it exists
+      // This allows FormFields.tsx to catch 'Enter' and move focus to Quantity
+      if (onKeyDown) {
+        onKeyDown(e);
       }
     };
 
@@ -90,7 +111,7 @@ const ItemAutocomplete = forwardRef<HTMLInputElement, ItemAutocompleteProps>(
       <div className="relative">
         <input
           ref={ref}
-          id="itemName"
+          id={id || "itemName"}
           type="text"
           value={value}
           onChange={(e) => {
@@ -105,7 +126,7 @@ const ItemAutocomplete = forwardRef<HTMLInputElement, ItemAutocompleteProps>(
           onFocus={() => {
             if (value && suggestions.length > 0) setIsOpen(true);
           }}
-          onKeyDown={handleKeyDown}
+          onKeyDown={handleInternalKeyDown} // Use our wrapper function
           disabled={disabled}
           className={`${className} ${
             disabled ? "opacity-50 cursor-not-allowed text-slate-500" : ""

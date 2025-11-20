@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { TransactionItem, PaymentRecord } from "../types";
 
@@ -23,36 +23,48 @@ interface PaymentRow {
   change: number;
 }
 
-// --- 1. Hook for Line Items History ---
-export const useTransactionHistory = () => {
+// --- 1. Hook for Line Items History (WITH PAGINATION) ---
+export const useTransactionHistory = (page: number, pageSize: number) => {
   return useQuery({
-    queryKey: ["transaction-items"], // Unique key for caching
+    queryKey: ["transaction-items", page, pageSize], // Key changes when page changes
+    placeholderData: keepPreviousData, // Keeps old data visible while loading new page
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Calculate range for Supabase
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+
+      const { data, error, count } = await supabase
         .from("transactions")
-        .select("*")
-        .order("id", { ascending: false });
+        .select("*", { count: "exact" }) // Request exact count for pagination
+        .order("id", { ascending: false })
+        .range(from, to);
 
       if (error) throw new Error(error.message);
 
-      // Map raw data to your frontend Type
-      return (data as unknown as TransactionRow[]).map((item) => ({
-        transactionNo: item.invoice_no || "N/A",
-        barcode: item.sku,
-        ItemName: item.item_name,
-        unitPrice: item.cost_price,
-        discount: item.discount,
-        quantity: item.quantity,
-        totalPrice: item.total_price,
-      })) as TransactionItem[];
+      const formattedData = (data as unknown as TransactionRow[]).map(
+        (item) => ({
+          transactionNo: item.invoice_no || "N/A",
+          barcode: item.sku,
+          ItemName: item.item_name,
+          unitPrice: item.cost_price,
+          discount: item.discount,
+          quantity: item.quantity,
+          totalPrice: item.total_price,
+        })
+      ) as TransactionItem[];
+
+      return {
+        data: formattedData,
+        count: count || 0,
+      };
     },
   });
 };
 
-// --- 2. Hook for Payment/Header History ---
+// --- 2. Hook for Payment/Header History (Unchanged for now, or update similarly) ---
 export const usePaymentHistory = () => {
   return useQuery({
-    queryKey: ["payments"], // Unique key for caching
+    queryKey: ["payments"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payments")
@@ -61,7 +73,6 @@ export const usePaymentHistory = () => {
 
       if (error) throw new Error(error.message);
 
-      // Map raw data to your frontend Type
       return (data as unknown as PaymentRow[]).map((p) => ({
         transactionNo: p.invoice_no,
         transactionTime: new Date(p.transaction_time).toLocaleString(),
