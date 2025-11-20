@@ -1,63 +1,26 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { PaymentRecord } from "../../types";
-import { supabase } from "@/lib/supabaseClient";
-import { Loader2 } from "lucide-react";
-
-// Define the shape of the raw Supabase data
-interface PaymentRow {
-  invoice_no: string;
-  transaction_time: string;
-  costumer_name: string;
-  amount_rendered: number;
-  voucher: number;
-  grand_total: number;
-  change: number;
-}
+import React from "react";
+import { Loader2, AlertCircle } from "lucide-react";
+import { usePaymentHistory } from "../../hooks/useTransactionQueries";
 
 export const PaymentHistoryTable = () => {
-  const [data, setData] = useState<PaymentRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Using the custom hook
+  const { data, isLoading, isError, error } = usePaymentHistory();
 
-  const fetchPayments = async () => {
-    const { data: payments, error } = await supabase
-      .from("payments")
-      .select("*")
-      .order("transaction_time", { ascending: false });
-
-    if (!error && payments) {
-      // Cast payments to the interface
-      const mappedData: PaymentRecord[] = (
-        payments as unknown as PaymentRow[]
-      ).map((p) => ({
-        transactionNo: p.invoice_no,
-        transactionTime: new Date(p.transaction_time).toLocaleString(),
-        costumerName: p.costumer_name,
-        amountRendered: p.amount_rendered,
-        voucher: p.voucher,
-        grandTotal: p.grand_total,
-        change: p.change,
-      }));
-      setData(mappedData);
-    } else if (error) {
-      console.error("Error fetching payments:", error);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    // Wrap in setTimeout to ensure async execution after render
-    const timer = setTimeout(() => {
-      fetchPayments();
-    }, 0);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center p-10">
-        <Loader2 className="text-blue-400 animate-spin" />
+        <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center gap-2 p-10 text-red-400">
+        <AlertCircle className="w-5 h-5" />
+        <span>Error loading payments: {(error as Error).message}</span>
       </div>
     );
   }
@@ -74,13 +37,13 @@ export const PaymentHistoryTable = () => {
               <th className="px-6 py-3 text-right">Total</th>
               <th className="px-6 py-3 text-right">Payment</th>
               <th className="px-6 py-3 text-blue-400 text-right">Voucher</th>
-              <th className="px-6 py-3 rounded-tr-lg text-green-400 text-right">
+              <th className="px-6 py-3 rounded-tr-lg font-bold text-green-400 text-right">
                 Change
               </th>
             </tr>
           </thead>
           <tbody>
-            {data.map((pay, index) => (
+            {data?.map((pay, index) => (
               <tr
                 key={index}
                 className="hover:bg-slate-800/30 border-slate-700 border-b transition-colors"

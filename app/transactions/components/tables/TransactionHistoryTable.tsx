@@ -1,65 +1,26 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { TransactionItem } from "../../types";
-import { supabase } from "@/lib/supabaseClient";
-import { Loader2 } from "lucide-react";
-
-// Define the shape of the raw Supabase data
-interface TransactionRow {
-  invoice_no: string;
-  sku: string;
-  item_name: string;
-  cost_price: number;
-  discount: number;
-  quantity: number;
-  total_price: number;
-}
+import React from "react";
+import { Loader2, AlertCircle } from "lucide-react";
+import { useTransactionHistory } from "../../hooks/useTransactionQueries";
 
 export const TransactionHistoryTable = () => {
-  const [data, setData] = useState<TransactionItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Using the custom hook
+  const { data, isLoading, isError, error } = useTransactionHistory();
 
-  const fetchHistory = async () => {
-    // Removed setLoading(true) here to prevent synchronous update warning
-
-    const { data: items, error } = await supabase
-      .from("transactions")
-      .select("*")
-      .order("id", { ascending: false });
-
-    if (!error && items) {
-      // Cast items to the interface to avoid 'any' error
-      const mappedData: TransactionItem[] = (
-        items as unknown as TransactionRow[]
-      ).map((item) => ({
-        transactionNo: item.invoice_no || "N/A",
-        barcode: item.sku,
-        ItemName: item.item_name,
-        unitPrice: item.cost_price,
-        discount: item.discount,
-        quantity: item.quantity,
-        totalPrice: item.total_price,
-      }));
-      setData(mappedData);
-    } else {
-      console.error("Error fetching transactions:", error);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    // Wrap in setTimeout to push execution to next tick (fixes 'synchronous setState' error)
-    const timer = setTimeout(() => {
-      fetchHistory();
-    }, 0);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center p-10">
-        <Loader2 className="text-blue-400 animate-spin" />
+        <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex items-center gap-2 p-10 text-red-400">
+        <AlertCircle className="w-5 h-5" />
+        <span>Error loading history: {(error as Error).message}</span>
       </div>
     );
   }
@@ -82,7 +43,7 @@ export const TransactionHistoryTable = () => {
             </tr>
           </thead>
           <tbody>
-            {data.map((item, index) => (
+            {data?.map((item, index) => (
               <tr
                 key={index}
                 className="hover:bg-slate-800/30 border-slate-700 border-b transition-colors"
