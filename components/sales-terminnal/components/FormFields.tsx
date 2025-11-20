@@ -31,11 +31,9 @@ export const FormFields = React.memo(
           setFocus("quantity");
           break;
         case "quantity":
-          // Changed: Move to discount instead of adding directly
           setFocus("discount");
           break;
         case "discount":
-          // Added: Discount triggers add to cart
           onAddToCartClick();
           setFocus("barcode");
           break;
@@ -56,6 +54,8 @@ export const FormFields = React.memo(
       label: string;
       type: "text" | "number";
       readOnly?: boolean;
+      noAutoComplete?: boolean; // Added flag
+      hideSpinners?: boolean; // Added flag
     };
 
     const fields: FieldConfig[] = [
@@ -64,6 +64,7 @@ export const FormFields = React.memo(
         id: "customerName",
         label: "Customer Name:",
         type: "text",
+        noAutoComplete: true, // Request 3: Remove autocomplete
       },
       {
         title: "Transaction No.",
@@ -72,9 +73,21 @@ export const FormFields = React.memo(
         type: "text",
         readOnly: true,
       },
-      { title: "Payment", id: "payment", label: "Payment:", type: "number" },
+      {
+        title: "Payment",
+        id: "payment",
+        label: "Payment:",
+        type: "number",
+        hideSpinners: true, // Request 5: No step count (spinners)
+      },
       { title: "Barcode", id: "barcode", label: "Barcode:", type: "text" },
-      { title: "Voucher", id: "voucher", label: "Voucher:", type: "number" },
+      {
+        title: "Voucher",
+        id: "voucher",
+        label: "Voucher:",
+        type: "number",
+        hideSpinners: true, // Request 5
+      },
 
       {
         title: "Grand Total",
@@ -84,7 +97,13 @@ export const FormFields = React.memo(
         readOnly: true,
       },
       { title: "Quantity", id: "quantity", label: "Quantity:", type: "number" },
-      { title: "Discount", id: "discount", label: "Discount:", type: "number" },
+      {
+        title: "Discount",
+        id: "discount",
+        label: "Discount:",
+        type: "number",
+        hideSpinners: true, // Request 5
+      },
       {
         title: "Change",
         id: "change",
@@ -93,6 +112,10 @@ export const FormFields = React.memo(
         readOnly: true,
       },
     ];
+
+    // CSS class to hide spinners (Chrome, Safari, Edge, Opera / Firefox)
+    const noSpinnerClass =
+      "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
 
     return (
       <div className="w-full h-full grow">
@@ -138,18 +161,23 @@ export const FormFields = React.memo(
                   <input
                     type={field.type}
                     id={field.id}
+                    autoComplete={field.noAutoComplete ? "off" : undefined}
                     {...register(field.id, {
                       ...(field.type === "number" && { valueAsNumber: true }),
                     })}
                     readOnly={field.readOnly}
-                    className="w-full h-3 text-[60%]! truncate input-dark"
+                    // Combine classes: base input styles + conditional spinner hiding
+                    className={`w-full h-3 text-[60%]! truncate input-dark ${
+                      field.hideSpinners ? noSpinnerClass : ""
+                    }`}
+                    // Keep step for decimal validation, but spinners are hidden via CSS
                     {...(field.type === "number" &&
                       (field.id === "payment" ||
                         field.id === "voucher" ||
                         field.id === "discount") && { step: "0.01" })}
                     {...((field.id === "customerName" ||
                       field.id === "quantity" ||
-                      field.id === "discount" || // Added discount to KeyDown logic
+                      field.id === "discount" ||
                       field.id === "payment" ||
                       field.id === "voucher") && {
                       onKeyDown: handleKeyDown,

@@ -1,6 +1,10 @@
-// app/inventory/components/stock-management/components/form/usePosForm.ts
 import { useState, useEffect, useMemo } from "react";
-import { useForm, SubmitHandler, UseFormReturn } from "react-hook-form";
+import {
+  useForm,
+  SubmitHandler,
+  UseFormReturn,
+  useWatch,
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useItems } from "@/app/inventory/components/item-registration/context/ItemsContext";
 import {
@@ -22,11 +26,25 @@ interface UsePosFormReturn {
   liveTime: string;
 }
 
+// Helper function defined outside to keep the effect clean
+const getNow = () =>
+  new Date()
+    .toLocaleString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    })
+    .replace(/,/, "");
+
 export const usePosForm = (): UsePosFormReturn => {
   const { items: allItems } = useItems();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  // State for Live Clock
+  // Initialize with empty string to avoid server/client hydration mismatch
   const [liveTime, setLiveTime] = useState("");
 
   const methods = useForm<PosFormValues>({
@@ -42,33 +60,25 @@ export const usePosForm = (): UsePosFormReturn => {
     resetField,
     setFocus,
     handleSubmit,
-    watch,
+    control,
   } = methods;
 
-  // --- LIVE CLOCK EFFECT ---
+  // --- LIVE CLOCK EFFECT (FIXED) ---
   useEffect(() => {
-    // Helper function to get time in 12-hour format with AM/PM
-    const getNow = () =>
-      new Date()
-        .toLocaleString("en-US", {
-          month: "2-digit",
-          day: "2-digit",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: true, // <--- CHANGED TO TRUE
-        })
-        .replace(/,/, ""); // Removes the comma between date and time
+    // 1. Set initial time asynchronously to avoid "synchronous setState in effect" error
+    const initialTimeout = setTimeout(() => {
+      setLiveTime(getNow());
+    }, 0);
 
-    // Initial set
-    setLiveTime(getNow());
-
+    // 2. Start the interval
     const timer = setInterval(() => {
       setLiveTime(getNow());
     }, 1000);
 
-    return () => clearInterval(timer);
+    return () => {
+      clearTimeout(initialTimeout);
+      clearInterval(timer);
+    };
   }, []);
 
   // --- CALCULATION LOGIC ---
@@ -76,7 +86,11 @@ export const usePosForm = (): UsePosFormReturn => {
     return cartItems.reduce((sum, item) => sum + item.total, 0);
   }, [cartItems]);
 
-  const [payment, voucher] = watch(["payment", "voucher"]);
+  // Use useWatch to avoid React Compiler warnings about stale values
+  const [payment, voucher] = useWatch({
+    control,
+    name: ["payment", "voucher"],
+  });
 
   useEffect(() => {
     setValue("grandTotal", cartTotal, { shouldValidate: false });
@@ -110,6 +124,16 @@ export const usePosForm = (): UsePosFormReturn => {
   };
 
   const onDoneSubmit: SubmitHandler<PosFormValues> = async (data) => {
+    if (!data.payment || data.payment <= 0) {
+      alert("Payment must be greater than zero.");
+      return;
+    }
+
+    if (data.change < 0) {
+      alert("Insufficient payment amount.");
+      return;
+    }
+
     const success = await handleDone(data, cartItems);
 
     if (success) {
