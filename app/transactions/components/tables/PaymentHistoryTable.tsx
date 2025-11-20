@@ -1,39 +1,74 @@
-// app/transactions/components/tables/PaymentHistoryTable.tsx
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { PaymentRecord } from "../../types";
+import { supabase } from "@/lib/supabaseClient";
+import { Loader2 } from "lucide-react";
 
-// Mock data to simulate what comes from done.ts
-const MOCK_PAYMENTS: PaymentRecord[] = [
-  {
-    transactionNo: "TRX-2023-001",
-    transactionTime: "11/20/2025, 10:30 AM",
-    costumerName: "John Doe",
-    amountRendered: 1000.0,
-    voucher: 0,
-    grandTotal: 885.0,
-    change: 115.0,
-  },
-  {
-    transactionNo: "TRX-2023-002",
-    transactionTime: "11/20/2025, 11:15 AM",
-    costumerName: "Jane Smith",
-    amountRendered: 500.0,
-    voucher: 50.0,
-    grandTotal: 520.0,
-    change: 30.0,
-  },
-];
+// Define the shape of the raw Supabase data
+interface PaymentRow {
+  invoice_no: string;
+  transaction_time: string;
+  costumer_name: string;
+  amount_rendered: number;
+  voucher: number;
+  grand_total: number;
+  change: number;
+}
 
 export const PaymentHistoryTable = () => {
+  const [data, setData] = useState<PaymentRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchPayments = async () => {
+    const { data: payments, error } = await supabase
+      .from("payments")
+      .select("*")
+      .order("transaction_time", { ascending: false });
+
+    if (!error && payments) {
+      // Cast payments to the interface
+      const mappedData: PaymentRecord[] = (
+        payments as unknown as PaymentRow[]
+      ).map((p) => ({
+        transactionNo: p.invoice_no,
+        transactionTime: new Date(p.transaction_time).toLocaleString(),
+        costumerName: p.costumer_name,
+        amountRendered: p.amount_rendered,
+        voucher: p.voucher,
+        grandTotal: p.grand_total,
+        change: p.change,
+      }));
+      setData(mappedData);
+    } else if (error) {
+      console.error("Error fetching payments:", error);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    // Wrap in setTimeout to ensure async execution after render
+    const timer = setTimeout(() => {
+      fetchPayments();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center p-10">
+        <Loader2 className="text-blue-400 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 rounded-lg glass-effect">
       <div className="overflow-x-auto">
         <table className="w-full text-slate-300 text-sm text-left">
           <thead className="bg-slate-800/50 text-slate-400 text-xs uppercase">
             <tr>
-              <th className="px-6 py-3 rounded-tl-lg">Trans. No</th>
+              <th className="px-6 py-3 rounded-tl-lg">Invoice No</th>
               <th className="px-6 py-3">Date & Time</th>
               <th className="px-6 py-3">Customer</th>
               <th className="px-6 py-3 text-right">Total</th>
@@ -45,7 +80,7 @@ export const PaymentHistoryTable = () => {
             </tr>
           </thead>
           <tbody>
-            {MOCK_PAYMENTS.map((pay, index) => (
+            {data.map((pay, index) => (
               <tr
                 key={index}
                 className="hover:bg-slate-800/30 border-slate-700 border-b transition-colors"
@@ -58,7 +93,7 @@ export const PaymentHistoryTable = () => {
                 </td>
                 <td className="px-6 py-4 font-medium text-white">
                   {pay.costumerName || (
-                    <span className="text-slate-600 italic">Walk-in</span>
+                    <span className="opacity-50 italic">Walk-in</span>
                   )}
                 </td>
                 <td className="px-6 py-4 font-bold text-right">
@@ -78,11 +113,6 @@ export const PaymentHistoryTable = () => {
           </tbody>
         </table>
       </div>
-      {MOCK_PAYMENTS.length === 0 && (
-        <p className="mt-4 text-gray-500 text-center">
-          No payment records found.
-        </p>
-      )}
     </div>
   );
 };

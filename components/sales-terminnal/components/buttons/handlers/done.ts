@@ -1,50 +1,65 @@
+// app/inventory/components/stock-management/components/buttons/handlers/done.ts
 import { PosFormValues } from "@/components/sales-terminnal/utils/posSchema";
 import { CartItem } from "../../TerminalCart";
+import { supabase } from "@/lib/supabaseClient";
 
 export const handleDone = async (
   data: PosFormValues,
   cartItems: CartItem[]
 ): Promise<boolean> => {
-  console.log("--- [done.ts] Executing handleDone ---");
+  console.log("--- [done.ts] Initiating Transaction Submission ---");
 
-  // 1. Construct the 'transactions' data set from the cart
-  const transactions = cartItems.map((item) => ({
-    barcode: item.sku,
-    ItemName: item.itemName,
-    unitPrice: item.unitPrice,
-    discount: item.discount || 0, // Handle undefined discount safely
-    quantity: item.quantity,
-    totalPrice: item.total,
-  }));
+  // 1. Get Current Authenticated User (Cashier)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // 2. Construct the 'paymentInfo' data set from the form data
-  const paymentInfo = {
-    costumerName: data.customerName,
-    "Amount Rendered": data.payment,
-    Voucher: data.voucher,
-    grandTotal: data.grandTotal,
-    Change: data.change,
-    transactionNo: data.transactionNo,
-    transactionTime: new Date().toLocaleString("en-US", {
-      month: "2-digit",
-      day: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: true,
-    }),
+  if (!user) {
+    alert("No active session found. Please log in.");
+    return false;
+  }
+
+  // 2. Prepare the Header Payload
+  // We ONLY send what the frontend knows. The Database handles the lookups.
+  const headerPayload = {
+    invoice_no: data.transactionNo,
+    costumer_name: data.customerName,
+    amount_rendered: data.payment,
+    voucher: data.voucher || 0,
+    grand_total: data.grandTotal,
+    change: data.change,
+    transaction_no: data.transactionNo,
+    transaction_time: new Date().toISOString(),
+    cashier_name: user.id, // The SQL function will use this to find store_id/admin_id
   };
 
-  // 3. Log the requested data
-  console.log("Transactions:", transactions);
-  console.log("PaymentInfo:", paymentInfo);
+  // 3. Prepare the Items Payload
+  const itemsPayload = cartItems.map((item) => ({
+    sku: item.sku,
+    item_name: item.itemName,
+    cost_price: item.unitPrice,
+    total_price: item.total,
+    discount: item.discount || 0,
+    quantity: item.quantity,
+  }));
 
-  // 4. TODO: Insert API/Database logic here
-  // await supabase.from('sales').insert(...)
+  try {
+    // 4. Call the new "All-in-One" RPC function
+    const { error } = await supabase.rpc("insert_new_payment_and_transaction", {
+      header: headerPayload,
+      items: itemsPayload,
+    });
 
-  console.log("--- [done.ts] Finished processing ---");
+    if (error) {
+      console.error("Transaction Error:", error.message);
+      alert(`Transaction Failed: ${error.message}`);
+      return false;
+    }
 
-  // 5. Return TRUE to signal SalesTerminal to reset the UI
-  return true;
+    console.log("--- [done.ts] Transaction Saved Successfully ---");
+    return true;
+  } catch (err) {
+    console.error("Unexpected error in handleDone:", err);
+    return false;
+  }
 };
