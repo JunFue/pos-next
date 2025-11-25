@@ -50,7 +50,7 @@ export const usePosForm = (): UsePosFormReturn => {
       ...getDefaultFormValues(),
       transactionNo: "", // <--- Initialize empty to avoid hydration mismatch
     },
-    mode: "onChange",
+    mode: "onBlur", // Changed from onChange to improve INP - validates on blur instead of every keystroke
   });
 
   const {
