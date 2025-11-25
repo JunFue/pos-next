@@ -7,6 +7,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { ExpensesNav, View } from "./utils/ExpensesNav";
 import { Cashout } from "./components/Cashout";
 import { ExpensesMntr } from "./components/ExpensesMntr";
+import { CashFlow } from "./components/CashFlow";
 
 export default function ExpensesPage() {
   const searchParams = useSearchParams();
@@ -49,7 +50,7 @@ export default function ExpensesPage() {
       <div>
         {view === "cashout" && <Cashout />}
         {view === "monitor" && <ExpensesMntr />}
-        {view === "cashflow" && <div className="p-4 text-slate-400">Cash Flow Module Coming Soon</div>}
+        {view === "cashflow" && <CashFlow />}
       </div>
     </div>
   );
