@@ -86,7 +86,7 @@ const SalesTerminal = () => {
   return (
     <div className="relative flex flex-col p-1 h-full">
       {/* ... (Existing Header) ... */}
-      <div className="flex flex-col justify-center items-center shadow-lg mb-2 px-4 py-1 rounded-md w-full min-h-[180px] font-retro retro-lcd-container retro-scanlines">
+      <div className="flex flex-col justify-center items-center shadow-lg mb-4 px-4 py-1 rounded-md w-full min-h-[180px] font-retro retro-lcd-container retro-scanlines">
         <h1 className="mt-1 font-bold text-retro-cyan text-2xl md:text-3xl uppercase leading-none tracking-widest">
           POINT OF SALE
         </h1>
@@ -109,7 +109,7 @@ const SalesTerminal = () => {
         <form
           id="sales-form"
           onSubmit={methods.handleSubmit(onDoneSubmit)}
-          className={`gap-1 grid ${ScreenLogic()} w-full h-full overflow-hidden`}
+          className={`gap-4 grid ${ScreenLogic()} w-full h-full overflow-hidden`}
         >
           <div className="relative flex flex-col w-full h-full">
             <FormFields

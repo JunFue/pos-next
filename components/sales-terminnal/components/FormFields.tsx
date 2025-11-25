@@ -116,14 +116,14 @@ export const FormFields = React.memo(
       "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
 
     return (
-      <div className="w-full h-full grow">
-        <div className="grid grid-cols-6 grid-rows-3 w-full h-[80%] text-white">
+      <div className="w-full h-full grow p-2">
+        <div className="gap-y-4 gap-x-2 grid grid-cols-6 grid-rows-3 w-full h-full text-white">
           {fields.map((field) => (
             <React.Fragment key={field.id}>
               <label
                 htmlFor={field.id}
                 title={field.title}
-                className="right-trim flex justify-end items-center text-[50%] sm:text-[65%]"
+                className="right-trim flex justify-end items-center font-medium text-xs sm:text-sm"
               >
                 {field.label}
               </label>
@@ -152,7 +152,7 @@ export const FormFields = React.memo(
                             });
                             setFocus("quantity");
                           }}
-                          className="w-full h-3 text-[60%]! truncate input-dark"
+                          className="w-full h-8 sm:h-10 text-sm sm:text-base input-dark px-2"
                         />
                       </div>
                     )}
@@ -166,7 +166,7 @@ export const FormFields = React.memo(
                       ...(field.type === "number" && { valueAsNumber: true }),
                     })}
                     readOnly={field.readOnly}
-                    className={`w-full h-3 text-[60%]! truncate input-dark ${
+                    className={`w-full h-8 sm:h-10 text-sm sm:text-base input-dark px-2 ${
                       field.hideSpinners ? noSpinnerClass : ""
                     }`}
                     {...(field.type === "number" &&

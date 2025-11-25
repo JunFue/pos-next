@@ -75,10 +75,10 @@ export default function DashboardHomePage() {
       )}
 
       {/* 1. HEADER SECTION */}
-      <header className="flex justify-between items-center mb-8">
+      <header className="flex justify-between items-center mb-10">
         <div>
-          <h1 className="font-bold text-3xl tracking-tight">Home Page</h1>
-          <p className="mt-1 text-slate-500 text-sm">
+          <h1 className="font-bold text-4xl tracking-tight">Dashboard</h1>
+          <p className="mt-2 text-slate-400 text-base">
             {currentUser
               ? `Welcome back, ${
                   currentUser.user_metadata?.first_name || "Admin"
@@ -104,30 +104,30 @@ export default function DashboardHomePage() {
       <Navigation />
 
       {/* 3. STATS CARDS */}
-      <div className="gap-6 grid grid-cols-1 md:grid-cols-2 mt-8">
+      <div className="gap-8 grid grid-cols-1 md:grid-cols-2 mt-10">
         {/* --- LEFT COLUMN --- */}
         <div className="flex flex-col gap-6">
-          <div className="bg-slate-900/50 hover:bg-slate-900/80 p-6 border border-slate-800 rounded-2xl transition-colors glass-effect">
-            <h3 className="font-medium text-slate-400 text-sm uppercase tracking-wider">
+          <div className="bg-slate-900/50 hover:bg-slate-900/80 p-8 border border-slate-800 rounded-2xl transition-colors glass-effect">
+            <h3 className="font-semibold text-slate-400 text-sm uppercase tracking-wider">
               Total Customers
             </h3>
-            <p className="mt-3 font-bold text-white text-5xl tracking-tighter">
+            <p className="mt-4 font-bold text-white text-6xl tracking-tighter">
               10,238
             </p>
-            <p className="flex items-center gap-2 mt-2 font-medium text-green-400 text-sm">
-              <TrendingDown className="w-4 h-4 rotate-180" />
+            <p className="flex items-center gap-2 mt-3 font-medium text-green-400 text-base">
+              <TrendingDown className="w-5 h-5 rotate-180" />
               +12% from last month
             </p>
           </div>
 
-          <div className="bg-slate-900/50 hover:bg-slate-900/80 p-6 border border-slate-800 rounded-2xl transition-colors glass-effect">
-            <h3 className="font-medium text-slate-400 text-sm uppercase tracking-wider">
+          <div className="bg-slate-900/50 hover:bg-slate-900/80 p-8 border border-slate-800 rounded-2xl transition-colors glass-effect">
+            <h3 className="font-semibold text-slate-400 text-sm uppercase tracking-wider">
               Daily Sales
             </h3>
-            <p className="mt-3 font-bold text-white text-5xl tracking-tighter">
+            <p className="mt-4 font-bold text-white text-6xl tracking-tighter">
               $73,495
             </p>
-            <p className="flex items-center gap-2 mt-2 text-slate-400 text-sm">
+            <p className="flex items-center gap-2 mt-3 text-slate-400 text-base">
               <span className="bg-yellow-500 rounded-full w-2 h-2"></span>
               Pending validation: 4
             </p>

@@ -128,14 +128,14 @@ const Navigation = React.memo(() => {
   ];
 
   return (
-    <nav className="gap-4 grid grid-cols-5 mb-8">
+    <nav className="gap-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 mb-8">
       {nav.map((item) => (
         // Added 'group' to handle hover states for children
         <div key={item.id} className="group relative">
           <Link
             href={`/${item.id}`}
             className={`
-              relative flex flex-col justify-center items-center p-4 rounded-xl 
+              relative flex flex-col justify-center items-center p-6 rounded-xl 
               text-slate-400 transition-all duration-300 glass-effect border border-transparent
               
               /* Hover Effects: Text White, Cyan Border, Cyan Glow */
@@ -144,16 +144,16 @@ const Navigation = React.memo(() => {
               group-hover:shadow-[0_0_20px_rgba(6,189,212,0.25)]
               group-hover:bg-slate-800/50
               
-              h-32 w-full
+              h-36 w-full
             `}
           >
             {/* Notification Dot */}
             {item.hasNotification && (
-              <span className="top-3 right-3 absolute bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] rounded-full w-2.5 h-2.5 animate-pulse" />
+              <span className="top-4 right-4 absolute bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] rounded-full w-2.5 h-2.5 animate-pulse" />
             )}
 
-            <item.Icon className="mb-3 w-8 h-8 group-hover:scale-110 transition-transform duration-300" />
-            <span className="font-medium text-sm tracking-wide">
+            <item.Icon className="mb-3 w-10 h-10 group-hover:scale-110 transition-transform duration-300" />
+            <span className="font-medium text-base tracking-wide">
               {item.text}
             </span>
           </Link>
