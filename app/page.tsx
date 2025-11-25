@@ -2,8 +2,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Navigation from "../components/navigation/Navigation";
-import { TrendingDown, Brain, X, Loader2 } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
 
@@ -12,8 +13,23 @@ import SearchBar from "./components/SearchBar";
 import Notifications from "./components/Notifications";
 import UserProfile from "./components/UserProfile";
 import { handleLogOut } from "@/components/sales-terminnal/components/buttons/handlers";
-import { SignUp } from "@/components/sign-in/SignUp";
-import { SignIn } from "@/components/sign-in/SignIn";
+
+// Dynamic imports for modals (only load when needed) - improves bundle size
+const SignUp = dynamic(
+  () => import("@/components/sign-in/SignUp").then(mod => ({ default: mod.SignUp })),
+  { ssr: false }
+);
+
+const SignIn = dynamic(
+  () => import("@/components/sign-in/SignIn").then(mod => ({ default: mod.SignIn })),
+  { ssr: false }
+);
+
+// Dynamic import for stats section - improves initial load
+const DashboardStats = dynamic(
+  () => import("./components/DashboardStats").then(mod => ({ default: mod.DashboardStats })),
+  { ssr: true }
+);
 
 type AuthModalState = "hidden" | "signIn" | "signUp";
 
@@ -23,12 +39,14 @@ export default function DashboardHomePage() {
     useState<AuthModalState>("hidden");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true); // Prevent CLS during auth check
 
   useEffect(() => {
     // 1. Check initial session
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       setCurrentUser(data.session?.user || null);
+      setIsAuthLoading(false); // Mark as loaded to prevent layout shift
     };
     checkSession();
 
@@ -91,73 +109,24 @@ export default function DashboardHomePage() {
           <SearchBar />
           <div className="hidden md:block bg-slate-700 mx-1 w-px h-8"></div>
           <Notifications />
-          {/* Pass Auth Props to UserProfile */}
-          <UserProfile
-            currentUser={currentUser}
-            onSignInClick={openSignInModal}
-            onSignOutClick={onSignOutClick}
-          />
+          {/* Show skeleton during auth loading to prevent CLS */}
+          {isAuthLoading ? (
+            <div className="w-10 h-10 bg-slate-800 animate-pulse rounded-full" />
+          ) : (
+            <UserProfile
+              currentUser={currentUser}
+              onSignInClick={openSignInModal}
+              onSignOutClick={onSignOutClick}
+            />
+          )}
         </div>
       </header>
 
       {/* 2. NAVIGATION GRID */}
       <Navigation />
 
-      {/* 3. STATS CARDS */}
-      <div className="gap-8 grid grid-cols-1 md:grid-cols-2 mt-10">
-        {/* --- LEFT COLUMN --- */}
-        <div className="flex flex-col gap-6">
-          <div className="bg-slate-900/50 hover:bg-slate-900/80 p-8 border border-slate-800 rounded-2xl transition-colors glass-effect">
-            <h3 className="font-semibold text-slate-400 text-sm uppercase tracking-wider">
-              Total Customers
-            </h3>
-            <p className="mt-4 font-bold text-white text-6xl tracking-tighter">
-              10,238
-            </p>
-            <p className="flex items-center gap-2 mt-3 font-medium text-green-400 text-base">
-              <TrendingDown className="w-5 h-5 rotate-180" />
-              +12% from last month
-            </p>
-          </div>
-
-          <div className="bg-slate-900/50 hover:bg-slate-900/80 p-8 border border-slate-800 rounded-2xl transition-colors glass-effect">
-            <h3 className="font-semibold text-slate-400 text-sm uppercase tracking-wider">
-              Daily Sales
-            </h3>
-            <p className="mt-4 font-bold text-white text-6xl tracking-tighter">
-              $73,495
-            </p>
-            <p className="flex items-center gap-2 mt-3 text-slate-400 text-base">
-              <span className="bg-yellow-500 rounded-full w-2 h-2"></span>
-              Pending validation: 4
-            </p>
-          </div>
-        </div>
-
-        {/* --- RIGHT COLUMN --- */}
-        <div className="flex flex-col gap-6">
-          <div className="flex-1 bg-gradient-to-b from-slate-900/50 to-slate-900/80 p-8 border border-slate-800 rounded-2xl glass-effect">
-            <div className="flex items-center gap-3 mb-4">
-              <Brain className="w-6 h-6 text-cyan-400" />
-              <h3 className="font-semibold text-slate-200">JunFue Chat</h3>
-            </div>
-            {/* Chat content... */}
-            <div className="space-y-4 text-slate-300">
-              <div className="flex items-start gap-3">
-                <div className="bg-cyan-500 mt-2 rounded-full w-1.5 h-1.5 shrink-0"></div>
-                <p className="text-sm leading-relaxed">
-                  System optimization recommended for inventory module.
-                </p>
-              </div>
-              {/* ... more items */}
-            </div>
-          </div>
-
-          <button className="group hover:bg-cyan-500/10 hover:shadow-[0_0_15px_rgba(6,189,212,0.15)] p-4 border border-slate-700 hover:border-cyan-500 rounded-xl w-full font-semibold text-white text-lg transition-all glass-effect">
-            See More Details
-          </button>
-        </div>
-      </div>
+      {/* 3. STATS CARDS - Extracted to separate component for better code splitting */}
+      <DashboardStats />
 
       {/* --- AUTH MODALS (Moved from SalesTerminal) --- */}
       {authModalState !== "hidden" && (
