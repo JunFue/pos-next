@@ -21,7 +21,10 @@ export const FormFields = React.memo(
       const target = e.target as HTMLInputElement;
       const fieldId = target.id as keyof PosFormValues;
 
-      e.preventDefault(); // <--- This stops the form from submitting!
+      // Only prevent default for non-submit fields
+      if (fieldId !== "voucher") {
+        e.preventDefault();
+      }
 
       switch (fieldId) {
         case "customerName":
@@ -41,7 +44,7 @@ export const FormFields = React.memo(
           setFocus("voucher");
           break;
         case "voucher":
-          onDoneSubmitTrigger();
+          // Allow natural form submission
           break;
         default:
           break;

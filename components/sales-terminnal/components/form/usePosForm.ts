@@ -134,8 +134,12 @@ export const usePosForm = (): UsePosFormReturn => {
 
   // --- SUBMISSION HANDLER ---
   const onDoneSubmit: SubmitHandler<PosFormValues> = async (data) => {
-    if (!data.payment || data.payment <= 0) {
-      setErrorMessage("Payment must be greater than zero.");
+    console.log("📝 [Form] onDoneSubmit triggered", data);
+    const totalPayment = (data.payment || 0) + (data.voucher || 0);
+    if (totalPayment <= 0) {
+      setErrorMessage(
+        "Total payment (Cash + Voucher) must be greater than zero."
+      );
       return;
     }
     if (data.change < 0) {
@@ -180,7 +184,10 @@ export const usePosForm = (): UsePosFormReturn => {
   };
 
   const triggerDoneSubmit = () => {
-    handleSubmit(onDoneSubmit)();
+    handleSubmit(onDoneSubmit, (errors) => {
+      console.error("Validation Errors:", errors);
+      setErrorMessage("Please check all fields. Some values are invalid.");
+    })();
   };
 
   return {

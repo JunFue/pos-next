@@ -30,9 +30,11 @@ const TerminalButtons = React.memo(
           <React.Fragment key={button.id}>
             <div className="w-full">
               <button
-                type="button"
+                type={button.id === "done" ? "submit" : "button"}
                 className="w-full h-[80%] text-nowrap btn-3d-glass"
-                onClick={terminalHandlers[button.id]}
+                onClick={
+                  button.id === "done" ? undefined : terminalHandlers[button.id]
+                }
               >
                 {button.name}
               </button>

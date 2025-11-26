@@ -1,7 +1,10 @@
 // app/inventory/components/stock-management/utils/posSchema.ts
 import { z } from "zod";
 
-const pesoFormat = z.number().min(0, "Value must be positive");
+const pesoFormat = z
+  .union([z.number(), z.nan()])
+  .transform((val) => (isNaN(val) ? 0 : val))
+  .refine((val) => val >= 0, "Value must be positive");
 
 // Helper to generate a random transaction number
 // Helper to generate a random transaction number
