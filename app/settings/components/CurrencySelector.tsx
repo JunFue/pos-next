@@ -63,7 +63,7 @@ export default function CurrencySelector() {
                     {c.label}
                   </span>
                   <span className="text-slate-500 text-xs">
-                    {c.code}
+                    {c.code} ({c.symbol})
                   </span>
                 </div>
                 {currency === c.code && (

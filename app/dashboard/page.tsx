@@ -55,7 +55,7 @@ export default function DashboardPage() {
         // 2. Fetch Transactions (Item details for categories, profit, top products)
         const { data: transactionsData, error: transactionsError } = await supabase
           .from("transactions")
-          .select("item_name, total_price, cost_price, quantity, category, created_at, invoice_no");
+          .select("item_name, total_price, cost_price, quantity, category, invoice_no");
 
         if (transactionsError) throw transactionsError;
 

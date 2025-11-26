@@ -34,7 +34,7 @@ export function ProfitTrendChart({ data }: { data: ProfitData[] }) {
   const { currency } = useSettings();
 
   return (
-    <div className="w-full h-64">
+    <div className="w-full h-64 min-h-[250px]">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={data}
@@ -89,7 +89,7 @@ export function CategoryDonutChart({ data }: { data: CategoryData[] }) {
   const { currency } = useSettings();
 
   return (
-    <div className="w-full h-64">
+    <div className="w-full h-64 min-h-[250px]">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
