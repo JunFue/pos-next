@@ -22,7 +22,7 @@ import { TransactionResult } from "../buttons/handlers/done";
 interface UsePosFormReturn {
   methods: UseFormReturn<PosFormValues>;
   cartItems: CartItem[];
-  onAddToCart: () => void;
+  onAddToCart: () => Promise<void>; // Changed to async
   onRemoveItem: (sku: string) => void;
   onClear: () => void;
   onDoneSubmit: SubmitHandler<PosFormValues>;
@@ -31,6 +31,8 @@ interface UsePosFormReturn {
   isSubmitting: boolean;
   successData: TransactionResult | null; // <--- ADDED
   closeSuccessModal: () => void; // <--- ADDED
+  errorMessage: string | null; // <--- ERROR MESSAGE STATE
+  clearErrorMessage: () => void; // <--- CLEAR ERROR
 }
 
 export const usePosForm = (): UsePosFormReturn => {
@@ -43,6 +45,7 @@ export const usePosForm = (): UsePosFormReturn => {
   const [successData, setSuccessData] = useState<TransactionResult | null>(
     null
   ); // <--- STATE FOR MODAL
+  const [errorMessage, setErrorMessage] = useState<string | null>(null); // <--- ERROR STATE
 
   const methods = useForm<PosFormValues>({
     resolver: zodResolver(posSchema),
@@ -105,14 +108,15 @@ export const usePosForm = (): UsePosFormReturn => {
     setValue("change", changeAmount, { shouldValidate: false });
   }, [cartTotal, payment, voucher, setValue]);
 
-  const onAddToCart = () => {
-    handleAddToCart({
+  const onAddToCart = async () => {
+    await handleAddToCart({
       getValues,
       setValue,
       resetField,
       allItems,
       cartItems,
       setCartItems,
+      onError: (message) => setErrorMessage(message), // Pass error handler
     });
   };
 
@@ -168,6 +172,10 @@ export const usePosForm = (): UsePosFormReturn => {
     onClear(); // NOW we clear the form for the next customer
   };
 
+  const clearErrorMessage = () => {
+    setErrorMessage(null);
+  };
+
   const triggerDoneSubmit = () => {
     handleSubmit(onDoneSubmit)();
   };
@@ -184,5 +192,7 @@ export const usePosForm = (): UsePosFormReturn => {
     isSubmitting,
     successData, // Exported
     closeSuccessModal, // Exported
+    errorMessage, // Exported
+    clearErrorMessage, // Exported
   };
 };

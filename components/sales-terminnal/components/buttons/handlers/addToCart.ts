@@ -7,6 +7,7 @@ import {
 import { PosFormValues } from "@/components/sales-terminnal/utils/posSchema";
 import { Item } from "@/app/inventory/components/item-registration/utils/itemTypes";
 import { CartItem } from "../../TerminalCart";
+import { fetchInventory } from "@/app/inventory/components/stocks-monitor/lib/inventory.api";
 
 type AddToCartParams = {
   getValues: UseFormGetValues<PosFormValues>;
@@ -15,14 +16,16 @@ type AddToCartParams = {
   allItems: Item[];
   cartItems: CartItem[];
   setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
+  onError?: (message: string) => void; // Optional error callback
 };
 
-export const handleAddToCart = ({
+export const handleAddToCart = async ({
   getValues,
   resetField,
   allItems,
   cartItems,
   setCartItems,
+  onError,
 }: AddToCartParams) => {
   console.log("--- [addToCart.ts] Executing Add to Cart Logic ---");
 
@@ -32,27 +35,82 @@ export const handleAddToCart = ({
 
   // 2. Validation
   if (!barcode) {
-    alert("Please select an item first.");
+    onError?.("Please select an item first.");
     return;
   }
   if (!quantity || quantity <= 0) {
-    alert("Please enter a valid quantity.");
+    onError?.("Please enter a valid quantity.");
     return;
   }
 
   const itemDetails = allItems.find((item) => item.sku === barcode);
 
   if (!itemDetails) {
-    alert("Item not found. Please check the SKU/Barcode.");
+    onError?.("Item not found. Please check the SKU/Barcode.");
     return;
   }
 
-  // 3. Calculate Costs
+  // 3. STOCK VALIDATION - Fetch current inventory data
+  try {
+    const inventoryData = await fetchInventory();
+    const stockInfo = inventoryData.find((inv) => inv.sku === barcode);
+
+    if (!stockInfo) {
+      onError?.("Stock information not available for this item.");
+      // Clear fields on error
+      resetField("barcode");
+      resetField("quantity");
+      resetField("discount");
+      return;
+    }
+
+    // Check if item is out of stock
+    if (stockInfo.current_stock <= 0) {
+      onError?.(`OUT OF STOCK: ${itemDetails.itemName} has no available stock.`);
+      // Clear fields on error
+      resetField("barcode");
+      resetField("quantity");
+      resetField("discount");
+      return;
+    }
+
+    // Calculate total quantity (existing in cart + new quantity)
+    const existingItemIndex = cartItems.findIndex((item) => item.sku === barcode);
+    const quantityInCart = existingItemIndex !== -1 ? cartItems[existingItemIndex].quantity : 0;
+    const totalQuantity = quantityInCart + quantity;
+
+    // Check if total quantity exceeds available stock
+    if (totalQuantity > stockInfo.current_stock) {
+      const remainingStock = stockInfo.current_stock - quantityInCart;
+      if (remainingStock <= 0) {
+        onError?.(`INSUFFICIENT STOCK: ${itemDetails.itemName} has ${stockInfo.current_stock} units available, but you already have ${quantityInCart} in the cart.`);
+      } else {
+        onError?.(`INSUFFICIENT STOCK: ${itemDetails.itemName} has only ${stockInfo.current_stock} units available. You have ${quantityInCart} in cart. You can add ${remainingStock} more.`);
+      }
+      // Clear fields on error
+      resetField("barcode");
+      resetField("quantity");
+      resetField("discount");
+      return;
+    }
+
+    console.log(`✅ Stock check passed: ${itemDetails.itemName} - Requested: ${totalQuantity}, Available: ${stockInfo.current_stock}`);
+  } catch (error) {
+    console.error("Error fetching inventory data:", error);
+    onError?.("Unable to verify stock availability. Please try again.");
+    // Clear fields on error
+    resetField("barcode");
+    resetField("quantity");
+    resetField("discount");
+    return;
+  }
+
+  // 4. Calculate Costs
   // Logic: (Qty * Price) - Discount
   const unitPrice = itemDetails.costPrice;
   const total = quantity * unitPrice - discountValue;
 
-  // 4. Update Cart State
+  // 5. Update Cart State
   const existingItemIndex = cartItems.findIndex((item) => item.sku === barcode);
 
   if (existingItemIndex !== -1) {
@@ -89,7 +147,7 @@ export const handleAddToCart = ({
     setCartItems((prevCart) => [...prevCart, newCartItem]);
   }
 
-  // 5. Reset Fields
+  // 6. Reset Fields
   resetField("barcode");
   resetField("quantity");
   resetField("discount"); // Request 2: Clear discount field

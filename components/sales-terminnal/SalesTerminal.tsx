@@ -13,6 +13,7 @@ import "react-data-grid/lib/styles.css";
 import TerminalCart from "./components/TerminalCart";
 import { usePosForm } from "./components/form/usePosForm";
 import SuccessReceiptModal from "./utils/SuccessReceiptModal";
+import ErrorMessage from "./components/ErrorMessage";
 
 const SalesTerminal = () => {
   const { isSplit } = useView();
@@ -29,6 +30,8 @@ const SalesTerminal = () => {
     liveTime,
     successData,
     closeSuccessModal,
+    errorMessage,
+    clearErrorMessage,
   } = usePosForm();
 
   // We keep userName state for the LCD display,
@@ -113,6 +116,9 @@ const SalesTerminal = () => {
       {successData && (
         <SuccessReceiptModal data={successData} onClose={closeSuccessModal} />
       )}
+
+      {/* --- ERROR MESSAGE --- */}
+      <ErrorMessage message={errorMessage} onClose={clearErrorMessage} />
     </div>
   );
 };

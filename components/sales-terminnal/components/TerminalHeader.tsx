@@ -5,6 +5,8 @@ import { useFormContext } from "react-hook-form";
 import { PosFormValues } from "../utils/posSchema";
 import { useItems } from "@/app/inventory/components/item-registration/context/ItemsContext";
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchInventory } from "@/app/inventory/components/stocks-monitor/lib/inventory.api";
 
 type TerminalHeaderProps = {
   userName: string;
@@ -15,6 +17,13 @@ export const TerminalHeader = ({ userName, liveTime }: TerminalHeaderProps) => {
   const { watch } = useFormContext<PosFormValues>();
   const { items: allItems } = useItems();
   
+  // Fetch inventory data with stock information
+  const { data: inventoryData } = useQuery({
+    queryKey: ["inventory-monitor"],
+    queryFn: () => fetchInventory(),
+    refetchInterval: 5000, // Refresh every 5 seconds
+  });
+  
   // Watch the barcode field for changes
   const currentBarcode = watch("barcode");
   
@@ -24,6 +33,7 @@ export const TerminalHeader = ({ userName, liveTime }: TerminalHeaderProps) => {
       return {
         name: "NO ITEM",
         price: "₱0.00",
+        stock: 0,
       };
     }
     
@@ -33,14 +43,19 @@ export const TerminalHeader = ({ userName, liveTime }: TerminalHeaderProps) => {
       return {
         name: "NOT FOUND",
         price: "₱0.00",
+        stock: 0,
       };
     }
+    
+    // Get stock info from inventory data
+    const stockInfo = inventoryData?.find((inv) => inv.sku === currentBarcode);
     
     return {
       name: item.itemName.toUpperCase(),
       price: `₱${item.costPrice.toFixed(2)}`,
+      stock: stockInfo?.current_stock ?? 0,
     };
-  }, [currentBarcode, allItems]);
+  }, [currentBarcode, allItems, inventoryData]);
 
   return (
     <div className="flex flex-col justify-center items-center shadow-lg mb-4 px-4 py-1 rounded-md w-full min-h-[180px] font-retro retro-lcd-container retro-scanlines">
@@ -56,6 +71,10 @@ export const TerminalHeader = ({ userName, liveTime }: TerminalHeaderProps) => {
         <span>{currentProduct.name}</span>
         <span className="text-retro-cyan/90">{currentProduct.price}</span>
       </div>
+      <div className="opacity-70 my-1 retro-divider"></div>
+      <h2 className="mb-1 text-retro-cyan text-lg md:text-xl uppercase leading-none tracking-wide">
+        STOCKS AVAILABLE: {currentProduct.stock}
+      </h2>
     </div>
   );
 };
