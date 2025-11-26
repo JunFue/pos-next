@@ -1,4 +1,3 @@
-// page.tsx (DashboardHomePage)
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -33,7 +32,7 @@ const DashboardStats = dynamic(
 
 type AuthModalState = "hidden" | "signIn" | "signUp";
 
-export default function DashboardHomePage() {
+export default function HomePage() {
   // --- AUTH STATE MANAGEMENT ---
   const [authModalState, setAuthModalState] =
     useState<AuthModalState>("hidden");
@@ -95,7 +94,7 @@ export default function DashboardHomePage() {
       {/* 1. HEADER SECTION */}
       <header className="flex justify-between items-center mb-10">
         <div>
-          <h1 className="font-bold text-4xl tracking-tight">Dashboard</h1>
+          <h1 className="font-bold text-4xl tracking-tight">Home</h1>
           <p className="mt-2 text-slate-400 text-base">
             {currentUser
               ? `Welcome back, ${
