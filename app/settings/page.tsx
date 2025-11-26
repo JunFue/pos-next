@@ -1,6 +1,7 @@
 "use client";
 
 import VoucherSettings from "./components/VoucherSettings";
+import SubscriptionSettings from "./components/SubscriptionSettings";
 import CurrencySelector from "./components/CurrencySelector";
 import { Settings, CreditCard, ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -47,7 +48,12 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Voucher Settings Section - Assuming VoucherSettings needs styling updates too, but keeping it wrapped for now */}
+        {/* Subscription Settings Section */}
+        <section className="bg-slate-900/50 p-8 border border-slate-800 rounded-2xl glass-effect">
+           <SubscriptionSettings />
+        </section>
+
+        {/* Voucher Settings Section */}
         <section className="bg-slate-900/50 p-8 border border-slate-800 rounded-2xl glass-effect">
            <VoucherSettings />
         </section>
