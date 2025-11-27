@@ -33,21 +33,6 @@ const initialMetrics: DashboardMetrics = {
   topProducts: [],
 };
 
-// --- Helper: Fail-Fast Auth Check ---
-// If Supabase takes > 2 seconds to verify the user, the connection is likely stale/zombie.
-const getUserWithTimeout = async () => {
-  const timeoutMs = 2000; // 2 seconds max
-  const timeoutPromise = new Promise((_, reject) => 
-    setTimeout(() => reject(new Error("AUTH_TIMEOUT")), timeoutMs)
-  );
-  
-  // We race the real getUser against the 2s timer
-  return Promise.race([
-    supabase.auth.getUser(),
-    timeoutPromise
-  ]) as Promise<{ data: { user: any }, error: any }>;
-};
-
 export function useDashboardData() {
   const { isAuthReady } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -74,27 +59,21 @@ export function useDashboardData() {
         throw new Error("No internet connection.");
       }
 
-      // 3. FAIL-FAST AUTH CHECK (The Fix for Idle Tabs)
-      // We don't trust the global state immediately after wake-up. We verify actively.
-      let user = null;
-      try {
-        const { data, error: authError } = await getUserWithTimeout();
-        if (authError) throw authError;
-        user = data.user;
-      } catch (err: any) {
-        if (err.message === "AUTH_TIMEOUT") {
-           // If we timed out, the socket is likely dead. 
-           // If this wasn't already a retry, try ONCE more.
-           if (!isRetry) {
-             console.warn("Auth check timed out. Retrying once...");
-             return fetchDashboardData(true); // Recursive retry
-           }
-           throw new Error("Session expired due to inactivity. Please refresh.");
-        }
-        throw err;
+      // 3. AUTH CHECK
+      // We rely on the global AuthContext to handle session recovery on wake-up.
+      // Here we just ensure we have a user before proceeding.
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+         // If getUser fails, it might be the zombie connection issue, 
+         // but AuthContext should be triggering a refresh in parallel if we just woke up.
+         // We can try one simple retry or just fail.
+         if (!isRetry) {
+            console.warn("Auth check failed. Retrying once...");
+            return fetchDashboardData(true);
+         }
+         throw new Error("Session expired or connection lost. Please refresh.");
       }
-
-      if (!user) throw new Error("Please log in again.");
 
       // 4. FETCH DATA (Standard Logic)
       // 15s Timeout for DB operations
