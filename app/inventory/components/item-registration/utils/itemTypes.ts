@@ -23,6 +23,12 @@ export const itemSchema = z.object({
     .pipe(z.number().min(0, "Cost price must be zero or more")),
 
   description: z.string().optional(),
+  
+  lowStockThreshold: z
+    .number()
+    .min(0, "Threshold must be zero or more")
+    .optional()
+    .nullable(),
 });
 
 // 2. Export the inferred Item type
@@ -38,4 +44,5 @@ export const defaultItemValues: Item = {
   category: "",
   costPrice: 0.0,
   description: "",
+  lowStockThreshold: null,
 };

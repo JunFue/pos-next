@@ -11,6 +11,7 @@ export interface InventoryItem {
   quantity_out: number;
   quantity_sold: number;
   current_stock: number;
+  low_stock_threshold: number | null;
 }
 
 export const fetchInventory = async (

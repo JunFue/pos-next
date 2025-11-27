@@ -11,6 +11,7 @@ interface ItemDbRow {
   category: string | null;
   cost_price: number;
   description: string | null;
+  low_stock_threshold: number | null;
 }
 
 // 2. NEW: A specific type for the object we send to Supabase
@@ -37,6 +38,9 @@ const toDatabaseObject = (item: Partial<Item>): DbItemObject => {
   if (item.description !== undefined) {
     dbItem.description = item.description ?? null;
   }
+  if (item.lowStockThreshold !== undefined) {
+    dbItem.low_stock_threshold = item.lowStockThreshold ?? null;
+  }
 
   return dbItem;
 };
@@ -44,7 +48,7 @@ const toDatabaseObject = (item: Partial<Item>): DbItemObject => {
 // 4. 'fromDatabaseObject' remains the same, correctly typed
 // Maps DB snake_case (ItemDbRow) to JS camelCase (Item)
 const fromDatabaseObject = (dbItem: ItemDbRow): Item => {
-  const { item_name, cost_price, category, description, ...rest } = dbItem;
+  const { item_name, cost_price, category, description, low_stock_threshold, ...rest } = dbItem;
   return {
     ...rest,
     itemName: item_name,
@@ -52,6 +56,7 @@ const fromDatabaseObject = (dbItem: ItemDbRow): Item => {
     // Convert 'null' from DB to 'undefined' for Zod/react-hook-form
     category: category ?? undefined,
     description: description ?? undefined,
+    lowStockThreshold: low_stock_threshold ?? null,
   };
 };
 
@@ -60,7 +65,7 @@ const fromDatabaseObject = (dbItem: ItemDbRow): Item => {
 export const fetchItems = async (): Promise<Item[]> => {
   const { data, error } = await supabase
     .from("items")
-    .select("id, sku, category, description, item_name, cost_price");
+    .select("id, sku, category, description, item_name, cost_price, low_stock_threshold");
 
   if (error) {
     console.error("Supabase fetch error:", error);

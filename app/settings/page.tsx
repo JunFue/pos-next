@@ -3,6 +3,7 @@
 import VoucherSettings from "./components/VoucherSettings";
 import SubscriptionSettings from "./components/SubscriptionSettings";
 import CurrencySelector from "./components/CurrencySelector";
+import LowStockSettings from "./components/LowStockSettings";
 import { Settings, CreditCard, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
@@ -11,11 +12,11 @@ export default function SettingsPage() {
     <div className="p-8 min-h-screen">
       <div className="mb-8">
         <Link 
-          href="/dashboard" 
+          href="/" 
           className="inline-flex items-center gap-2 mb-4 px-4 py-2 text-sm text-slate-400 hover:text-cyan-400 transition-colors duration-200 bg-slate-900/50 border border-slate-800 rounded-lg hover:border-cyan-500/50"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Dashboard
+          Back to Home
         </Link>
         <h1 className="flex items-center gap-3 font-bold text-3xl text-white">
           <Settings className="w-8 h-8 text-cyan-400" />
@@ -56,6 +57,11 @@ export default function SettingsPage() {
         {/* Voucher Settings Section */}
         <section className="bg-slate-900/50 p-8 border border-slate-800 rounded-2xl glass-effect">
            <VoucherSettings />
+        </section>
+
+        {/* Low Stock Settings Section */}
+        <section className="bg-slate-900/50 p-8 border border-slate-800 rounded-2xl glass-effect">
+           <LowStockSettings />
         </section>
       </div>
     </div>

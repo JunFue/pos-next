@@ -23,7 +23,7 @@ interface DashboardMetrics {
   recentTransactions: Transaction[];
   profitTrend: { date: string; revenue: number; profit: number }[];
   categorySales: { name: string; value: number }[];
-  lowStockItems: { id: string; item_name: string; stock: number }[];
+  lowStockItems: { id: string; item_name: string; stock: number; threshold?: number }[];
   topProducts: { item_name: string; quantity: number }[];
 }
 
@@ -39,6 +39,7 @@ export default function DashboardPage() {
     lowStockItems: [],
     topProducts: [],
   });
+  
   useEffect(() => {
     async function fetchDashboardData() {
       try {
@@ -55,7 +56,7 @@ export default function DashboardPage() {
             { data: paymentsData, error: paymentsError },
             { data: transactionsData, error: transactionsError },
             { data: expensesData, error: expensesError },
-            { data: stockData, error: stockError },
+            { data: inventoryData, error: inventoryError },
           ] = await Promise.all([
             supabase
               .from("payments")
@@ -67,16 +68,17 @@ export default function DashboardPage() {
               .from("expenses")
               .select("amount, transaction_date"),
             supabase
-              .from("stock_flow")
-              .select("item_name, flow, quantity"),
+              .from("inventory_monitor_view")
+              .select("item_id, item_name, current_stock, low_stock_threshold")
+              .order("current_stock", { ascending: true }),
           ]);
 
           if (paymentsError) throw paymentsError;
           if (transactionsError) throw transactionsError;
           if (expensesError) throw expensesError;
-          if (stockError) throw stockError;
+          if (inventoryError) throw inventoryError;
 
-          return { paymentsData, transactionsData, expensesData, stockData };
+          return { paymentsData, transactionsData, expensesData, inventoryData };
         })();
 
         // Race fetch against timeout
@@ -84,10 +86,10 @@ export default function DashboardPage() {
             paymentsData: any[];
             transactionsData: any[];
             expensesData: any[];
-            stockData: any[];
+            inventoryData: any[];
         };
 
-        const { paymentsData, transactionsData, expensesData, stockData } = result;
+        const { paymentsData, transactionsData, expensesData, inventoryData } = result;
 
         // --- PROCESS DATA ---
 
@@ -194,23 +196,21 @@ export default function DashboardPage() {
           .slice(0, 5);
 
         // F. Low Stock
-        // Calculate stock from flows
-        const stockMap = new Map<string, number>();
-        stockData?.forEach(s => {
-          const qty = Number(s.quantity) || 0;
-          const current = stockMap.get(s.item_name) || 0;
-          if (s.flow === 'IN') {
-            stockMap.set(s.item_name, current + qty);
-          } else {
-            stockMap.set(s.item_name, current - qty);
-          }
-        });
-
-        const lowStockItems = Array.from(stockMap.entries())
-          .map(([item_name, stock]) => ({ id: item_name, item_name, stock })) // using name as id if id not avail
-          .filter(i => i.stock < 10)
-          .sort((a, b) => a.stock - b.stock)
-          .slice(0, 5); // Show top 5 low stock
+        // Get global threshold from localStorage or default to 10
+        const globalThreshold = parseInt(localStorage.getItem('pos-settings-low-stock-threshold') || '10', 10);
+        
+        const lowStockItems = inventoryData
+          ?.filter(item => {
+            const threshold = item.low_stock_threshold ?? globalThreshold;
+            return item.current_stock >= 0 && item.current_stock < threshold;
+          })
+          .map(item => ({
+            id: item.item_id,
+            item_name: item.item_name,
+            stock: item.current_stock,
+            threshold: item.low_stock_threshold ?? globalThreshold
+          }))
+          .slice(0, 5) || []; // Already sorted by current_stock ascending from query
 
         // G. Recent Transactions
         const recentTransactions = paymentsData

@@ -126,6 +126,20 @@ export const ItemForm: React.FC<ItemFormProps> = ({
                {errors.costPrice && <p className="bottom-0 absolute text-red-300 text-sm">{errors.costPrice.message}</p>}
             </div>
 
+            <div className="relative pb-5">
+               <label htmlFor="low-stock-threshold" className="block mb-2 font-medium text-slate-300 text-sm">
+                 Low Stock Threshold <span className="text-slate-500 text-xs">(Optional)</span>
+               </label>
+               <input 
+                 type="number" 
+                 min="0"
+                 placeholder="Default: Global Setting"
+                 className={`w-full input-dark ${errors.lowStockThreshold ? "border-red-500" : ""}`} 
+                 {...register("lowStockThreshold", { valueAsNumber: true })} 
+               />
+               {errors.lowStockThreshold && <p className="bottom-0 absolute text-red-300 text-sm">{errors.lowStockThreshold.message}</p>}
+            </div>
+
             <div className="md:col-span-2">
               <label htmlFor="description" className="block mb-2 font-medium text-slate-300 text-sm">Description</label>
               <textarea rows={3} className="w-full input-dark" {...register("description")}></textarea>
