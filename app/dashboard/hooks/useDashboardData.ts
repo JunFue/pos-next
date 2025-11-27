@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabaseClient";
 import dayjs from "dayjs";
 import { useAuth } from "@/context/AuthContext";
 
-// --- Types (Same as before) ---
+// --- Interfaces (Keep these same as before) ---
 export interface Transaction {
   invoice_no: string;
   customer_name: string;
@@ -33,27 +33,35 @@ const initialMetrics: DashboardMetrics = {
   topProducts: [],
 };
 
+// --- Helper: Fail-Fast Auth Check ---
+// If Supabase takes > 2 seconds to verify the user, the connection is likely stale/zombie.
+const getUserWithTimeout = async () => {
+  const timeoutMs = 2000; // 2 seconds max
+  const timeoutPromise = new Promise((_, reject) => 
+    setTimeout(() => reject(new Error("AUTH_TIMEOUT")), timeoutMs)
+  );
+  
+  // We race the real getUser against the 2s timer
+  return Promise.race([
+    supabase.auth.getUser(),
+    timeoutPromise
+  ]) as Promise<{ data: { user: any }, error: any }>;
+};
+
 export function useDashboardData() {
   const { isAuthReady } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<DashboardMetrics>(initialMetrics);
 
-  // Ref to track mount state
   const isMounted = useRef(true);
-  // Ref to track the current abort controller so we can cancel previous clicks
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchDashboardData = useCallback(async () => {
-    // 1. Cancel any pending request from previous attempts
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    // Create new controller for this run
+  const fetchDashboardData = useCallback(async (isRetry = false) => {
+    // 1. Abort previous requests
+    if (abortControllerRef.current) abortControllerRef.current.abort();
     const controller = new AbortController();
     abortControllerRef.current = controller;
-
-    if (!isAuthReady) return;
 
     try {
       if (isMounted.current) {
@@ -61,136 +69,131 @@ export function useDashboardData() {
         setError(null);
       }
 
-      console.log("DASHBOARD: Starting fetch sequence...");
+      // 2. CHECK CONNECTION FIRST
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        throw new Error("No internet connection.");
+      }
 
-      // 2. The "Hard" Timeout Wrapper
-      // This promise rejects if ANYTHING takes longer than 15 seconds
-      const timeoutPromise = new Promise((_, reject) => {
-        const id = setTimeout(() => reject(new Error("TIMEOUT_HARD")), 15000);
-        // If the operation finishes or is aborted, clear the timer
-        controller.signal.addEventListener('abort', () => clearTimeout(id));
-      });
+      // 3. FAIL-FAST AUTH CHECK (The Fix for Idle Tabs)
+      // We don't trust the global state immediately after wake-up. We verify actively.
+      let user = null;
+      try {
+        const { data, error: authError } = await getUserWithTimeout();
+        if (authError) throw authError;
+        user = data.user;
+      } catch (err: any) {
+        if (err.message === "AUTH_TIMEOUT") {
+           // If we timed out, the socket is likely dead. 
+           // If this wasn't already a retry, try ONCE more.
+           if (!isRetry) {
+             console.warn("Auth check timed out. Retrying once...");
+             return fetchDashboardData(true); // Recursive retry
+           }
+           throw new Error("Session expired due to inactivity. Please refresh.");
+        }
+        throw err;
+      }
 
-      // 3. The Main Logic Wrapper
-      const operationPromise = async () => {
-        // STAGE A: Auth Check
-        console.log("DASHBOARD: Checking Auth...");
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
-        if (authError || !user) throw new Error("Authentication failed or session expired.");
-        if (controller.signal.aborted) throw new Error("ABORTED");
+      if (!user) throw new Error("Please log in again.");
 
-        // STAGE B: Database Fetches
-        // We pass { abortSignal: controller.signal } to Supabase to kill connection if needed
-        console.log("DASHBOARD: Fetching DB data...");
-        
+      // 4. FETCH DATA (Standard Logic)
+      // 15s Timeout for DB operations
+      const dbTimeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("DB_TIMEOUT")), 15000)
+      );
+
+      const dbOpPromise = async () => {
         const [payments, transactions, expenses, inventory] = await Promise.all([
           supabase.from("payments").select("invoice_no, customer_name, grand_total, transaction_time").abortSignal(controller.signal),
           supabase.from("transactions").select("item_name, total_price, cost_price, quantity, category, invoice_no").abortSignal(controller.signal),
           supabase.from("expenses").select("amount, transaction_date").abortSignal(controller.signal),
           supabase.from("inventory_monitor_view").select("item_id, item_name, current_stock, low_stock_threshold").order("current_stock", { ascending: true }).abortSignal(controller.signal)
         ]);
-
-        if (controller.signal.aborted) throw new Error("ABORTED");
-
-        // Check for specific DB errors
-        if (payments.error) throw new Error(`Payments DB Error: ${payments.error.message}`);
-        if (transactions.error) throw new Error(`Transactions DB Error: ${transactions.error.message}`);
         
-        return {
-          paymentsData: payments.data || [],
-          transactionsData: transactions.data || [],
-          expensesData: expenses.data || [],
-          inventoryData: inventory.data || []
+        if (controller.signal.aborted) throw new Error("ABORTED");
+        if (payments.error) throw payments.error;
+        if (transactions.error) throw transactions.error;
+        if (expenses.error) throw expenses.error;
+        if (inventory.error) throw inventory.error;
+
+        return { 
+          paymentsData: payments.data || [], 
+          transactionsData: transactions.data || [], 
+          expensesData: expenses.data || [], 
+          inventoryData: inventory.data || [] 
         };
       };
 
-      // 4. RACE: Run Logic vs Timeout
-      const result = await Promise.race([operationPromise(), timeoutPromise]) as any;
-
-      if (!isMounted.current) return;
-      console.log("DASHBOARD: Data received. Processing...");
-
-      // --- DATA PROCESSING (Calculations) ---
+      const result = await Promise.race([dbOpPromise(), dbTimeoutPromise]) as any;
       
+      if (!isMounted.current) return;
+
+      // --- PROCESS DATA ---
       const { paymentsData, transactionsData, expensesData, inventoryData } = result;
 
-      // Map Dates
+      // Invoice Date Map
       const invoiceDateMap = new Map<string, string>();
       paymentsData.forEach((p: any) => {
         if (p.invoice_no && p.transaction_time) invoiceDateMap.set(p.invoice_no, p.transaction_time);
       });
 
-      // Calcs...
+      // Calcs
       const uniqueCustomers = new Set(paymentsData.map((c: any) => c.customer_name).filter(Boolean)).size;
       const today = dayjs();
       
-      // Today Sales
       const todayPayments = paymentsData.filter((p: any) => p.transaction_time && dayjs(p.transaction_time).isSame(today, 'day'));
       const todaySales = todayPayments.reduce((sum: number, p: any) => sum + (Number(p.grand_total) || 0), 0);
 
-      // Today COGS
       const todayTransactions = transactionsData.filter((t: any) => {
         const time = invoiceDateMap.get(t.invoice_no);
         return time && dayjs(time).isSame(today, 'day');
       });
       const todayCOGS = todayTransactions.reduce((sum: number, t: any) => sum + ((Number(t.cost_price) || 0) * (Number(t.quantity) || 1)), 0);
 
-      // Today Expenses
       const todayExpenses = expensesData.filter((e: any) => dayjs(e.transaction_date).isSame(today, 'day'))
         .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
-      
-      // Profit Trend
+
+      // Trend
       const trendMap = new Map<string, { revenue: number; cost: number; expense: number }>();
-      for (let i = 29; i >= 0; i--) {
-        trendMap.set(dayjs().subtract(i, 'day').format('YYYY-MM-DD'), { revenue: 0, cost: 0, expense: 0 });
-      }
-
-      paymentsData.forEach((p: any) => {
-        if (!p.transaction_time) return;
-        const d = dayjs(p.transaction_time).format('YYYY-MM-DD');
-        if (trendMap.has(d)) trendMap.get(d)!.revenue += Number(p.grand_total) || 0;
-      });
+      for (let i = 29; i >= 0; i--) trendMap.set(dayjs().subtract(i, 'day').format('YYYY-MM-DD'), { revenue: 0, cost: 0, expense: 0 });
       
+      paymentsData.forEach((p: any) => {
+         if(!p.transaction_time) return;
+         const d = dayjs(p.transaction_time).format('YYYY-MM-DD');
+         if(trendMap.has(d)) trendMap.get(d)!.revenue += Number(p.grand_total) || 0;
+      });
       transactionsData.forEach((t: any) => {
-        const time = invoiceDateMap.get(t.invoice_no);
-        if (time) {
-          const d = dayjs(time).format('YYYY-MM-DD');
-          if (trendMap.has(d)) trendMap.get(d)!.cost += (Number(t.cost_price) || 0) * (Number(t.quantity) || 1);
-        }
+         const time = invoiceDateMap.get(t.invoice_no);
+         if(time) {
+            const d = dayjs(time).format('YYYY-MM-DD');
+            if(trendMap.has(d)) trendMap.get(d)!.cost += (Number(t.cost_price) || 0) * (Number(t.quantity) || 1);
+         }
       });
-
       expensesData.forEach((e: any) => {
-        if (!e.transaction_date) return;
-        const d = dayjs(e.transaction_date).format('YYYY-MM-DD');
-        if (trendMap.has(d)) trendMap.get(d)!.expense += Number(e.amount) || 0;
+         if(!e.transaction_date) return;
+         const d = dayjs(e.transaction_date).format('YYYY-MM-DD');
+         if(trendMap.has(d)) trendMap.get(d)!.expense += Number(e.amount) || 0;
       });
-
       const profitTrend = Array.from(trendMap.entries()).map(([date, val]) => ({
-        date: dayjs(date).format('MMM D'),
-        revenue: Number(val.revenue.toFixed(2)),
-        profit: Number((val.revenue - val.cost - val.expense).toFixed(2))
+         date: dayjs(date).format('MMM D'),
+         revenue: Number(val.revenue.toFixed(2)),
+         profit: Number((val.revenue - val.cost - val.expense).toFixed(2))
       }));
 
-      // Top Products & Categories
-      const categoryMap = new Map<string, number>();
-      const productMap = new Map<string, number>();
-      
+      // Cats & Products
+      const categoryMap = new Map();
+      const productMap = new Map();
       transactionsData.forEach((t: any) => {
-        const cat = t.category || "Uncategorized";
-        categoryMap.set(cat, (categoryMap.get(cat) || 0) + (Number(t.total_price) || 0));
-        productMap.set(t.item_name, (productMap.get(t.item_name) || 0) + (Number(t.quantity) || 0));
+         categoryMap.set(t.category || "Uncategorized", (categoryMap.get(t.category || "Uncategorized") || 0) + (Number(t.total_price) || 0));
+         productMap.set(t.item_name, (productMap.get(t.item_name) || 0) + (Number(t.quantity) || 0));
       });
-
-      const categorySales = Array.from(categoryMap.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-      const topProducts = Array.from(productMap.entries()).map(([item_name, quantity]) => ({ item_name, quantity })).sort((a, b) => b.quantity - a.quantity).slice(0, 5);
+      const categorySales = Array.from(categoryMap.entries()).map(([name, value]: any) => ({ name, value })).sort((a, b) => b.value - a.value);
+      const topProducts = Array.from(productMap.entries()).map(([item_name, quantity]: any) => ({ item_name, quantity })).sort((a, b) => b.quantity - a.quantity).slice(0, 5);
 
       // Low Stock
       const globalThreshold = typeof window !== 'undefined' ? parseInt(localStorage.getItem('pos-settings-low-stock-threshold') || '10', 10) : 10;
       const lowStockItems = inventoryData.filter((i: any) => i.current_stock < (i.low_stock_threshold ?? globalThreshold))
-        .map((i: any) => ({
-            id: i.item_id, item_name: i.item_name, stock: i.current_stock, threshold: i.low_stock_threshold ?? globalThreshold
-        })).slice(0, 5);
+        .map((i: any) => ({ id: i.item_id, item_name: i.item_name, stock: i.current_stock, threshold: i.low_stock_threshold ?? globalThreshold })).slice(0, 5);
       
       const recentTransactions = paymentsData.sort((a: any, b: any) => dayjs(b.transaction_time).unix() - dayjs(a.transaction_time).unix()).slice(0, 5);
 
@@ -204,58 +207,41 @@ export function useDashboardData() {
         lowStockItems,
         topProducts
       });
-
-      console.log("DASHBOARD: Success.");
-
     } catch (err: any) {
-      if (err.message === "ABORTED") {
-        console.log("DASHBOARD: Fetch aborted (likely navigation).");
-        return;
-      }
-      
-      console.error("DASHBOARD ERROR:", err);
-      
+      if (err.message === "ABORTED") return;
+      console.error("Dashboard Fetch Error:", err);
       if (isMounted.current) {
-        if (err.message === "TIMEOUT_HARD") {
-          setError("Connection timed out. Please check your internet.");
-        } else {
-          setError(err.message || "Failed to load dashboard.");
-        }
+         setError(err.message === "DB_TIMEOUT" ? "Connection slow. Please retry." : err.message);
       }
     } finally {
       if (isMounted.current) setLoading(false);
     }
-  }, [isAuthReady]);
+  }, []); // Intentionally empty deps to avoid loops, we call it manually
 
-  // --- Strict Mode Safety Effect ---
+  // --- EFFECT 1: Initial Load & Auth Watchdog ---
   useEffect(() => {
     isMounted.current = true;
-
-    // If Auth is taking forever (>5s) to even initialize, show error
-    let authWatchdog: NodeJS.Timeout;
-    
-    if (!isAuthReady) {
-      authWatchdog = setTimeout(() => {
-        if (isMounted.current && loading) {
-          console.warn("DASHBOARD: Auth watchdog triggered.");
-          setLoading(false);
-          setError("Authentication stuck. Please refresh.");
-        }
-      }, 5000);
-    } else {
-      // Auth is ready, start the fetch
+    if (isAuthReady) {
       fetchDashboardData();
     }
+    return () => { isMounted.current = false; };
+  }, [isAuthReady, fetchDashboardData]);
 
-    return () => {
-      isMounted.current = false;
-      clearTimeout(authWatchdog);
-      // CLEANUP: Abort any running requests on unmount
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+  // --- EFFECT 2: Handle Tab Sleep / Visibility Change ---
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      // If user comes back to the tab (visible) and it's been idle
+      if (document.visibilityState === 'visible' && isAuthReady) {
+        console.log("Tab woke up. Refreshing data...");
+        fetchDashboardData();
       }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [isAuthReady, fetchDashboardData]);
 
-  return { metrics, loading, error, refetch: fetchDashboardData };
+  return { metrics, loading, error, refetch: () => fetchDashboardData() };
 }
