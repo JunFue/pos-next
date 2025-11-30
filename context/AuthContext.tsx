@@ -9,6 +9,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isAuthReady: boolean;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,39 +33,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initAuth();
 
-    // 2. Listen for standard auth changes (Login, Logout, Auto-Refresh)
+    // 2. Listen for standard auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, newSession) => {
         setSession(newSession);
-        // Ensure we mark as ready if we somehow missed the init
         setIsAuthReady(true);
       }
     );
 
-    // 3. Simple "Wake Up" Refresh
-    // No complex detection. Just ensure session is valid when user returns.
-    const handleFocus = async () => {
-      if (document.visibilityState === 'visible') {
-         // This automatically handles dead sockets by forcing a new handshake
-         await supabase.auth.refreshSession(); 
-      }
-    };
-
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleFocus);
-
     return () => {
       subscription.unsubscribe();
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleFocus);
     };
   }, []);
+
+  // 3. Robust Sign Out with Storage Purge
+  const signOut = async () => {
+    try {
+      // Race network vs 3s timer
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Logout request timed out")), 3000)
+        )
+      ]);
+    } catch (error) {
+      console.warn("Logout warning (likely network zombie):", error);
+    } finally {
+      // 1. Force React State Update
+      setSession(null);
+
+      // 2. CRITICAL: Manually purge Supabase tokens from LocalStorage
+      // Supabase keys usually look like: sb-<project-id>-auth-token
+      // We search for and remove any key starting with 'sb-'
+      if (typeof window !== 'undefined') {
+        Object.keys(window.localStorage).forEach((key) => {
+          if (key.startsWith('sb-') || key.includes('supabase')) {
+            window.localStorage.removeItem(key);
+          }
+        });
+      }
+    }
+  };
 
   const value: AuthContextType = {
     session,
     user: session?.user || null,
     isAuthenticated: !!session,
     isAuthReady,
+    signOut,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -6,7 +6,6 @@ import Navigation from "../components/navigation/Navigation";
 import { X, Loader2, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useDashboardData } from "./dashboard/hooks/useDashboardData";
-import { handleLogOut } from "@/components/sales-terminnal/components/buttons/handlers";
 
 // --- Local Components ---
 import SearchBar from "./components/SearchBar";
@@ -38,11 +37,11 @@ type AuthModalState = "hidden" | "signIn" | "signUp";
 
 export default function HomePage() {
   // --- AUTH STATE MANAGEMENT ---
-  const { user, isAuthReady } = useAuth();
+  const { user, isAuthReady, signOut } = useAuth();
   const [authModalState, setAuthModalState] = useState<AuthModalState>("hidden");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // --- DATA FETCHING (Now handled by Context/Hook) ---
+  // --- DATA FETCHING ---
   const { metrics, isLoading, error } = useDashboardData();
 
   // --- HANDLERS ---
@@ -55,10 +54,21 @@ export default function HomePage() {
   };
 
   const onSignOutClick = async () => {
-    setIsLoggingOut(true);
-    await handleLogOut();
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    setIsLoggingOut(false);
+    try {
+      setIsLoggingOut(true);
+      
+      // Execute the robust signOut (wipes storage and state)
+      await signOut();
+      
+      // Short aesthetic delay
+      await new Promise((resolve) => setTimeout(resolve, 800));
+    } catch (error) {
+      console.error("Logout process error:", error);
+    } finally {
+      // FORCE REFRESH: Now safe because storage is wiped.
+      // The browser will reload, see no token in storage, and render as 'Guest'.
+      window.location.reload();
+    }
   };
 
   // --- LOADING STATE ---
