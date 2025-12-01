@@ -12,8 +12,13 @@ export interface ExpenseData {
 
 export type ExpenseInput = Omit<ExpenseData, "id">;
 
+export interface Classification {
+  id: string;
+  name: string;
+  store_id: string;
+}
+
 // 1. Fetch Expenses
-// (No change needed, standard select)
 export const fetchExpenses = async (): Promise<ExpenseData[]> => {
   const { data, error } = await supabase
     .from("expenses")
@@ -26,7 +31,6 @@ export const fetchExpenses = async (): Promise<ExpenseData[]> => {
 };
 
 // 2. Create Expense (RPC VERSION)
-// This is now much cleaner and safer
 export const createExpense = async (input: ExpenseInput) => {
   const { error } = await supabase.rpc("insert_new_expense", {
     transaction_date_in: input.transaction_date,
@@ -39,6 +43,60 @@ export const createExpense = async (input: ExpenseInput) => {
 
   if (error) {
     console.error("RPC Error:", error);
+    throw new Error(error.message);
+  }
+};
+
+// --- CLASSIFICATION API ---
+
+// 3. Fetch Classifications
+export const fetchClassifications = async (): Promise<Classification[]> => {
+  const { data, error } = await supabase
+    .from("classification")
+    .select("*")
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching classifications:", error);
+    return [];
+  }
+  return data || [];
+};
+
+// 4. Create Classification (RPC)
+export const createClassification = async (name: string) => {
+  const { error } = await supabase.rpc("insert_new_classification", {
+    name_in: name,
+  });
+
+  if (error) {
+    console.error("Error creating classification:", error);
+    throw new Error(error.message);
+  }
+};
+
+// 5. Update Classification
+export const updateClassification = async (id: string, name: string) => {
+  const { error } = await supabase
+    .from("classification")
+    .update({ name })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Error updating classification:", error);
+    throw new Error(error.message);
+  }
+};
+
+// 6. Delete Classification
+export const deleteClassification = async (id: string) => {
+  const { error } = await supabase
+    .from("classification")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("Error deleting classification:", error);
     throw new Error(error.message);
   }
 };
