@@ -1,12 +1,13 @@
 // Example custom hook to get auth state
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/utils/supabase/client";
 import type { Session } from "@supabase/supabase-js";
 
 export function useAuthSession() {
   // ✅ State should hold Session | null, not a Promise
   const [session, setSession] = useState<Session | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const supabase = createClient();
 
   useEffect(() => {
     // Check initial session

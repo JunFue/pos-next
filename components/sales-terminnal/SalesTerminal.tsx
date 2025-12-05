@@ -8,7 +8,7 @@ import TerminalButtons from "./components/buttons/TerminalButtons";
 import TerminalHeader from "./components/TerminalHeader";
 import { useState, useEffect } from "react";
 import { FormProvider } from "react-hook-form";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/utils/supabase/client";
 import "react-data-grid/lib/styles.css";
 import TerminalCart from "./components/TerminalCart";
 import { usePosForm } from "./components/form/usePosForm";
@@ -37,6 +37,7 @@ const SalesTerminal = () => {
   // We keep userName state for the LCD display,
   // but we remove the modals/signIn buttons since page.tsx handles that.
   const [userName, setUserName] = useState("PLEASE SIGN IN");
+  const supabase = createClient();
 
   useEffect(() => {
     const fetchUser = async (userId: string) => {

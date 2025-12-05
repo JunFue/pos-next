@@ -1,4 +1,6 @@
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/utils/supabase/client";
+
+const supabase = createClient();
 
 export interface StockData {
   id: string;
@@ -9,7 +11,6 @@ export interface StockData {
   notes: string | null;
   time_stamp: string;
   user_id: string;
-  admin_users_id: string;
   store_id: string;
 }
 
@@ -45,7 +46,6 @@ export const fetchStocks = async (): Promise<StockData[]> => {
       notes,
       time_stamp,
       user_id,
-      admin_users_id,
       store_id
     `
     )

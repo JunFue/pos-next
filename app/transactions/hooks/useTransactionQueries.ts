@@ -1,5 +1,5 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/utils/supabase/client";
 import { TransactionItem, PaymentRecord } from "../types";
 import { useAuth } from "@/context/AuthContext";
 
@@ -49,6 +49,7 @@ export const useTransactionHistory = (
     placeholderData: keepPreviousData,
     enabled: isAuthenticated,
     queryFn: async () => {
+      const supabase = createClient();
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
@@ -130,6 +131,7 @@ export const usePaymentHistory = (
     placeholderData: keepPreviousData,
     enabled: isAuthenticated,
     queryFn: async () => {
+      const supabase = createClient();
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 

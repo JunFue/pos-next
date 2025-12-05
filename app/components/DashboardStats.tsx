@@ -2,7 +2,7 @@
 
 import { TrendingDown, Brain, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+
 import dayjs from "dayjs";
 import Link from "next/link";
 import { useSettings } from "@/context/SettingsContext";

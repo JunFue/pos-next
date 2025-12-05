@@ -15,7 +15,7 @@ import {
   AlertTriangle,
   Loader2,
 } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/utils/supabase/client";
 import { signUpSchema, SignUpFormValues } from "@/lib/types";
 
 interface SignUpProps {
@@ -23,6 +23,7 @@ interface SignUpProps {
 }
 
 const signUpUser = async (values: SignUpFormValues) => {
+  const supabase = createClient();
   const { error: authError } = await supabase.auth.signUp({
     email: values.email,
     password: values.password,

@@ -1,5 +1,7 @@
 // app/inventory/components/item-registration/lib/categories.api.ts
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/utils/supabase/client";
+
+const supabase = createClient();
 
 export interface Category {
   id: string;

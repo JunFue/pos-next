@@ -1,6 +1,6 @@
 import { PosFormValues } from "@/components/sales-terminnal/utils/posSchema";
 import { CartItem } from "../../TerminalCart";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/utils/supabase/client";
 
 export type TransactionResult = {
   invoice_no: string;
@@ -36,6 +36,7 @@ export const handleDone = async (
   cashierId: string 
 ): Promise<TransactionResult> => {
   console.log("--- 🛠 [Logic] handleDone started ---");
+  const supabase = createClient();
 
   try {
     if (!cashierId) {

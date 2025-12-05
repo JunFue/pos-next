@@ -2,7 +2,7 @@
 
 import { createContext, useContext, ReactNode, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/utils/supabase/client";
 import dayjs from "dayjs";
 import { useAuth } from "@/context/AuthContext";
 
@@ -47,6 +47,7 @@ const DashboardContext = createContext<DashboardContextType | undefined>(undefin
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
+  const supabase = createClient();
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["dashboard-rpc-metrics"], // Unique cache key

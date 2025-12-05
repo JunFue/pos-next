@@ -1,8 +1,15 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+
 import type { Session, User } from "@supabase/supabase-js";
+import { createClient } from "@/utils/supabase/client";
 
 interface AuthContextType {
   session: Session | null;
@@ -18,12 +25,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
+  // CHANGED: Create the client inside the component (or use a singleton helper)
+  // This uses the browser's cookies automatically.
+  const supabase = createClient();
+
   useEffect(() => {
     // 1. Initial Load
     const initAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
+        // CHANGED: Use getUser() instead of getSession() for security
+        // getSession() just checks the cookie/localstorage structure.
+        // getUser() validates the token with the Supabase server.
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
+
+        if (user) {
+          // If we have a user, get the session to match the type signature
+          // (Though in many apps you just need the user)
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+          setSession(session);
+        } else {
+          setSession(null);
+        }
       } catch (error) {
         console.error("Auth Init Error:", error);
       } finally {
@@ -34,44 +61,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
 
     // 2. Listen for standard auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
-        setSession(newSession);
-        setIsAuthReady(true);
-      }
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+      setIsAuthReady(true);
+    });
 
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
-  // 3. Robust Sign Out with Storage Purge
+  // 3. Sign Out
   const signOut = async () => {
     try {
-      // Race network vs 3s timer
-      await Promise.race([
-        supabase.auth.signOut(),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Logout request timed out")), 3000)
-        )
-      ]);
-    } catch (error) {
-      console.warn("Logout warning (likely network zombie):", error);
-    } finally {
-      // 1. Force React State Update
+      await supabase.auth.signOut();
       setSession(null);
-
-      // 2. CRITICAL: Manually purge Supabase tokens from LocalStorage
-      // Supabase keys usually look like: sb-<project-id>-auth-token
-      // We search for and remove any key starting with 'sb-'
-      if (typeof window !== 'undefined') {
-        Object.keys(window.localStorage).forEach((key) => {
-          if (key.startsWith('sb-') || key.includes('supabase')) {
-            window.localStorage.removeItem(key);
-          }
-        });
-      }
+      // NOTE: With the cookie-based SSR setup, you no longer need the
+      // complex LocalStorage purge logic. The server/middleware will
+      // handle cookie removal automatically on the next request.
+    } catch (error) {
+      console.error("Error signing out:", error);
     }
   };
 

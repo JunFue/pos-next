@@ -1,4 +1,6 @@
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/utils/supabase/client";
+
+const supabase = createClient();
 
 export interface CashFlowEntry {
   store_id: string;

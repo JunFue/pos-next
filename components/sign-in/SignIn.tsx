@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { Mail, Lock, LogIn, AlertTriangle, Loader2 } from "lucide-react";
 import { signInSchema, SignInFormValues } from "@/lib/types";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/utils/supabase/client";
 
 interface SignInProps {
   onSwitchToSignUp: () => void;
@@ -16,6 +16,7 @@ interface SignInProps {
 
 const signInUser = async (values: SignInFormValues) => {
   const APP_TYPE = "member";
+  const supabase = createClient();
 
   const { data: sessionData, error: signInError } =
     await supabase.auth.signInWithPassword({

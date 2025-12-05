@@ -1,6 +1,8 @@
 // app/inventory/components/item-registration/lib/item.api.ts
 
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/utils/supabase/client";
+
+const supabase = createClient();
 import { Item } from "../utils/itemTypes";
 
 // 1. Interface for the database row (snake_case)

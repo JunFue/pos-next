@@ -1,7 +1,7 @@
 // handlers/terminal/logout.ts
 // (This is the content you provided, placed in the correct directory)
 
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/utils/supabase/client";
 
 /**
  * Handles the user log out process using Supabase.
@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabaseClient";
  */
 export const handleLogOut = async (): Promise<boolean> => {
   console.log("Logout initiated: Starting handleLogOut...");
+  const supabase = createClient();
 
   const forceLogout = () => {
     console.warn("Logout timed out or failed. Forcing manual cleanup...");

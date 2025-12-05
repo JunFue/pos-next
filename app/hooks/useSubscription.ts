@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { createClient } from "@/utils/supabase/client";
 import dayjs from 'dayjs';
 
 export interface Subscription {
@@ -23,6 +23,7 @@ export function useSubscription() {
   const [payments, setPayments] = useState<SubscriptionPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [storeId, setStoreId] = useState<string | null>(null);
+  const supabase = createClient();
 
   useEffect(() => {
     fetchSubscriptionData();

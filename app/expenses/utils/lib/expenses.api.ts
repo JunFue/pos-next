@@ -1,5 +1,7 @@
 // lib/expenses.api.ts
-import { supabase } from "../../../../lib/supabaseClient";
+import { createClient } from "@/utils/supabase/client";
+
+const supabase = createClient();
 
 export interface ExpenseData {
   id: string;
