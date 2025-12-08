@@ -1,20 +1,24 @@
 import SalesTerminal from "../sales-terminnal/SalesTerminal";
-
+import { WindowLoading } from "./WindowLoading";
 
 interface LeftWindowProps {
   leftWidth: string;
+  isTransitioning?: boolean;
 }
 
-const LeftWindow = ({ leftWidth }: LeftWindowProps) => {
+const LeftWindow = ({ leftWidth, isTransitioning }: LeftWindowProps) => {
   return (
     <div
       className="h-screen overflow-hidden transition-all duration-500 ease-in-out shrink-0"
       style={{ width: leftWidth }}
     >
-      <div className="box-border pt-4 pr-2 pb-4 pl-4 w-full h-full">
-        <div className="p-1 w-full h-full glass-effect">
-          {/* Wrapped with InventoryProvider for shared inventory data */}
+      <div className="box-border pl-3 pr-1.5 py-3 w-full h-full">
+        <div className="w-full h-full glass-effect rounded-3xl overflow-hidden relative">
+          {isTransitioning ? (
+            <WindowLoading />
+          ) : (
             <SalesTerminal />
+          )}
         </div>
       </div>
     </div>

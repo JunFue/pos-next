@@ -1,25 +1,27 @@
 import React from "react";
+import { WindowLoading } from "./WindowLoading";
 
-// STEP 1: Add 'children' to the props interface
 interface RightWindowProps {
   rightWidth: string;
   children: React.ReactNode;
+  isTransitioning?: boolean;
 }
 
-// STEP 2: Destructure 'children' from props
-const RightWindow = ({ rightWidth, children }: RightWindowProps) => {
+const RightWindow = ({ rightWidth, children, isTransitioning }: RightWindowProps) => {
   return (
     <div
       className="h-screen overflow-hidden transition-all duration-500 ease-in-out shrink-0"
       style={{ width: rightWidth }}
     >
-      <div className="box-border pt-4 pr-4 pb-4 pl-2 w-full h-full">
-        {/* STEP 3: Render 'children' inside this div.
-            I've also added 'overflow-y-auto' so your
-            pages can scroll if they are long.
-        */}
-        <div className="border-2 border-primary-light rounded-3xl w-full h-full overflow-y-auto overflow-x-hidden">
-          {children}
+      <div className="box-border pl-1.5 pr-3 py-3 w-full h-full">
+        <div className="border-2 border-primary-light rounded-3xl w-full h-full overflow-hidden relative">
+          {isTransitioning ? (
+            <WindowLoading />
+          ) : (
+            <div className="w-full h-full overflow-y-auto overflow-x-hidden">
+              {children}
+            </div>
+          )}
         </div>
       </div>
     </div>
