@@ -11,7 +11,7 @@ export type TransactionResult = {
   change: number;
   transaction_no: string;
   // transaction_time: string; // Removed from return type as it is now DB generated
-  cashier_name: string;
+  cashier_name: string; 
 } | null;
 
 const withTimeout = <T>(
