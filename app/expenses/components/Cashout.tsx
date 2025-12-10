@@ -1,13 +1,15 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react"; // Added useEffect
 import { useForm, Controller } from "react-hook-form";
 import { Loader2 } from "lucide-react";
 import { useExpenses } from "../hooks/useExpenses";
 import { ExpenseInput } from "../lib/expenses.api";
-import { fetchFlowCategories } from "../lib/cashflow.api";
-import { useQuery } from "@tanstack/react-query"; // ✅ FIXED: added missing source
+// import { fetchFlowCategories } from "../lib/cashflow.api"; // Removed
+// import { useQuery } from "@tanstack/react-query"; // Removed if not used elsewhere
+
 import { ClassificationSelect } from "./ClassificationSelect";
+import { useCategoryStore } from "@/app/inventory/components/item-registration/store/useCategoryStore";
 
 // Helper to get local date string (YYYY-MM-DD) correctly
 const getLocalDate = () => {
@@ -18,15 +20,23 @@ const getLocalDate = () => {
 
 export function Cashout() {
   const { expenses, addExpense, isLoading, isSubmitting } = useExpenses();
+  
+  // --- Store Hooks ---
+  const { categories, loadCategories } = useCategoryStore();
 
-const amountRef = useRef<HTMLElement | null>(null);
-const classificationRef = useRef<HTMLElement | null>(null);
-const sourceRef = useRef<HTMLElement | null>(null);
-const receiptRef = useRef<HTMLElement | null>(null);
-const notesRef = useRef<HTMLElement | null>(null);
-const dateRef = useRef<HTMLElement | null>(null);
-const submitButtonRef = useRef<HTMLButtonElement | null>(null);
+  // --- Effects ---
+  // Ensure categories are loaded when this component mounts
+  useEffect(() => {
+    loadCategories();
+  }, [loadCategories]);
 
+  const amountRef = useRef<HTMLElement | null>(null);
+  const classificationRef = useRef<HTMLElement | null>(null);
+  const sourceRef = useRef<HTMLElement | null>(null);
+  const receiptRef = useRef<HTMLElement | null>(null);
+  const notesRef = useRef<HTMLElement | null>(null);
+  const dateRef = useRef<HTMLElement | null>(null);
+  const submitButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const {
     register,
@@ -38,12 +48,6 @@ const submitButtonRef = useRef<HTMLButtonElement | null>(null);
     defaultValues: {
       transaction_date: getLocalDate(),
     },
-  });
-
-  // --- Queries ---
-  const { data: categories = [] } = useQuery({
-    queryKey: ["flow-categories"],
-    queryFn: fetchFlowCategories,
   });
 
   // --- Handlers ---
@@ -67,24 +71,22 @@ const submitButtonRef = useRef<HTMLButtonElement | null>(null);
   };
 
   // --- Navigation Logic ---
-function handleKeyDown(
-  e: React.KeyboardEvent,
-  nextRef: React.RefObject<HTMLElement | null>
-) {
-  if (e.key === "Enter" && e.shiftKey) {
-    e.preventDefault();
-    // ✅ trigger form submission
-    handleSubmit(onSubmit)();
-    return;
+  function handleKeyDown(
+    e: React.KeyboardEvent,
+    nextRef: React.RefObject<HTMLElement | null>
+  ) {
+    if (e.key === "Enter" && e.shiftKey) {
+      e.preventDefault();
+      // trigger form submission
+      handleSubmit(onSubmit)();
+      return;
+    }
+
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      nextRef.current?.focus();
+    }
   }
-
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    nextRef.current?.focus();
-  }
-}
-
-
 
   // Combining React Hook Form refs with local refs
   const { ref: amountHookRef, ...amountRest } = register("amount", { required: true, min: 0, valueAsNumber: true });
@@ -99,7 +101,6 @@ function handleKeyDown(
       <div className="p-6 glass-effect relative">
         <h2 className="mb-4 font-semibold text-white text-xl">Register New Expense</h2>
         
-        {/* We remove onSubmit from form tag to prevent default HTML submission on Enter */}
         <form className="gap-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           
           {/* 1. Amount */}
@@ -157,8 +158,11 @@ function handleKeyDown(
               className={`w-full input-dark ${errors.source ? "border-red-500" : ""}`}
             >
               <option value="">Select Source</option>
+              {/* UPDATED MAPPING: The store returns objects {id, category}, not strings */}
               {categories.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
+                <option key={cat.id} value={cat.category}>
+                  {cat.category}
+                </option>
               ))}
             </select>
             {errors.source && <p className="bottom-0 absolute text-red-300 text-sm">Source is required</p>}
@@ -213,7 +217,7 @@ function handleKeyDown(
           
           <div className="flex justify-end lg:col-span-3">
             <button 
-              type="button" // Important: type="button" so it doesn't auto-submit on random Enters elsewhere
+              type="button" 
               ref={submitButtonRef}
               onClick={handleSubmit(onSubmit)}
               disabled={isSubmitting} 
