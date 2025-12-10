@@ -79,20 +79,22 @@ export const fetchItems = async (): Promise<Item[]> => {
 };
 
 export const insertItem = async (item: Item): Promise<Item> => {
-  const { id, ...rest } = item;
-  const dbItem = toDatabaseObject(rest); // 'rest' has no 'id'
-
-  const { data, error } = await supabase
-    .from("items")
-    .insert(dbItem)
-    .select()
-    .single();
+  // We map the Item object to the RPC parameters
+  const { data, error } = await supabase.rpc("insert_item_secure", {
+    p_item_name: item.itemName,
+    p_sku: item.sku,
+    p_cost_price: item.costPrice,
+    p_category_name: item.category || null,
+    p_description: item.description || null,
+    p_low_stock_threshold: item.lowStockThreshold || null,
+  });
 
   if (error) {
-    console.error("Supabase insert error:", error);
+    console.error("Supabase insert_item_secure error:", error);
     throw new Error(error.message);
   }
 
+  // The RPC returns the raw DB row, so we convert it back to your CamelCase Item type
   return fromDatabaseObject(data);
 };
 
