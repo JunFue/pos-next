@@ -13,7 +13,10 @@ export interface CashFlowEntry {
   balance: number;
 }
 
-export const fetchDailyCashFlow = async (date: string = dayjs().format("YYYY-MM-DD")): Promise<CashFlowEntry[]> => {
+// Removed 'signal' parameter
+export const fetchDailyCashFlow = async (
+  date: string = dayjs().format("YYYY-MM-DD")
+): Promise<CashFlowEntry[]> => {
   const { data, error } = await supabase
     .from("categorical_cash_flow")
     .select("*")

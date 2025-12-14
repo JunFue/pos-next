@@ -8,11 +8,17 @@ import CashOnHandCard from "./components/CashOnHandCard";
 import ExpensesCard from "./components/ExpensesCard";
 
 export default function DashboardPage() {
+  // 1. Remove resetMetrics from destructuring
   const { fetchMetrics, metrics } = useDashboardStore();
   const { isLoading, error } = metrics;
 
   useEffect(() => {
     fetchMetrics();
+    
+    // 2. REMOVED the cleanup function:
+    // return () => { resetMetrics(); };
+    // We let the data persist in the store so it's instantly available 
+    // when the user returns (Stale-While-Revalidate pattern).
   }, [fetchMetrics]);
 
   return (
@@ -30,7 +36,8 @@ export default function DashboardPage() {
         <p className="text-slate-400">Overview of today's performance</p>
       </div>
 
-      {isLoading && (
+      {/* Only show big spinner if we have NO data and we are loading */}
+      {isLoading && metrics.cashFlow.length === 0 && (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
         </div>
@@ -42,7 +49,9 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {!isLoading && !error && (
+      {/* Show content if we have data (even if refreshing) */}
+      {/* This ensures the user always sees something if data exists */}
+      {(metrics.cashFlow.length > 0 || (!isLoading && !error)) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <CashOnHandCard />
           <ExpensesCard />

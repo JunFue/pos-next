@@ -13,6 +13,7 @@ export interface DashboardMetrics {
 interface DashboardState {
   metrics: DashboardMetrics;
   fetchMetrics: (date?: string) => Promise<void>;
+  resetMetrics: () => void;
 }
 
 const initialMetrics: DashboardMetrics = {
@@ -23,35 +24,23 @@ const initialMetrics: DashboardMetrics = {
   error: null,
 };
 
-export const useDashboardStore = create<DashboardState>((set) => ({
+export const useDashboardStore = create<DashboardState>((set, get) => ({
   metrics: initialMetrics,
+
   fetchMetrics: async (date = dayjs().format("YYYY-MM-DD")) => {
+    // Always start loading. We do NOT check for cache here to ensure data is fresh.
     set((state) => ({
       metrics: { ...state.metrics, isLoading: true, error: null },
     }));
 
     try {
+      // No AbortSignal passed here anymore
       const cashFlow = await fetchDailyCashFlow(date);
 
-      // Calculate Total Net Sales: Sum of (Income + Forwarded - Expenses) for all categories?
-      // Wait, the user said: "Total Net Sales - this is computed by total income of the day + the forwarded net sales from the previous day - expenses."
-      // In the view:
-      // cash_in = Income
-      // forwarded = Forwarded Net Sales
-      // cash_out = Expenses
-      // balance = Net Sales (likely calculated as forwarded + cash_in - cash_out)
-      
-      // Let's verify the calculation logic based on the user request:
-      // "Total Net Sales - this is computed by total income of the day + the forwarded net sales from the previous day - expenses."
-      // This matches the 'balance' column in the view if the view logic is standard.
-      // Let's sum up the 'balance' for Total Net Sales.
-      
       const totalNetSales = cashFlow.reduce((sum, entry) => sum + (Number(entry.balance) || 0), 0);
-      
-      // "Total Expenses of the day"
-      // This matches the 'cash_out' column.
       const totalExpenses = cashFlow.reduce((sum, entry) => sum + (Number(entry.cash_out) || 0), 0);
 
+      // Simple update - no race condition checks needed because we aren't cancelling
       set({
         metrics: {
           cashFlow,
@@ -63,9 +52,15 @@ export const useDashboardStore = create<DashboardState>((set) => ({
       });
     } catch (error: any) {
       console.error("Dashboard Store Error:", error);
+      // Always turn off loading, even if there's an error
       set((state) => ({
         metrics: { ...state.metrics, isLoading: false, error: error.message },
       }));
     }
+  },
+
+  resetMetrics: () => {
+    // Simply reset to initial state
+    set({ metrics: initialMetrics });
   },
 }));
