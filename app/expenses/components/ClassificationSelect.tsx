@@ -10,13 +10,8 @@ import {
   X,
   Loader2
 } from "lucide-react";
-import {
-  fetchClassifications,
-  createClassification,
-  updateClassification,
-  deleteClassification,
-  Classification
-} from "../lib/expenses.api";
+import { Classification } from "../lib/expenses.api";
+import { useClassificationStore } from "../store/useClassificationStore";
 
 // Accept standard input props but override onChange/value to use controlled string API
 interface ClassificationSelectProps
@@ -41,9 +36,15 @@ export const ClassificationSelect = forwardRef<HTMLInputElement, ClassificationS
     },
     ref
   ) => {
-    // Data state
-    const [classifications, setClassifications] = useState<Classification[]>([]);
-    const [loading, setLoading] = useState(false);
+    // Store state
+    const { 
+      classifications, 
+      loading, 
+      fetchClassifications, 
+      addClassification, 
+      editClassification, 
+      removeClassification 
+    } = useClassificationStore();
 
     // UI state
     const [isOpen, setIsOpen] = useState(false);
@@ -60,22 +61,12 @@ export const ClassificationSelect = forwardRef<HTMLInputElement, ClassificationS
     // Refs
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // Load classifications
-    const loadClassifications = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchClassifications();
-        setClassifications(data);
-      } catch (err) {
-        console.error("Failed to load classifications", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    // Load classifications on mount
+    useEffect(() => {
+      fetchClassifications();
+    }, [fetchClassifications]);
 
     useEffect(() => {
-      loadClassifications();
-
       const handleClickOutside = (e: MouseEvent) => {
         if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
           setIsOpen(false);
@@ -115,8 +106,7 @@ export const ClassificationSelect = forwardRef<HTMLInputElement, ClassificationS
       if (!trimmed) return;
       try {
         setActionLoading(true);
-        await createClassification(trimmed);
-        await loadClassifications();
+        await addClassification(trimmed);
         onChange(trimmed);
         setSearch(trimmed);
         setIsOpen(false);
@@ -140,8 +130,7 @@ export const ClassificationSelect = forwardRef<HTMLInputElement, ClassificationS
       if (!editingId || !editValue.trim()) return;
       try {
         setActionLoading(true);
-        await updateClassification(editingId, editValue);
-        await loadClassifications();
+        await editClassification(editingId, editValue);
         setEditingId(null);
         const original = classifications.find((c) => c.id === editingId)?.name;
         if (original && value === original) {
@@ -160,8 +149,7 @@ export const ClassificationSelect = forwardRef<HTMLInputElement, ClassificationS
       if (!confirm("Are you sure? This cannot be undone.")) return;
       try {
         setActionLoading(true);
-        await deleteClassification(id);
-        await loadClassifications();
+        await removeClassification(id);
         const deletedName = classifications.find((c) => c.id === id)?.name;
         if (deletedName && value === deletedName) {
           onChange("");
