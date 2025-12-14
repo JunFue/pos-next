@@ -8,7 +8,6 @@ export interface Transaction {
   customer_name: string;
   grand_total: number;
   transaction_time: string;
-  // Add other fields if needed for processing
   [key: string]: any;
 }
 
@@ -39,6 +38,7 @@ interface DashboardState {
   isLoading: boolean;
   error: Error | null;
   lastFetched: number | null;
+  abortController: AbortController | null; // Add this to track pending requests
   fetchMetrics: (force?: boolean) => Promise<void>;
 }
 
@@ -47,30 +47,59 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   isLoading: false,
   error: null,
   lastFetched: null,
+  abortController: null,
 
   fetchMetrics: async (force = false) => {
-    const { lastFetched, isLoading } = get();
+    const { lastFetched, isLoading, abortController } = get();
     const now = Date.now();
     const STALE_TIME = 1000 * 60 * 2; // 2 minutes
 
-    // Prevent fetching if already loading or data is fresh (unless forced)
-    if (isLoading) return;
-    if (!force && lastFetched && now - lastFetched < STALE_TIME) return;
+    // 1. FRESHNESS CHECK
+    // If we have data, it's fresh, and we aren't forcing, return early.
+    // Note: We REMOVED "if (isLoading) return" to allow overriding stuck requests.
+    if (!force && lastFetched && now - lastFetched < STALE_TIME) {
+       return;
+    }
 
-    set({ isLoading: true, error: null });
+    // 2. ABORT PREVIOUS REQUEST
+    // If a request is currently running (stuck or otherwise), kill it.
+    if (abortController) {
+      abortController.abort();
+    }
+
+    // Create a new controller for this specific request
+    const newController = new AbortController();
+    set({ isLoading: true, error: null, abortController: newController });
 
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase.rpc('get_dashboard_metrics', {
-        lookback_days: 30,
+      // 3. DEFINE SUPABASE REQUEST (with AbortSignal)
+      const supabasePromise = (async () => {
+        const supabase = createClient();
+        
+        // Chain .abortSignal() to the RPC call
+        const { data, error } = await supabase
+          .rpc('get_dashboard_metrics', { lookback_days: 30 })
+          .abortSignal(newController.signal);
+
+        if (error) throw new Error(error.message);
+        return data;
+      })();
+
+      // 4. DEFINE TIMEOUT (10 Seconds)
+      const timeoutPromise = new Promise((_, reject) => {
+        const id = setTimeout(() => {
+          reject(new Error("Request timed out"));
+        }, 10000);
+        // Clear timeout if the request completes or is aborted to prevent leaks
+        newController.signal.addEventListener('abort', () => clearTimeout(id));
       });
 
-      if (error) throw new Error(error.message);
+      // 5. RACE
+      const data = (await Promise.race([supabasePromise, timeoutPromise])) as any;
 
       // --- Process Data ---
       const { payments, transactions, expenses, inventory } = data;
 
-      // 1. Map Helpers
       const invoiceDateMap = new Map<string, string>();
       payments.forEach((p: any) => {
         if (p.invoice_no && p.transaction_time) invoiceDateMap.set(p.invoice_no, p.transaction_time);
@@ -78,7 +107,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
       const today = dayjs();
 
-      // 2. Daily Stats
       const todayPayments = payments.filter((p: any) => dayjs(p.transaction_time).isSame(today, 'day'));
       const todaySales = todayPayments.reduce((sum: number, p: any) => sum + (Number(p.grand_total) || 0), 0);
 
@@ -95,7 +123,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         .filter((e: any) => dayjs(e.transaction_date).isSame(today, 'day'))
         .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
 
-      // 3. Trend Data
       const trendMap = new Map<string, { revenue: number; cost: number; expense: number }>();
       for (let i = 29; i >= 0; i--)
         trendMap.set(dayjs().subtract(i, 'day').format('YYYY-MM-DD'), { revenue: 0, cost: 0, expense: 0 });
@@ -122,7 +149,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         profit: Number((val.revenue - val.cost - val.expense).toFixed(2)),
       }));
 
-      // 4. Categories & Top Products
       const categoryMap = new Map();
       const productMap = new Map();
       transactions.forEach((t: any) => {
@@ -142,7 +168,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         .sort((a, b) => b.quantity - a.quantity)
         .slice(0, 5);
 
-      // 5. Low Stock & Recent
       const globalThreshold =
         typeof window !== 'undefined' ? parseInt(localStorage.getItem('pos-settings-low-stock-threshold') || '10', 10) : 10;
       const lowStockItems = inventory
@@ -159,7 +184,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         .sort((a: any, b: any) => dayjs(b.transaction_time).unix() - dayjs(a.transaction_time).unix())
         .slice(0, 5);
 
-      const metrics = {
+      const processedMetrics = {
         totalCustomers: new Set(payments.map((c: any) => c.customer_name)).size,
         dailySales: todaySales,
         netProfit: todaySales - todayCOGS - todayExpenses,
@@ -170,9 +195,19 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         topProducts,
       };
 
-      set({ metrics, isLoading: false, lastFetched: now });
+      set({ metrics: processedMetrics, isLoading: false, lastFetched: now, abortController: null });
+    
     } catch (error: any) {
-      set({ error, isLoading: false });
+      // 6. ERROR HANDLING
+      // If the error is an AbortError (cancelled by new request), do NOT update state.
+      // This leaves the loading state true for the NEW request that cancelled this one.
+      if (error.name === 'AbortError' || error.message.includes('aborted')) {
+         console.log('Previous fetch aborted');
+         return; 
+      }
+
+      console.error("Dashboard Fetch Error:", error);
+      set({ error, isLoading: false, abortController: null });
     }
   },
 }));
