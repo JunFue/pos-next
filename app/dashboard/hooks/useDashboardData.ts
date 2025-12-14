@@ -1,26 +1,26 @@
-import { useEffect, useRef } from 'react';
-import { useDashboardStore } from '../store/useDashboardStore';
+import { useEffect, useRef } from "react";
+import { useDashboardStore } from "../store/useDashboardStore";
 
-export type { DashboardMetrics, Transaction } from '../store/useDashboardStore';
+export type { DashboardMetrics, Transaction } from "../store/useDashboardStore";
 
 export function useDashboardData() {
-  const { metrics, isLoading, error, fetchMetrics } = useDashboardStore();
-  
-  // Prevent strict mode double-fetch, but allow re-mounting to trigger logic
+  const { metrics, isLoading, error, fetchMetrics, abortRequest } =
+    useDashboardStore();
   const hasInitiatedFetch = useRef(false);
 
   useEffect(() => {
+    // Prevent strict mode double-fetch
     if (hasInitiatedFetch.current) return;
     hasInitiatedFetch.current = true;
 
-    // Just call fetch. The store will handle aborting previous stuck requests.
-    fetchMetrics(); 
-  }, [fetchMetrics]);
+    fetchMetrics();
 
-  return {
-    metrics,
-    isLoading,
-    error,
-    refetch: () => fetchMetrics(true),
-  };
+    // CLEANUP: Kill the request if the user leaves the page
+    return () => {
+      abortRequest();
+      hasInitiatedFetch.current = false;
+    };
+  }, [fetchMetrics, abortRequest]);
+
+  return { metrics, isLoading, error, refetch: () => fetchMetrics(true) };
 }
