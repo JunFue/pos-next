@@ -3,7 +3,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"; // Optional but recommended
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function QueryProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -36,6 +36,17 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
         },
       })
   );
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        // Immediately wake up the data when user returns to tab
+        queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>
