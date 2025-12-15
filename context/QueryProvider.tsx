@@ -23,15 +23,14 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
             // Data will still refetch if it's beyond staleTime when a query is used
             refetchOnWindowFocus: false,
             
-            // Disable refetch on reconnect to prevent request floods
-            // Users can manually refresh if needed
-            refetchOnReconnect: false,
+            // Enable refetch on reconnect to ensure data freshness after offline periods
+            refetchOnReconnect: true,
 
-            // Fix for stuck loading state when returning to inactive tab
+            // Ensure queries run even if the browser thinks we're offline/backgrounded
             networkMode: 'always',
           },
           mutations: {
-            networkMode: 'always',
+            // Revert to default networkMode
           },
         },
       })
@@ -39,9 +38,10 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        // Immediately wake up the data when user returns to tab
-        queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
+      if (document.visibilityState === "hidden") {
+        queryClient.cancelQueries(); // Kill requests before sleep
+      } else {
+        queryClient.invalidateQueries(); // Start fresh on wake
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
