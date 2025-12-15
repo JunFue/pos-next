@@ -1,15 +1,12 @@
 "use client";
 
-import React, { useRef, useEffect } from "react"; // Added useEffect
+import React, { useRef, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Loader2 } from "lucide-react";
 import { useExpenses } from "../hooks/useExpenses";
 import { ExpenseInput } from "../lib/expenses.api";
-// import { fetchFlowCategories } from "../lib/cashflow.api"; // Removed
-// import { useQuery } from "@tanstack/react-query"; // Removed if not used elsewhere
-
 import { ClassificationSelect } from "./ClassificationSelect";
-import { useCategoryStore } from "@/app/inventory/components/item-registration/store/useCategoryStore";
+import { useCategories } from "@/app/inventory/hooks/useCategories";
 
 // Helper to get local date string (YYYY-MM-DD) correctly
 const getLocalDate = () => {
@@ -22,13 +19,7 @@ export function Cashout() {
   const { expenses, addExpense, isLoading, isSubmitting } = useExpenses();
   
   // --- Store Hooks ---
-  const { categories, loadCategories } = useCategoryStore();
-
-  // --- Effects ---
-  // Ensure categories are loaded when this component mounts
-  useEffect(() => {
-    loadCategories();
-  }, [loadCategories]);
+  const { categories, isLoading: isCategoriesLoading } = useCategories();
 
   const amountRef = useRef<HTMLElement | null>(null);
   const classificationRef = useRef<HTMLElement | null>(null);
@@ -156,8 +147,9 @@ export function Cashout() {
               }}
               onKeyDown={(e) => handleKeyDown(e, receiptRef)}
               className={`w-full input-dark ${errors.source ? "border-red-500" : ""}`}
+              disabled={isCategoriesLoading}
             >
-              <option value="">Select Source</option>
+              <option value="">{isCategoriesLoading ? "Loading..." : "Select Source"}</option>
               {/* UPDATED MAPPING: The store returns objects {id, category}, not strings */}
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.category}>

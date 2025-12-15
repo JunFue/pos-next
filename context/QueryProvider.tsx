@@ -26,6 +26,12 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
             // Disable refetch on reconnect to prevent request floods
             // Users can manually refresh if needed
             refetchOnReconnect: false,
+
+            // Fix for stuck loading state when returning to inactive tab
+            networkMode: 'always',
+          },
+          mutations: {
+            networkMode: 'always',
           },
         },
       })

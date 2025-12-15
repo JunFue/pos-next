@@ -1,10 +1,12 @@
 import React from "react";
-import { useDashboardStore } from "../store/useDashboardStore";
+import { CashFlowEntry } from "../lib/dashboard.api";
 
-const ExpensesCard = () => {
-  const { metrics } = useDashboardStore();
-  const { cashFlow, totalExpenses } = metrics;
+interface Props {
+  totalExpenses: number;
+  cashFlow: CashFlowEntry[];
+}
 
+const ExpensesCard = ({ totalExpenses, cashFlow }: Props) => {
   return (
     <div className="bg-slate-800 shadow-lg p-6 rounded-xl text-white">
       <h2 className="mb-4 font-bold text-xl">Expenses</h2>

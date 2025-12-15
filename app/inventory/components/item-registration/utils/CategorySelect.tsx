@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 import { Category } from "../lib/categories.api";
-import { useCategoryStore } from "../store/useCategoryStore";
+import { useCategories } from "@/app/inventory/hooks/useCategories";
 
 interface CategorySelectProps {
   value?: string;
@@ -33,11 +33,10 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
   const { 
     categories, 
     isLoading: storeLoading, 
-    loadCategories, 
     addCategory, 
     updateCategory, 
     deleteCategory 
-  } = useCategoryStore();
+  } = useCategories();
 
   // --- LOCAL UI STATE ---
   const [isOpen, setIsOpen] = useState(false);
@@ -51,10 +50,7 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 1. Initial Load (Idempotent via store)
-  useEffect(() => {
-    loadCategories();
-  }, [loadCategories]);
+  // 1. Initial Load (Idempotent via store) - REMOVED as useQuery handles it
 
   // 2. Close dropdown on click outside
   useEffect(() => {

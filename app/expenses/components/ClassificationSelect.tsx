@@ -11,7 +11,7 @@ import {
   Loader2
 } from "lucide-react";
 import { Classification } from "../lib/expenses.api";
-import { useClassificationStore } from "../store/useClassificationStore";
+import { useClassifications } from "@/app/expenses/hooks/useClassifications";
 
 // Accept standard input props but override onChange/value to use controlled string API
 interface ClassificationSelectProps
@@ -39,12 +39,11 @@ export const ClassificationSelect = forwardRef<HTMLInputElement, ClassificationS
     // Store state
     const { 
       classifications, 
-      loading, 
-      fetchClassifications, 
+      isLoading: loading, 
       addClassification, 
       editClassification, 
       removeClassification 
-    } = useClassificationStore();
+    } = useClassifications();
 
     // UI state
     const [isOpen, setIsOpen] = useState(false);
@@ -61,10 +60,7 @@ export const ClassificationSelect = forwardRef<HTMLInputElement, ClassificationS
     // Refs
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // Load classifications on mount
-    useEffect(() => {
-      fetchClassifications();
-    }, [fetchClassifications]);
+
 
     useEffect(() => {
       const handleClickOutside = (e: MouseEvent) => {
