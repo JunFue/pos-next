@@ -3,13 +3,9 @@ import { Geist, Geist_Mono, VT323 } from "next/font/google";
 import "./globals.css";
 
 import MainWindow from "../components/window-layouts/MainWindow";
-
-
-
 import { Analytics } from "./components/Analytics";
 import { AuthInit } from "@/components/AuthInit";
-
-
+import SessionMonitor from "@/components/reusables/SessionMonitor";
 
 
 const geistSans = Geist({
@@ -26,13 +22,12 @@ const geistMono = Geist_Mono({
   preload: true,
 });
 
-// Add VT323 for retro elements (used in receipt modal)
 const vt323 = VT323({
   weight: '400',
   variable: '--font-vt323',
   subsets: ['latin'],
   display: 'swap',
-  preload: false, // Only load when needed
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -51,8 +46,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${vt323.variable} antialiased`}
         suppressHydrationWarning
       >
+        {/* ✅ ADD THE MONITOR HERE. It will run silently in the background. */}
+        <SessionMonitor />
+
         <AuthInit>
-                  <MainWindow>{children}</MainWindow>
+          <MainWindow>{children}</MainWindow>
           <Analytics />
         </AuthInit>
       </body>
