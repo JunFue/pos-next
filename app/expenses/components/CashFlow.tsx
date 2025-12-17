@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import useSWR from "swr";
 import { 
   fetchFlowCategories, 
   fetchCashFlowLedger, 
@@ -28,10 +28,7 @@ export function CashFlow() {
   });
 
   // --- 1. Fetch Categories ---
-  const { data: categories = [] } = useQuery({
-    queryKey: ["flow-categories"],
-    queryFn: fetchFlowCategories,
-  });
+  const { data: categories = [] } = useSWR("flow-categories", fetchFlowCategories);
 
   // Auto-select first category
   useEffect(() => {
@@ -41,11 +38,10 @@ export function CashFlow() {
   }, [categories, selectedCategory]);
 
   // --- 2. Fetch Ledger Data ---
-  const { data: ledger = [], isLoading } = useQuery({
-    queryKey: ["cash-flow-ledger", selectedCategory, dateRange],
-    queryFn: () => fetchCashFlowLedger(selectedCategory, dateRange),
-    enabled: !!selectedCategory,
-  });
+  const { data: ledger = [], isLoading } = useSWR(
+    selectedCategory ? ["cash-flow-ledger", selectedCategory, dateRange] : null,
+    ([_, category, range]) => fetchCashFlowLedger(category, range)
+  );
 
   // --- 3. Grid Configuration ---
   const headerClass = "bg-slate-900/80 text-slate-400 font-semibold uppercase text-xs flex items-center pl-4";

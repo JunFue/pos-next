@@ -1,34 +1,28 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import useSWR, { useSWRConfig } from "swr";
+import { useState } from "react";
 import { fetchExpenses, createExpense, ExpenseData, ExpenseInput } from "../lib/expenses.api";
 
 export function useExpenses() {
-  const queryClient = useQueryClient();
+  const { mutate } = useSWRConfig();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: expenses, isLoading } = useQuery({
-    queryKey: ["expenses"],
-    queryFn: fetchExpenses,
-  });
-
-  const mutation = useMutation({
-    mutationFn: createExpense,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["expenses"] });
-    },
-  });
+  const { data: expenses, isLoading } = useSWR("expenses", fetchExpenses);
 
   const addExpense = async (data: ExpenseInput) => {
+    setIsSubmitting(true);
     try {
-      await mutation.mutateAsync(data);
-    } catch (error) {
-      throw error;
+      await createExpense(data);
+      mutate("expenses");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return {
     expenses: expenses || [],
     isLoading,
-    isSubmitting: mutation.isPending,
+    isSubmitting,
     addExpense,
-    refresh: () => queryClient.invalidateQueries({ queryKey: ["expenses"] }),
+    refresh: () => mutate("expenses"),
   };
 }

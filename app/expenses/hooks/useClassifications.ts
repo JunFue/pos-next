@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import useSWR, { useSWRConfig } from "swr";
+import { useState } from "react";
 import {
   Classification,
   fetchClassifications,
@@ -8,45 +9,52 @@ import {
 } from "../lib/expenses.api";
 
 export function useClassifications() {
-  const queryClient = useQueryClient();
+  const { mutate } = useSWRConfig();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const {
     data: classifications = [],
     isLoading,
     error,
-  } = useQuery({
-    queryKey: ["classifications"],
-    queryFn: fetchClassifications,
-  });
+  } = useSWR("classifications", fetchClassifications);
 
-  const createMutation = useMutation({
-    mutationFn: createClassification,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["classifications"] });
-    },
-  });
+  const addClassification = async (name: string) => {
+    setIsProcessing(true);
+    try {
+      await createClassification(name);
+      mutate("classifications");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) => updateClassification(id, name),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["classifications"] });
-    },
-  });
+  const editClassification = async (id: string, name: string) => {
+    setIsProcessing(true);
+    try {
+      await updateClassification(id, name);
+      mutate("classifications");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteClassification,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["classifications"] });
-    },
-  });
+  const removeClassification = async (id: string) => {
+    setIsProcessing(true);
+    try {
+      await deleteClassification(id);
+      mutate("classifications");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return {
     classifications,
     isLoading,
     error: error ? (error as Error).message : null,
-    addClassification: async (name: string) => createMutation.mutateAsync(name),
-    editClassification: async (id: string, name: string) => updateMutation.mutateAsync({ id, name }),
-    removeClassification: async (id: string) => deleteMutation.mutateAsync(id),
-    isProcessing: createMutation.isPending || updateMutation.isPending || deleteMutation.isPending,
+    addClassification,
+    editClassification,
+    removeClassification,
+    isProcessing,
   };
 }

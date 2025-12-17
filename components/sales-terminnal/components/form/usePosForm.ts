@@ -6,7 +6,7 @@ import {
   useWatch,
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQueryClient } from "@tanstack/react-query";
+import { useSWRConfig } from "swr";
 import { useItems } from "@/app/inventory/hooks/useItems";
 import { useInventory } from "@/app/inventory/hooks/useInventory";
 import { useAuthStore } from "@/store/useAuthStore"; // <--- 1. IMPORT AUTH CONTEXT
@@ -37,7 +37,7 @@ interface UsePosFormReturn {
 }
 
 export const usePosForm = (): UsePosFormReturn => {
-  const queryClient = useQueryClient();
+  const { mutate } = useSWRConfig();
   const { user } = useAuthStore(); // <--- 2. GET USER FROM CONTEXT
   const { items: allItems } = useItems();
   const { inventory: inventoryData } = useInventory();
@@ -169,10 +169,10 @@ export const usePosForm = (): UsePosFormReturn => {
         setSuccessData(result);
 
         // Invalidate queries to refresh history tables
-        queryClient.invalidateQueries({ queryKey: ["payments"] });
-        queryClient.invalidateQueries({ queryKey: ["transaction-items"] });
+        mutate((key) => Array.isArray(key) && key[0] === "payments");
+        mutate((key) => Array.isArray(key) && key[0] === "transaction-items");
         // Also refresh dashboard metrics if needed
-        queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] }); 
+        mutate("dashboard-metrics"); 
       } else {
         setIsSubmitting(false);
       }

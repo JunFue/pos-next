@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import useSWR, { useSWRConfig } from "swr";
+import { useState } from "react";
 import { Item } from "../components/item-registration/utils/itemTypes";
 import {
   fetchItems,
@@ -8,19 +9,18 @@ import {
 } from "../components/item-registration/lib/item.api";
 
 export const useItems = () => {
-  const queryClient = useQueryClient();
+  const { mutate } = useSWRConfig();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const {
     data: items = [],
     isLoading,
     error,
-  } = useQuery<Item[]>({
-    queryKey: ["items"],
-    queryFn: fetchItems,
-  });
+  } = useSWR<Item[]>("items", fetchItems);
 
   const handleSuccess = (operation: string, callback?: () => void) => {
-    queryClient.invalidateQueries({ queryKey: ["items"] });
+    mutate("items");
+    setIsProcessing(false);
     if (callback) callback();
   };
 
@@ -30,48 +30,49 @@ export const useItems = () => {
     callback?: (err: Error) => void
   ) => {
     console.error(`${operation} failed:`, err);
+    setIsProcessing(false);
     if (callback) callback(err);
     else alert(`${operation} failed: ${err.message}`);
   };
 
-  const createMutation = useMutation({ mutationFn: insertItem });
-  const updateMutation = useMutation({ mutationFn: updateItem });
-  const deleteMutation = useMutation({ mutationFn: deleteItem });
-
-  const addItem = (
+  const addItem = async (
     item: Item,
     options?: { onSuccess?: () => void; onError?: (err: Error) => void }
   ) => {
-    createMutation.mutate(item, {
-      onSuccess: () => handleSuccess("Create", options?.onSuccess),
-      onError: (err) => handleError(err, "Create", options?.onError),
-    });
+    setIsProcessing(true);
+    try {
+      await insertItem(item);
+      handleSuccess("Create", options?.onSuccess);
+    } catch (err) {
+      handleError(err as Error, "Create", options?.onError);
+    }
   };
 
-  const editItem = (
+  const editItem = async (
     item: Item,
     options?: { onSuccess?: () => void; onError?: (err: Error) => void }
   ) => {
-    updateMutation.mutate(item, {
-      onSuccess: () => handleSuccess("Update", options?.onSuccess),
-      onError: (err) => handleError(err, "Update", options?.onError),
-    });
+    setIsProcessing(true);
+    try {
+      await updateItem(item);
+      handleSuccess("Update", options?.onSuccess);
+    } catch (err) {
+      handleError(err as Error, "Update", options?.onError);
+    }
   };
 
-  const removeItem = (
+  const removeItem = async (
     id: string,
     options?: { onSuccess?: () => void; onError?: (err: Error) => void }
   ) => {
-    deleteMutation.mutate(id, {
-      onSuccess: () => handleSuccess("Delete", options?.onSuccess),
-      onError: (err) => handleError(err, "Delete", options?.onError),
-    });
+    setIsProcessing(true);
+    try {
+      await deleteItem(id);
+      handleSuccess("Delete", options?.onSuccess);
+    } catch (err) {
+      handleError(err as Error, "Delete", options?.onError);
+    }
   };
-
-  const isProcessing =
-    createMutation.isPending ||
-    updateMutation.isPending ||
-    deleteMutation.isPending;
 
   return {
     items,

@@ -3,13 +3,13 @@ import { usePaymentHistory } from './useTransactionQueries';
 
 export function usePaymentData() {
   const { currentPage, rowsPerPage, filters, setCurrentPage, setRowsPerPage, setFilters } = usePaymentStore();
-  const { data, isLoading, isError, error, refetch } = usePaymentHistory(currentPage, rowsPerPage, filters);
+  const { data, isLoading, error, mutate } = usePaymentHistory(currentPage, rowsPerPage, filters);
 
   return {
     payments: data?.data || [],
     totalRows: data?.count || 0,
     isLoading,
-    isError,
+    isError: !!error,
     error,
     currentPage,
     rowsPerPage,
@@ -17,6 +17,6 @@ export function usePaymentData() {
     setCurrentPage,
     setRowsPerPage,
     setFilters,
-    refresh: refetch,
+    refresh: mutate,
   };
 }

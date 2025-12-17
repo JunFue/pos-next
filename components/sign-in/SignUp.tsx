@@ -1,11 +1,8 @@
-// SignUp.tsx (Refactored with useMutation)
-
 "use client";
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
 import {
   Mail,
   Lock,
@@ -47,6 +44,7 @@ const signUpUser = async (values: SignUpFormValues) => {
 
 export function SignUp({ onSwitchToSignIn }: SignUpProps) {
   const [success, setSuccess] = useState(false);
+  const [isPending, setIsPending] = useState(false);
 
   const {
     register,
@@ -65,24 +63,22 @@ export function SignUp({ onSwitchToSignIn }: SignUpProps) {
     },
   });
 
-  const mutation = useMutation({
-    mutationFn: signUpUser,
-    onSuccess: () => {
+  const onSubmit = async (values: SignUpFormValues) => {
+    setFormError("root.serverError", { message: "" });
+    setSuccess(false);
+    setIsPending(true);
+    try {
+      await signUpUser(values);
       setSuccess(true);
-    },
-    onError: (err: Error) => {
+    } catch (err) {
       console.error("Error creating account:", err);
       setFormError("root.serverError", {
         type: "server",
-        message: err.message,
+        message: (err as Error).message,
       });
-    },
-  });
-
-  const onSubmit = (values: SignUpFormValues) => {
-    setFormError("root.serverError", { message: "" });
-    setSuccess(false);
-    mutation.mutate(values);
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return (
@@ -234,7 +230,7 @@ export function SignUp({ onSwitchToSignIn }: SignUpProps) {
               )}
             </div>
 
-            {mutation.isError && errors.root?.serverError && (
+            {errors.root?.serverError && (
               <div className="flex items-center gap-2 text-red-300 text-sm">
                 <AlertTriangle className="w-5 h-5" />
                 <span>{errors.root.serverError.message}</span>
@@ -244,15 +240,15 @@ export function SignUp({ onSwitchToSignIn }: SignUpProps) {
             <button
               type="submit"
               className="flex justify-center items-center gap-2 w-full btn-3d-glass"
-              disabled={mutation.isPending}
+              disabled={isPending}
             >
-              {mutation.isPending ? (
+              {isPending ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <LogIn className="w-5 h-5" />
               )}
               <span>
-                {mutation.isPending ? "Creating..." : "Create Account"}
+                {isPending ? "Creating..." : "Create Account"}
               </span>
             </button>
 

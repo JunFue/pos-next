@@ -1,4 +1,4 @@
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import useSWR from "swr";
 import { createClient } from "@/utils/supabase/client";
 import { TransactionItem, PaymentRecord } from "../types";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -44,11 +44,9 @@ export const useTransactionHistory = (
 ) => {
   const { isAuthenticated } = useAuthStore();
 
-  return useQuery({
-    queryKey: ["transaction-items", page, pageSize, filters],
-    placeholderData: keepPreviousData,
-    enabled: isAuthenticated,
-    queryFn: async () => {
+  return useSWR(
+    isAuthenticated ? ["transaction-items", page, pageSize, filters] : null,
+    async ([_, page, pageSize, filters]: [string, number, number, TransactionFilters]) => {
       const supabase = createClient();
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
@@ -115,7 +113,10 @@ export const useTransactionHistory = (
         count: count || 0,
       };
     },
-  });
+    {
+      keepPreviousData: true,
+    }
+  );
 };
 
 // --- 2. Hook for Payment/Header History ---
@@ -126,11 +127,9 @@ export const usePaymentHistory = (
 ) => {
   const { isAuthenticated } = useAuthStore();
 
-  return useQuery({
-    queryKey: ["payments", page, pageSize, filters],
-    placeholderData: keepPreviousData,
-    enabled: isAuthenticated,
-    queryFn: async () => {
+  return useSWR(
+    isAuthenticated ? ["payments", page, pageSize, filters] : null,
+    async ([_, page, pageSize, filters]: [string, number, number, TransactionFilters]) => {
       const supabase = createClient();
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
@@ -186,5 +185,8 @@ export const usePaymentHistory = (
         count: count || 0,
       };
     },
-  });
+    {
+      keepPreviousData: true,
+    }
+  );
 };

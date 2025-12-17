@@ -13,14 +13,18 @@ export interface CashFlowEntry {
   balance: number;
 }
 
-// Removed 'signal' parameter
+// Accept the query context to get the signal
 export const fetchDailyCashFlow = async (
-  date: string = dayjs().format("YYYY-MM-DD")
+  date: string = dayjs().format("YYYY-MM-DD"),
+  signal?: AbortSignal 
 ): Promise<CashFlowEntry[]> => {
+  
+  // Pass the abortSignal to Supabase
   const { data, error } = await supabase
     .from("categorical_cash_flow")
     .select("*")
-    .eq("date", date);
+    .eq("date", date)
+    .abortSignal(signal as AbortSignal); // Supabase supports abortSignal
 
   if (error) {
     console.error("Error fetching daily cash flow:", error);

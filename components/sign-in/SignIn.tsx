@@ -1,10 +1,8 @@
-// SignIn.tsx (Refactored with pl-10!)
-
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
 import { Mail, Lock, LogIn, AlertTriangle, Loader2 } from "lucide-react";
 import { signInSchema, SignInFormValues } from "@/lib/types";
 import { createClient } from "@/utils/supabase/client";
@@ -57,6 +55,7 @@ const signInUser = async (values: SignInFormValues) => {
 };
 
 export function SignIn({ onSwitchToSignUp, onSuccess }: SignInProps) {
+  const [isPending, setIsPending] = useState(false);
   const {
     register,
     handleSubmit,
@@ -70,24 +69,22 @@ export function SignIn({ onSwitchToSignUp, onSuccess }: SignInProps) {
     },
   });
 
-  const mutation = useMutation({
-    mutationFn: signInUser,
-    onSuccess: () => {
+  const onSubmit = async (values: SignInFormValues) => {
+    setFormError("root.serverError", { message: "" });
+    setIsPending(true);
+    try {
+      await signInUser(values);
       console.log("Sign in successful and role verified.");
       onSuccess();
-    },
-    onError: (err: Error) => {
+    } catch (err) {
       console.error("Error signing in:", err);
       setFormError("root.serverError", {
         type: "server",
-        message: err.message,
+        message: (err as Error).message,
       });
-    },
-  });
-
-  const onSubmit = (values: SignInFormValues) => {
-    setFormError("root.serverError", { message: "" });
-    mutation.mutate(values);
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return (
@@ -158,7 +155,7 @@ export function SignIn({ onSwitchToSignUp, onSuccess }: SignInProps) {
             )}
           </div>
 
-          {mutation.isError && errors.root?.serverError && (
+          {errors.root?.serverError && (
             <div className="flex items-center gap-2 text-red-300 text-sm">
               <AlertTriangle className="w-5 h-5" />
               <span>{errors.root.serverError.message}</span>
@@ -168,14 +165,14 @@ export function SignIn({ onSwitchToSignUp, onSuccess }: SignInProps) {
           <button
             type="submit"
             className="flex justify-center items-center gap-2 w-full btn-3d-glass"
-            disabled={mutation.isPending}
+            disabled={isPending}
           >
-            {mutation.isPending ? (
+            {isPending ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               <LogIn className="w-5 h-5" />
             )}
-            <span>{mutation.isPending ? "Signing In..." : "Sign In"}</span>
+            <span>{isPending ? "Signing In..." : "Sign In"}</span>
           </button>
         </form>
 

@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import useSWR, { useSWRConfig } from "swr";
+import { useState } from "react";
 import {
   fetchStocks,
   insertStock,
@@ -21,15 +22,14 @@ interface StockMutationOptions {
 }
 
 export const useStocks = () => {
-  const queryClient = useQueryClient();
+  const { mutate } = useSWRConfig();
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const { data: stocks = [], isLoading } = useQuery<StockData[]>({
-    queryKey: ["stocks"],
-    queryFn: fetchStocks,
-  });
+  const { data: stocks = [], isLoading } = useSWR<StockData[]>("stocks", fetchStocks);
 
   const handleMutationSuccess = (callback?: () => void) => {
-    queryClient.invalidateQueries({ queryKey: ["stocks"] });
+    mutate("stocks");
+    setIsProcessing(false);
     callback?.();
   };
 
@@ -38,52 +38,50 @@ export const useStocks = () => {
     callback?: (err: Error) => void
   ) => {
     console.error("Mutation failed:", error);
+    setIsProcessing(false);
     callback?.(error);
     if (!callback) alert(`Operation failed: ${error.message}`);
   };
 
-  const addMutation = useMutation({ mutationFn: insertStock });
-  const deleteMutation = useMutation({ mutationFn: deleteStock });
-  const updateMutation = useMutation({ mutationFn: updateStock });
-
-  const addStockEntry = (data: StockInput, options?: StockMutationOptions) => {
-    addMutation.mutate(data, {
-      onSuccess: () => handleMutationSuccess(options?.onSuccess),
-      onError: (err) => handleMutationError(err, options?.onError),
-    });
+  const addStockEntry = async (data: StockInput, options?: StockMutationOptions) => {
+    setIsProcessing(true);
+    try {
+      await insertStock(data);
+      handleMutationSuccess(options?.onSuccess);
+    } catch (err) {
+      handleMutationError(err as Error, options?.onError);
+    }
   };
 
-  const editStockEntry = (
+  const editStockEntry = async (
     id: string,
     data: StockInput,
     options?: StockMutationOptions
   ) => {
-    updateMutation.mutate(
-      {
+    setIsProcessing(true);
+    try {
+      await updateStock({
         id,
         flow: data.stockFlow,
         quantity: data.quantity,
         capital_price: data.capitalPrice,
         notes: data.notes,
-      },
-      {
-        onSuccess: () => handleMutationSuccess(options?.onSuccess),
-        onError: (err) => handleMutationError(err, options?.onError),
-      }
-    );
+      });
+      handleMutationSuccess(options?.onSuccess);
+    } catch (err) {
+      handleMutationError(err as Error, options?.onError);
+    }
   };
 
-  const removeStockEntry = (id: string, options?: StockMutationOptions) => {
-    deleteMutation.mutate(id, {
-      onSuccess: () => handleMutationSuccess(options?.onSuccess),
-      onError: (err) => handleMutationError(err, options?.onError),
-    });
+  const removeStockEntry = async (id: string, options?: StockMutationOptions) => {
+    setIsProcessing(true);
+    try {
+      await deleteStock(id);
+      handleMutationSuccess(options?.onSuccess);
+    } catch (err) {
+      handleMutationError(err as Error, options?.onError);
+    }
   };
-
-  const isProcessing =
-    addMutation.isPending ||
-    deleteMutation.isPending ||
-    updateMutation.isPending;
 
   return {
     stocks,

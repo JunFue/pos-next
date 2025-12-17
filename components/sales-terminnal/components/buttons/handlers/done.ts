@@ -68,14 +68,33 @@ export const handleDone = async (
 
     console.log("3️⃣ [Logic] Sending RPC request to Supabase...");
 
-    const { error } = await withTimeout(
-      supabase.rpc("insert_new_payment_and_transaction", {
-        header: headerPayload,
-        items: itemsPayload,
-      }),
-      15000,
-      "Transaction Save"
-    );
+    let rpcResult: any = null;
+
+    // Retry logic for Timeout (3 attempts)
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        rpcResult = await withTimeout<any>(
+          supabase.rpc("insert_new_payment_and_transaction", {
+            header: headerPayload,
+            items: itemsPayload,
+          }),
+          20000, // Increased to 20s
+          "Transaction Save"
+        );
+        break; // If we get here, the call completed (success or DB error), so stop retrying
+      } catch (err: any) {
+        console.warn(`⚠️ [Logic] Transaction attempt ${attempt} failed/timed out:`, err);
+        if (attempt === 3) throw err; // Give up after 3 attempts
+        // Small delay before retry to allow connection to recover
+        await new Promise(res => setTimeout(res, 1000));
+      }
+    }
+
+    if (!rpcResult) {
+        throw new Error("Transaction failed to execute (No response).");
+    }
+
+    const { error } = rpcResult;
 
     if (error) {
       if (error.message.includes("duplicate key value") || error.message.includes("payments_pkey")) {

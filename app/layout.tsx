@@ -3,7 +3,7 @@ import { Geist, Geist_Mono, VT323 } from "next/font/google";
 import "./globals.css";
 
 import MainWindow from "../components/window-layouts/MainWindow";
-import { QueryProvider } from "@/context/QueryProvider";
+
 
 
 import { Analytics } from "./components/Analytics";
@@ -52,21 +52,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <AuthInit>
-          <QueryProvider>
-
-
-
-
-
-
                   <MainWindow>{children}</MainWindow>
-
-
-
-
-
-
-          </QueryProvider>
           <Analytics />
         </AuthInit>
       </body>

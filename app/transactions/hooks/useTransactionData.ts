@@ -3,13 +3,13 @@ import { useTransactionHistory } from './useTransactionQueries';
 
 export function useTransactionData() {
   const { currentPage, rowsPerPage, filters, setCurrentPage, setRowsPerPage, setFilters } = useTransactionStore();
-  const { data, isLoading, isError, error, refetch, fetchStatus } = useTransactionHistory(currentPage, rowsPerPage, filters);
+  const { data, isLoading, error, mutate, isValidating } = useTransactionHistory(currentPage, rowsPerPage, filters);
 
   return {
     transactions: data?.data || [],
     totalRows: data?.count || 0,
     isLoading,
-    isError,
+    isError: !!error,
     error,
     currentPage,
     rowsPerPage,
@@ -17,7 +17,7 @@ export function useTransactionData() {
     setCurrentPage,
     setRowsPerPage,
     setFilters,
-    refresh: refetch,
-    fetchStatus,
+    refresh: mutate,
+    isValidating,
   };
 }

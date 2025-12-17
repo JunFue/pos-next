@@ -3,7 +3,7 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSWRConfig } from "swr";
 import { z } from "zod";
 import Papa from "papaparse";
 import { Item, itemSchema } from "../../utils/itemTypes";
@@ -33,25 +33,12 @@ const csvItemSchema = itemSchema.extend({
 });
 
 export const useItemBatchUpload = () => {
-  const queryClient = useQueryClient();
+  const { mutate } = useSWRConfig();
   const [file, setFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [validItems, setValidItems] = useState<Item[]>([]);
   const [errors, setErrors] = useState<CsvError[]>([]);
-
-  // Mutation to insert the batch of valid items
-  const batchInsertMutation = useMutation({
-    mutationFn: insertManyItems,
-    onSuccess: () => {
-      alert("Batch upload successful!");
-      queryClient.invalidateQueries({ queryKey: ["items"] });
-      reset();
-    },
-    onError: (error) => {
-      console.error("Batch insert error:", error);
-      alert(`Batch upload failed: ${error.message}`);
-    },
-  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 2. Handle file selection and parsing
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,12 +89,24 @@ export const useItemBatchUpload = () => {
   };
 
   // 3. Handle the final submission
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (validItems.length === 0) {
       alert("No valid items to upload.");
       return;
     }
-    batchInsertMutation.mutate(validItems);
+    
+    setIsSubmitting(true);
+    try {
+      await insertManyItems(validItems);
+      alert("Batch upload successful!");
+      mutate("items");
+      reset();
+    } catch (error) {
+      console.error("Batch insert error:", error);
+      alert(`Batch upload failed: ${(error as Error).message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // 4. Reset state
@@ -124,7 +123,7 @@ export const useItemBatchUpload = () => {
   return {
     file,
     isParsing,
-    isSubmitting: batchInsertMutation.isPending,
+    isSubmitting,
     validItems,
     errors,
     handleFileChange,
