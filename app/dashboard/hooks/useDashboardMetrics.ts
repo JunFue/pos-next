@@ -1,7 +1,13 @@
 import useSWR from "swr";
 import { useMemo } from "react";
-import { fetchDailyCashFlow } from "../lib/dashboard.api";
+import { fetchDailyCashFlow, CashFlowEntry } from "../lib/dashboard.api";
 import dayjs from "dayjs";
+
+export interface DashboardMetrics {
+  cashFlow: CashFlowEntry[];
+  totalNetSales: number;
+  totalExpenses: number;
+}
 
 export function useDashboardMetrics(date: string = dayjs().format("YYYY-MM-DD")) {
   const { data: cashFlow = [], isLoading, error } = useSWR(
@@ -10,25 +16,11 @@ export function useDashboardMetrics(date: string = dayjs().format("YYYY-MM-DD"))
   );
 
   const metrics = useMemo(() => {
-    const totalNetSales = cashFlow.reduce(
-      (sum, entry) => sum + (Number(entry.balance) || 0),
-      0
-    );
-    const totalExpenses = cashFlow.reduce(
-      (sum, entry) => sum + (Number(entry.cash_out) || 0),
-      0
-    );
+    const totalNetSales = cashFlow.reduce((sum, entry) => sum + (Number(entry.balance) || 0), 0);
+    const totalExpenses = cashFlow.reduce((sum, entry) => sum + (Number(entry.cash_out) || 0), 0);
 
-    return {
-      cashFlow,
-      totalNetSales,
-      totalExpenses,
-    };
+    return { cashFlow, totalNetSales, totalExpenses };
   }, [cashFlow]);
 
-  return {
-    data: metrics,
-    isLoading,
-    error,
-  };
+  return { data: metrics as DashboardMetrics, isLoading, error };
 }
