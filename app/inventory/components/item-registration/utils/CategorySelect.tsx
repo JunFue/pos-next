@@ -1,4 +1,3 @@
-// app/inventory/components/item-registration/components/CategorySelect.tsx
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -17,8 +16,8 @@ import { Category } from "../lib/categories.api";
 import { useCategories } from "@/app/inventory/hooks/useCategories";
 
 interface CategorySelectProps {
-  value?: string;
-  onChange: (value: string) => void;
+  value?: string; // This expects the UUID now
+  onChange: (value: string) => void; // Emits the UUID
   error?: string;
   disabled?: boolean;
 }
@@ -42,42 +41,48 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   
+  // Find the currently selected category object based on the ID passed in 'value'
+  const selectedCategory = categories.find(c => c.id === value);
+  const selectedName = selectedCategory ? selectedCategory.category : "";
+
   // Edit State
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
-  const [actionLoading, setActionLoading] = useState(false); // For inline actions
+  const [actionLoading, setActionLoading] = useState(false);
 
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 1. Initial Load (Idempotent via store) - REMOVED as useQuery handles it
-
-  // 2. Close dropdown on click outside
+  // 1. Close dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
         setEditingId(null);
+        // Revert search text to the selected name if the user didn't pick anything
+        if (selectedName) setSearch(selectedName);
+        else if (!value) setSearch("");
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [selectedName, value]);
 
-  // 3. Sync internal search with external value
+  // 2. Sync internal search text when the external value (ID) changes
   useEffect(() => {
-    // Only update search if it's empty or we are not actively typing/searching
-    // checking !isOpen prevents overwriting user's typing if the parent value changes unexpectedly
-    if (value && !isOpen) {
-      setSearch(value);
+    // If the dropdown is NOT open, ensure the text box matches the selected category name
+    if (!isOpen && selectedName) {
+      setSearch(selectedName);
+    } else if (!isOpen && !value) {
+      setSearch("");
     }
-  }, [value, isOpen]);
+  }, [value, selectedName, isOpen]);
 
   // --- HANDLERS ---
   
-  const handleSelect = (categoryName: string) => {
-    onChange(categoryName);
-    setSearch(categoryName);
+  const handleSelect = (categoryId: string, categoryName: string) => {
+    onChange(categoryId); // Send UUID to parent
+    setSearch(categoryName); // Show Name to user
     setIsOpen(false);
   };
 
@@ -85,14 +90,16 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
     if (!search.trim()) return;
     try {
       setActionLoading(true);
-      await addCategory(search); // Store action
+      // addCategory now returns the created object
+      const newCat = await addCategory(search); 
       
-      // Store updates automatically, no need to reload
-      onChange(search); 
+      if (newCat && newCat.id) {
+        onChange(newCat.id); // Select the new ID
+        setSearch(newCat.category);
+      }
       setIsOpen(false);
     } catch (err) {
       console.error(err);
-      // Error is handled in store, but we can show a toast here if needed
     } finally {
       setActionLoading(false);
     }
@@ -109,13 +116,12 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
     if (!editingId || !editValue.trim()) return;
     try {
       setActionLoading(true);
-      await updateCategory(editingId, editValue); // Store action
+      await updateCategory(editingId, editValue);
       
       setEditingId(null);
-      // Update selected value if we just edited the currently selected one
-      const wasSelected = categories.find(c => c.id === editingId)?.category === value;
-      if (wasSelected) {
-        onChange(editValue);
+      
+      // If we edited the currently selected item, update the search text
+      if (value === editingId) {
         setSearch(editValue);
       }
     } catch (err) {
@@ -132,9 +138,9 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
       setActionLoading(true);
       
       // Check if we are deleting the currently selected item
-      const isSelected = categories.find(c => c.id === id)?.category === value;
+      const isSelected = value === id;
       
-      await deleteCategory(id); // Store action
+      await deleteCategory(id); 
       
       if (isSelected) {
         onChange(""); 
@@ -159,14 +165,12 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
       <div className="relative">
         <input
           type="text"
-          value={search}
+          value={search} // Always display the text name or search query
           onChange={(e) => {
             setSearch(e.target.value);
-            // Only fire onChange if it matches an existing category, 
-            // OR if you want free-text input. Usually select inputs require a match.
-            // Keeping your original logic of "onChange(e.target.value)":
-            onChange(e.target.value); 
             if (!isOpen) setIsOpen(true);
+            // Note: We DO NOT call onChange here because the parent expects an ID.
+            // We only call onChange when a specific valid category is clicked or created.
           }}
           onFocus={() => setIsOpen(true)}
           disabled={disabled || storeLoading}
@@ -183,19 +187,16 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
         </button>
       </div>
 
-      {/* Error Message from Store or Props */}
       {error && <p className="mt-1 text-red-400 text-xs flex items-center gap-1"><AlertCircle className="w-3 h-3"/> {error}</p>}
 
-      {/* Dropdown Menu */}
       {isOpen && !disabled && (
         <div className="absolute z-50 w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto animate-in fade-in zoom-in-95">
           
-          {/* List Items */}
           {filtered.map(cat => (
             <div 
               key={cat.id} 
               className="group flex items-center justify-between px-3 py-2 hover:bg-slate-800 cursor-pointer text-sm text-slate-300"
-              onClick={() => handleSelect(cat.category)}
+              onClick={() => handleSelect(cat.id, cat.category)} // Pass ID and Name
             >
               {editingId === cat.id ? (
                 // --- Edit Mode ---
@@ -216,11 +217,10 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
               ) : (
                 // --- View Mode ---
                 <>
-                  <span className={value === cat.category ? "text-cyan-400 font-bold" : ""}>
+                  <span className={value === cat.id ? "text-cyan-400 font-bold" : ""}>
                     {cat.category}
                   </span>
                   
-                  {/* Actions (visible on hover) */}
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button 
                         onClick={(e) => startEdit(e, cat)}
@@ -242,7 +242,6 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
             </div>
           ))}
 
-          {/* Create Option */}
           {!exactMatch && search.trim() !== "" && (
              <button
                type="button"

@@ -21,8 +21,10 @@ export function useCategories() {
   const addCategory = async (name: string) => {
     setIsProcessing(true);
     try {
-      await createCategory(name);
-      mutate("categories");
+      // Return the result so the UI can get the new ID
+      const newCategory = await createCategory(name);
+      await mutate("categories");
+      return newCategory; 
     } finally {
       setIsProcessing(false);
     }
