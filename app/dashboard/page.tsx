@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { LayoutDashboard, FileText, Loader2, ArrowLeft } from "lucide-react";
+import { LayoutDashboard, FileText, Loader2, ArrowBigLeft } from "lucide-react";
 import { FinancialReportContainer } from "./components/financial-report/FinancialReportContainer";
 import { useDashboardMetrics } from "./hooks/useDashboardMetrics";
 import { DashboardGrid } from "./components/DashboardGrid";
@@ -34,7 +34,7 @@ const { data: metrics, isLoading, error } = useDashboardMetrics();
           href="/"
           className="inline-flex items-center gap-2 mb-2 pt-2 pl-2 text-slate-400 hover:text-white text-sm transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowBigLeft className="w-4 h-4" />
           <span>Back to Home</span>
         </Link>
         <div>

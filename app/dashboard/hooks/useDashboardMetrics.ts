@@ -1,6 +1,7 @@
 import useSWR from "swr";
 import { useMemo } from "react";
-import { fetchDailyCashFlow, CashFlowEntry } from "../lib/dashboard.api";
+import { fetchDailyCashFlow } from "../lib/dashboard.api";
+import { CashFlowEntry } from "../lib/types";
 import dayjs from "dayjs";
 
 export interface DashboardMetrics {
