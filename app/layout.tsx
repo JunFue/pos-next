@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, VT323 } from "next/font/google";
 import "./globals.css";
-
 import MainWindow from "../components/window-layouts/MainWindow";
-import { Analytics } from "./components/Analytics";
 import { AuthInit } from "@/components/AuthInit";
 import SessionMonitor from "@/components/reusables/SessionMonitor";
 
@@ -51,7 +49,6 @@ export default function RootLayout({
 
         <AuthInit>
           <MainWindow>{children}</MainWindow>
-          <Analytics />
         </AuthInit>
       </body>
     </html>
