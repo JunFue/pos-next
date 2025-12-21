@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import dayjs from "dayjs";
 import { Loader2 } from "lucide-react";
 import { fetchFinancialReport, FinancialReportItem } from "../lib/dashboard.api";

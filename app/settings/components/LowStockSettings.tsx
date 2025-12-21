@@ -1,31 +1,31 @@
+// LowStockSettings.tsx
+
 "use client";
 
 import { useSettingsStore } from "@/store/useSettingsStore";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Save } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export default function LowStockSettings() {
   const { lowStockThreshold, setLowStockThreshold } = useSettingsStore();
   const [localValue, setLocalValue] = useState<string>(lowStockThreshold.toString());
 
+  // Sync local state if store changes externally
   useEffect(() => {
     setLocalValue(lowStockThreshold.toString());
   }, [lowStockThreshold]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setLocalValue(newValue);
-
-    const parsed = parseInt(newValue, 10);
-    if (!isNaN(parsed) && parsed >= 0) {
-      setLowStockThreshold(parsed);
-    }
+    setLocalValue(e.target.value);
   };
 
-  const handleBlur = () => {
+  const handleSave = () => {
     const parsed = parseInt(localValue, 10);
-    if (isNaN(parsed) || parsed < 0) {
-      // Revert to context value if invalid on blur
+    if (!isNaN(parsed) && parsed >= 0) {
+      setLowStockThreshold(parsed);
+      alert("Settings saved successfully!"); 
+    } else {
+      // Reset if invalid
       setLocalValue(lowStockThreshold.toString());
     }
   };
@@ -47,19 +47,28 @@ export default function LowStockSettings() {
           <label className="block mb-2 font-medium text-slate-400 text-sm">
             Global Low Stock Threshold
           </label>
-          <div className="flex items-center gap-4">
-            <input
-              type="number"
-              min="0"
-              value={localValue}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              className="bg-slate-800/50 focus:bg-slate-800 border border-slate-700 focus:border-cyan-500/50 px-4 py-3 rounded-xl w-full sm:w-32 text-slate-200 transition-all outline-none"
-            />
-            <p className="text-slate-500 text-sm">
-              Items with stock below this value will be flagged as low stock, unless overridden by item-specific settings.
-            </p>
+          <div className="flex items-end gap-4">
+            <div className="flex-1">
+                <input
+                type="number"
+                min="0"
+                value={localValue}
+                onChange={handleChange}
+                className="bg-slate-800/50 focus:bg-slate-800 border border-slate-700 focus:border-cyan-500/50 px-4 py-3 rounded-xl w-full text-slate-200 transition-all outline-none"
+                />
+            </div>
+            
+            <button 
+                onClick={handleSave}
+                className="flex items-center gap-2 bg-cyan-500/20 hover:bg-cyan-500/30 px-4 py-3 border border-cyan-500/50 rounded-xl font-medium text-cyan-400 hover:text-cyan-300 transition-colors"
+            >
+                <Save className="w-4 h-4" />
+                Save
+            </button>
           </div>
+          <p className="mt-3 text-slate-500 text-sm">
+            Items with stock below this value will be flagged as low stock. This value will be used as the default for new items.
+          </p>
         </div>
       </div>
     </div>

@@ -1,3 +1,5 @@
+// app/inventory/components/item-registration/ItemTable.tsx
+
 "use client";
 
 import React, { useMemo } from "react";
@@ -75,6 +77,16 @@ export const ItemTable: React.FC<ItemTableProps> = ({
             ? `₱${row.costPrice.toFixed(2)}`
             : "N/A",
       },
+      // --- NEW COLUMN ADDED HERE ---
+      {
+        ...createColumn("lowStockThreshold", "Low Stock", 110),
+        renderCell: ({ row }) => (
+          <div className="text-center">
+             {row.lowStockThreshold ?? "—"}
+          </div>
+        )
+      },
+      // -----------------------------
       createColumn("description", "Description"),
       {
         key: "actions",

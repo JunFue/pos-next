@@ -8,11 +8,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Item, itemSchema, defaultItemValues } from "../../utils/itemTypes";
 import { checkItemExistence } from "../../lib/item.api";
 
-// Props for the hook
+// Props for the hook (Inputs)
 interface UseItemFormProps {
   itemToEdit?: Item;
   onFormSubmit: (data: Item) => void;
   onCancelEdit: () => void;
+  // REMOVED: setValue is not an input prop, it is an output from the hook
 }
 
 export const useItemForm = ({
@@ -20,12 +21,15 @@ export const useItemForm = ({
   onFormSubmit,
   onCancelEdit,
 }: UseItemFormProps) => {
+  
+  // 1. Destructure setValue from useForm here
   const {
     register,
     handleSubmit,
     reset,
     setError,
     control,
+    setValue, // <--- Get it from React Hook Form
     formState: { errors, isSubmitting },
   } = useForm<Item>({
     resolver: zodResolver(itemSchema),
@@ -122,15 +126,16 @@ export const useItemForm = ({
     }
   };
 
-  // Return everything the component needs
+  // Return everything the component needs (Outputs)
   return {
     isEditing,
     register,
     control,
-    handleRHFSubmit: handleSubmit(onSubmitLogic), // Pre-wrapped submit handler
+    handleRHFSubmit: handleSubmit(onSubmitLogic),
     handleKeyDown,
     errors,
     isSubmitting,
-    onCancelEdit, // Pass this through for the button
+    onCancelEdit,
+    setValue, // <--- Return it so ItemForm can use it
   };
 };
