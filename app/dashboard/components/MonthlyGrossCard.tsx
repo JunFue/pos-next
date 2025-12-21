@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Calendar, X } from "lucide-react";
 import dayjs from "dayjs";
-import { fetchCashFlowByRange } from "../lib/dashboard.api"; // Import updated API
+import { fetchCashFlowByRange } from "../lib/dashboard.api";
 
 const MonthlyGrossCard = () => {
   const [startDate, setStartDate] = useState(dayjs().startOf("month").format("YYYY-MM-DD"));

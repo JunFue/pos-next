@@ -2,20 +2,12 @@
 
 import { createClient } from "@/utils/supabase/server";
 import dayjs from "dayjs";
+import { CashFlowEntry, FinancialReportItem } from "./types";
 
 const getSupabase = async () => {
   return await createClient();
 };
 
-export interface CashFlowEntry {
-  store_id: string;
-  category: string;
-  date: string;
-  forwarded: number;
-  cash_in: number;
-  cash_out: number;
-  balance: number;
-}
 
 export const fetchDailyCashFlow = async (
   date: string = dayjs().format("YYYY-MM-DD"),
@@ -58,13 +50,6 @@ export const fetchCashFlowByRange = async (
 };
 
 
-export interface FinancialReportItem {
-  category: string;
-  cash_forwarded: number;
-  gross_income: number;
-  expenses: number;
-  cash_on_hand: number;
-}
 
 export const fetchFinancialReport = async (
   startDate: string,

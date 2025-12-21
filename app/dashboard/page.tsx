@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { LayoutDashboard, FileText, Loader2 } from "lucide-react";
-import { FinancialReportTable } from "./components/FinancialReportTable";
+import { FinancialReportContainer } from "./components/financial-report/FinancialReportContainer";
 import { useDashboardMetrics } from "./hooks/useDashboardMetrics";
 import { DashboardGrid } from "./components/DashboardGrid";
 
@@ -82,7 +82,7 @@ const { data: metrics, isLoading, error } = useDashboardMetrics();
           )
         ) : (
           // REPORT VIEW
-          <FinancialReportTable />
+          <FinancialReportContainer />
         )}
         
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { CashFlowEntry } from "../lib/dashboard.api";
+import { CashFlowEntry } from "../lib/types";
 
 interface Props {
   cashFlow: CashFlowEntry[];
