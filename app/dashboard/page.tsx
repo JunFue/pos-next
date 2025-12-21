@@ -6,6 +6,7 @@ import { FinancialReportContainer } from "./components/financial-report/Financia
 import { useDashboardMetrics } from "./hooks/useDashboardMetrics";
 import { DashboardGrid } from "./components/DashboardGrid";
 import Link from "next/link";
+import { InventorySummary } from "./components/InventorySummary";
 
 
 const DEFAULT_ITEMS = [
@@ -84,11 +85,14 @@ const { data: metrics, isLoading, error } = useDashboardMetrics();
             </div>
           ) : (
             /* --- FIX: Pass the required props here --- */
-            <DashboardGrid 
-              metrics={metrics} 
-              items={items} 
-              onOrderChange={setItems} 
-            />
+            <div className="space-y-6">
+              <DashboardGrid 
+                metrics={metrics} 
+                items={items} 
+                onOrderChange={setItems} 
+              />
+              <InventorySummary />
+            </div>
           )
         ) : (
           // REPORT VIEW

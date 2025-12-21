@@ -47,7 +47,7 @@ const currentBarcode = watch("barcode");
       </h1>
       <div className="opacity-70 my-1 retro-divider"></div>
       <div className="flex justify-between items-center px-2 w-full text-retro-cyan text-lg md:text-xl leading-none tracking-wide">
-        <span className="max-w-[60%] truncate uppercase">{user ? user?.user_metadata?.first_name + user?.user_metadata?.last_name : "Initializing..."}</span>
+        <span className="max-w-[60%] truncate uppercase">{user ? user?.user_metadata?.first_name + " " + user?.user_metadata?.last_name : "Initializing..."}</span>
         <span>{liveTime}</span>
       </div>
       <div className="flex justify-center items-center gap-6 drop-shadow-md my-2 w-full font-bold text-retro-cyan text-3xl md:text-4xl leading-none">
