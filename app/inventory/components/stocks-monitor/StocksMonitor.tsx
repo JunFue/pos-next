@@ -7,6 +7,7 @@ import "react-data-grid/lib/styles.css";
 import { DataGrid } from "react-data-grid";
 import { InventoryItem } from "./lib/inventory.api";
 import { useInventory } from "../../../dashboard/hooks/useInventory";
+import { InventorySummary } from "@/app/dashboard/components/InventorySummary";
 
 export default function StocksMonitor() {
   // Use shared inventory context
@@ -77,28 +78,35 @@ export default function StocksMonitor() {
   ];
 
   return (
-    <div className="flex flex-col gap-4 p-6 text-slate-200">
-      <div className="flex justify-between items-end">
-        <div>
-          <h2 className="font-bold text-2xl tracking-wide">Stocks Monitor</h2>
-          <p className="text-slate-400 text-sm">
-            Real-time calculated stock levels
-          </p>
-        </div>
-        <div className="bg-slate-800/50 px-4 py-2 border border-slate-700 rounded font-mono text-xs">
-          Total Items:{" "}
-          <span className="text-retro-cyan">{inventory?.length || 0}</span>
-        </div>
-      </div>
+    <div className="flex flex-col gap-8 p-6 text-slate-200">
+      
+      {/* Integrated Inventory Summary without navigation links */}
+      <InventorySummary showNavigation={false} />
 
-      <div className="border border-slate-700 rounded-lg overflow-hidden glass-effect">
-        <DataGrid
-          columns={columns}
-          rows={inventory || []}
-          rowKeyGetter={(row) => row.item_id}
-          className="border-none h-[600px] rdg-dark"
-          rowClass={() => "hover:bg-slate-800/30 transition-colors"}
-        />
+      {/* Detailed Stock Table */}
+      <div className="flex flex-col gap-4">
+        <div className="flex justify-between items-end border-slate-700 pt-6 border-t">
+          <div>
+            <h2 className="font-bold text-2xl tracking-wide">Detailed Stock Table</h2>
+            <p className="text-slate-400 text-sm">
+              Real-time calculated stock levels for all items
+            </p>
+          </div>
+          <div className="bg-slate-800/50 px-4 py-2 border border-slate-700 rounded font-mono text-xs">
+            Total Items:{" "}
+            <span className="text-retro-cyan">{inventory?.length || 0}</span>
+          </div>
+        </div>
+
+        <div className="border border-slate-700 rounded-lg overflow-hidden glass-effect">
+          <DataGrid
+            columns={columns}
+            rows={inventory || []}
+            rowKeyGetter={(row) => row.item_id}
+            className="border-none h-[600px] rdg-dark"
+            rowClass={() => "hover:bg-slate-800/30 transition-colors"}
+          />
+        </div>
       </div>
     </div>
   );

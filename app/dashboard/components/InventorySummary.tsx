@@ -5,7 +5,13 @@ import { useInventory } from "../hooks/useInventory";
 import { AlertTriangle, PackageCheck, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
-export const InventorySummary = () => {
+interface InventorySummaryProps {
+  showNavigation?: boolean;
+}
+
+export const InventorySummary: React.FC<InventorySummaryProps> = ({
+  showNavigation = true,
+}) => {
   const { inventory, isLoading } = useInventory();
   const [limit, setLimit] = useState<number>(5);
 
@@ -32,8 +38,8 @@ export const InventorySummary = () => {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-pulse">
-        <div className="h-64 bg-slate-800/50 rounded-xl border border-slate-700/50"></div>
-        <div className="h-64 bg-slate-800/50 rounded-xl border border-slate-700/50"></div>
+        <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl h-64"></div>
+        <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl h-64"></div>
       </div>
     );
   }
@@ -41,9 +47,9 @@ export const InventorySummary = () => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-white">Inventory Highlights</h2>
-        <div className="flex items-center gap-2 bg-slate-800/50 p-1 rounded-lg border border-slate-700/50">
-          <span className="text-xs text-slate-400 px-2">Show:</span>
+        <h2 className="font-bold text-white text-xl">Inventory Highlights</h2>
+        <div className="flex items-center gap-2 bg-slate-800/50 p-1 border border-slate-700/50 rounded-lg">
+          <span className="px-2 text-slate-400 text-xs">Show:</span>
           {[5, 10, 20].map((val) => (
             <button
               key={val}
@@ -60,20 +66,22 @@ export const InventorySummary = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="gap-6 grid grid-cols-1 md:grid-cols-2">
         {/* Low Stock Section */}
-        <div className="bg-slate-900/50 border border-red-500/20 rounded-xl overflow-hidden backdrop-blur-sm">
-          <div className="p-4 border-b border-red-500/20 bg-red-500/5 flex justify-between items-center">
+        <div className="bg-slate-900/50 backdrop-blur-sm border border-red-500/20 rounded-xl overflow-hidden">
+          <div className="flex justify-between items-center bg-red-500/5 border-red-500/20 p-4 border-b">
             <div className="flex items-center gap-2 text-red-400">
               <AlertTriangle className="w-5 h-5" />
               <h3 className="font-semibold">Low Stock Alert</h3>
             </div>
-            <Link 
-              href="/inventory?view=monitor" 
-              className="text-xs text-red-400/70 hover:text-red-300 flex items-center gap-1 transition-colors"
-            >
-              View All <ArrowRight className="w-3 h-3" />
-            </Link>
+            {showNavigation && (
+              <Link
+                href="/inventory?view=monitor"
+                className="flex items-center gap-1 text-red-400/70 hover:text-red-300 text-xs transition-colors"
+              >
+                View All <ArrowRight className="w-3 h-3" />
+              </Link>
+            )}
           </div>
           <div className="p-2">
             {lowStockItems.length === 0 ? (
@@ -85,21 +93,21 @@ export const InventorySummary = () => {
                 {lowStockItems.map((item) => (
                   <div
                     key={item.item_id}
-                    className="flex justify-between items-center p-3 hover:bg-red-500/5 rounded-lg transition-colors group"
+                    className="flex justify-between items-center hover:bg-red-500/5 p-3 rounded-lg transition-colors group"
                   >
                     <div className="min-w-0">
-                      <p className="font-medium text-slate-200 truncate group-hover:text-red-200 transition-colors">
+                      <p className="group-hover:text-red-200 font-medium text-slate-200 truncate transition-colors">
                         {item.item_name}
                       </p>
-                      <p className="text-xs text-slate-500 truncate">
+                      <p className="text-slate-500 text-xs truncate">
                         SKU: {item.sku}
                       </p>
                     </div>
                     <div className="text-right">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                      <span className="inline-flex items-center border-red-500/20 bg-red-500/10 px-2.5 py-0.5 border rounded-full font-medium text-red-400 text-xs">
                         {item.current_stock} left
                       </span>
-                      <p className="text-[10px] text-slate-600 mt-1">
+                      <p className="mt-1 text-[10px] text-slate-600">
                         Threshold: {item.low_stock_threshold ?? 5}
                       </p>
                     </div>
@@ -111,18 +119,20 @@ export const InventorySummary = () => {
         </div>
 
         {/* Most Stocked Section */}
-        <div className="bg-slate-900/50 border border-emerald-500/20 rounded-xl overflow-hidden backdrop-blur-sm">
-          <div className="p-4 border-b border-emerald-500/20 bg-emerald-500/5 flex justify-between items-center">
+        <div className="bg-slate-900/50 backdrop-blur-sm border border-emerald-500/20 rounded-xl overflow-hidden">
+          <div className="flex justify-between items-center bg-emerald-500/5 border-emerald-500/20 p-4 border-b">
             <div className="flex items-center gap-2 text-emerald-400">
               <PackageCheck className="w-5 h-5" />
               <h3 className="font-semibold">Most Stocked</h3>
             </div>
-            <Link 
-              href="/inventory?view=monitor" 
-              className="text-xs text-emerald-400/70 hover:text-emerald-300 flex items-center gap-1 transition-colors"
-            >
-              View All <ArrowRight className="w-3 h-3" />
-            </Link>
+            {showNavigation && (
+              <Link
+                href="/inventory?view=monitor"
+                className="flex items-center gap-1 text-emerald-400/70 hover:text-emerald-300 text-xs transition-colors"
+              >
+                View All <ArrowRight className="w-3 h-3" />
+              </Link>
+            )}
           </div>
           <div className="p-2">
             {mostStockedItems.length === 0 ? (
@@ -134,18 +144,18 @@ export const InventorySummary = () => {
                 {mostStockedItems.map((item) => (
                   <div
                     key={item.item_id}
-                    className="flex justify-between items-center p-3 hover:bg-emerald-500/5 rounded-lg transition-colors group"
+                    className="flex justify-between items-center hover:bg-emerald-500/5 p-3 rounded-lg transition-colors group"
                   >
                     <div className="min-w-0">
-                      <p className="font-medium text-slate-200 truncate group-hover:text-emerald-200 transition-colors">
+                      <p className="group-hover:text-emerald-200 font-medium text-slate-200 truncate transition-colors">
                         {item.item_name}
                       </p>
-                      <p className="text-xs text-slate-500 truncate">
+                      <p className="text-slate-500 text-xs truncate">
                         SKU: {item.sku}
                       </p>
                     </div>
                     <div className="text-right">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <span className="inline-flex items-center border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 border rounded-full font-medium text-emerald-400 text-xs">
                         {item.current_stock} units
                       </span>
                     </div>
