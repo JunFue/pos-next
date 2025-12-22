@@ -6,6 +6,22 @@ const getSupabase = async () => {
   return await createClient();
 };
 
+interface ExpenseRowDB {
+  id: string;
+  transaction_date: string;
+  source: string | null; // UUID in DB, may be null
+  classification: string | null;
+  amount: number;
+  receipt_no: string | null;
+  notes: string | null;
+  created_at: string;
+
+  // Joined relation
+  product_category: {
+    category: string;
+  } | null;
+}
+
 export interface ExpenseData {
   id: string;
   transaction_date: string; // ISO Date string (YYYY-MM-DD)
@@ -24,17 +40,35 @@ export interface Classification {
   store_id: string;
 }
 
-// 1. Fetch Expenses
 export const fetchExpenses = async (): Promise<ExpenseData[]> => {
   const supabase = await getSupabase();
+
   const { data, error } = await supabase
     .from("expenses")
-    .select("*")
+    .select(
+      `
+      *,
+      product_category (
+        category
+      )
+    `
+    )
     .order("transaction_date", { ascending: false })
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
-  return data || [];
+
+  return (data || []).map(
+    (row: ExpenseRowDB): ExpenseData => ({
+      id: row.id,
+      transaction_date: row.transaction_date,
+      classification: row.classification ?? "",
+      amount: row.amount,
+      receipt_no: row.receipt_no ?? "",
+      notes: row.notes ?? "",
+      source: row.product_category?.category || row.source || "Unknown",
+    })
+  );
 };
 
 // 2. Create Expense (RPC VERSION)
@@ -102,10 +136,7 @@ export const updateClassification = async (id: string, name: string) => {
 // 6. Delete Classification
 export const deleteClassification = async (id: string) => {
   const supabase = await getSupabase();
-  const { error } = await supabase
-    .from("classification")
-    .delete()
-    .eq("id", id);
+  const { error } = await supabase.from("classification").delete().eq("id", id);
 
   if (error) {
     console.error("Error deleting classification:", error);

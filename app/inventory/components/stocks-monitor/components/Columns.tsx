@@ -1,6 +1,3 @@
-// app/inventory/components/stocks-monitor/columns.tsx
-
-import React from "react";
 import { Column } from "react-data-grid";
 import { AlertTriangle, PackageCheck } from "lucide-react";
 import { InventoryItem } from "../lib/inventory.api";

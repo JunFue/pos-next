@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ExpensesNav, View } from "./utils/ExpensesNav";
-import { Cashout } from "./components/Cashout";
+import { Cashout } from "./components/cashout/Cashout";
 import { ExpensesMntr } from "./components/ExpensesMntr";
 import { CashFlow } from "./components/CashFlow";
 

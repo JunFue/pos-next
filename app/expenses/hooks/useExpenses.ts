@@ -1,6 +1,10 @@
 import useSWR, { useSWRConfig } from "swr";
 import { useState } from "react";
-import { fetchExpenses, createExpense, ExpenseData, ExpenseInput } from "../lib/expenses.api";
+import {
+  fetchExpenses,
+  createExpense,
+  ExpenseInput,
+} from "../lib/expenses.api";
 
 export function useExpenses() {
   const { mutate } = useSWRConfig();
