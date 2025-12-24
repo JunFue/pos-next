@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { CashFlowEntry } from "../lib/types";
+import { CashFlowEntry } from "../../lib/types";
 import { DragHandleProps } from "./DashboardGrid";
 
 interface DailyGrossIncomeProps {

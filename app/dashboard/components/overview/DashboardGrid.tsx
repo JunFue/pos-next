@@ -24,7 +24,7 @@ import { CSS } from "@dnd-kit/utilities";
 import DailyExpensesCard from "./DailyExpensesCard";
 import DailyGrossIncomeCard from "./DailyGrossIncomeCard";
 import MonthlyGrossCard from "./MonthlyGrossCard";
-import { DashboardMetrics } from "../hooks/useDashboardMetrics";
+import { DashboardMetrics } from "../../hooks/useDashboardMetrics";
 import DailyNetSales from "./DailyNetSales";
 
 // Define strict types for the drag handle

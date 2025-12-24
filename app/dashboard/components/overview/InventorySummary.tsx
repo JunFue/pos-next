@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { useInventory } from "../hooks/useInventory";
+import { useInventory } from "../../hooks/useInventory";
 import { AlertTriangle, PackageCheck, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
@@ -37,7 +37,7 @@ export const InventorySummary: React.FC<InventorySummaryProps> = ({
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-pulse">
+      <div className="gap-6 grid grid-cols-1 md:grid-cols-2 animate-pulse">
         <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl h-64"></div>
         <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl h-64"></div>
       </div>
@@ -69,7 +69,7 @@ export const InventorySummary: React.FC<InventorySummaryProps> = ({
       <div className="gap-6 grid grid-cols-1 md:grid-cols-2">
         {/* Low Stock Section */}
         <div className="bg-slate-900/50 backdrop-blur-sm border border-red-500/20 rounded-xl overflow-hidden">
-          <div className="flex justify-between items-center bg-red-500/5 border-red-500/20 p-4 border-b">
+          <div className="flex justify-between items-center bg-red-500/5 p-4 border-red-500/20 border-b">
             <div className="flex items-center gap-2 text-red-400">
               <AlertTriangle className="w-5 h-5" />
               <h3 className="font-semibold">Low Stock Alert</h3>
@@ -85,7 +85,7 @@ export const InventorySummary: React.FC<InventorySummaryProps> = ({
           </div>
           <div className="p-2">
             {lowStockItems.length === 0 ? (
-              <div className="p-8 text-center text-slate-500 text-sm">
+              <div className="p-8 text-slate-500 text-sm text-center">
                 No items below threshold.
               </div>
             ) : (
@@ -93,10 +93,10 @@ export const InventorySummary: React.FC<InventorySummaryProps> = ({
                 {lowStockItems.map((item) => (
                   <div
                     key={item.item_id}
-                    className="flex justify-between items-center hover:bg-red-500/5 p-3 rounded-lg transition-colors group"
+                    className="group flex justify-between items-center hover:bg-red-500/5 p-3 rounded-lg transition-colors"
                   >
                     <div className="min-w-0">
-                      <p className="group-hover:text-red-200 font-medium text-slate-200 truncate transition-colors">
+                      <p className="font-medium text-slate-200 group-hover:text-red-200 truncate transition-colors">
                         {item.item_name}
                       </p>
                       <p className="text-slate-500 text-xs truncate">
@@ -104,7 +104,7 @@ export const InventorySummary: React.FC<InventorySummaryProps> = ({
                       </p>
                     </div>
                     <div className="text-right">
-                      <span className="inline-flex items-center border-red-500/20 bg-red-500/10 px-2.5 py-0.5 border rounded-full font-medium text-red-400 text-xs">
+                      <span className="inline-flex items-center bg-red-500/10 px-2.5 py-0.5 border border-red-500/20 rounded-full font-medium text-red-400 text-xs">
                         {item.current_stock} left
                       </span>
                       <p className="mt-1 text-[10px] text-slate-600">
@@ -120,7 +120,7 @@ export const InventorySummary: React.FC<InventorySummaryProps> = ({
 
         {/* Most Stocked Section */}
         <div className="bg-slate-900/50 backdrop-blur-sm border border-emerald-500/20 rounded-xl overflow-hidden">
-          <div className="flex justify-between items-center bg-emerald-500/5 border-emerald-500/20 p-4 border-b">
+          <div className="flex justify-between items-center bg-emerald-500/5 p-4 border-emerald-500/20 border-b">
             <div className="flex items-center gap-2 text-emerald-400">
               <PackageCheck className="w-5 h-5" />
               <h3 className="font-semibold">Most Stocked</h3>
@@ -136,7 +136,7 @@ export const InventorySummary: React.FC<InventorySummaryProps> = ({
           </div>
           <div className="p-2">
             {mostStockedItems.length === 0 ? (
-              <div className="p-8 text-center text-slate-500 text-sm">
+              <div className="p-8 text-slate-500 text-sm text-center">
                 No inventory data available.
               </div>
             ) : (
@@ -144,10 +144,10 @@ export const InventorySummary: React.FC<InventorySummaryProps> = ({
                 {mostStockedItems.map((item) => (
                   <div
                     key={item.item_id}
-                    className="flex justify-between items-center hover:bg-emerald-500/5 p-3 rounded-lg transition-colors group"
+                    className="group flex justify-between items-center hover:bg-emerald-500/5 p-3 rounded-lg transition-colors"
                   >
                     <div className="min-w-0">
-                      <p className="group-hover:text-emerald-200 font-medium text-slate-200 truncate transition-colors">
+                      <p className="font-medium text-slate-200 group-hover:text-emerald-200 truncate transition-colors">
                         {item.item_name}
                       </p>
                       <p className="text-slate-500 text-xs truncate">
@@ -155,7 +155,7 @@ export const InventorySummary: React.FC<InventorySummaryProps> = ({
                       </p>
                     </div>
                     <div className="text-right">
-                      <span className="inline-flex items-center border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 border rounded-full font-medium text-emerald-400 text-xs">
+                      <span className="inline-flex items-center bg-emerald-500/10 px-2.5 py-0.5 border border-emerald-500/20 rounded-full font-medium text-emerald-400 text-xs">
                         {item.current_stock} units
                       </span>
                     </div>

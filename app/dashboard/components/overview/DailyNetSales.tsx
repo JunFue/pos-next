@@ -1,20 +1,13 @@
-"use client";
-
-import React from "react";
-import { CashFlowEntry } from "../lib/types";
+import { CashFlowEntry } from "../../lib/types";
 import { DragHandleProps } from "./DashboardGrid";
 
 interface Props {
-  totalExpenses: number;
+  totalNetSales: number;
   cashFlow: CashFlowEntry[];
   dragHandleProps?: DragHandleProps;
 }
 
-const DailyExpensesCard = ({
-  totalExpenses,
-  cashFlow,
-  dragHandleProps,
-}: Props) => {
+const DailyNetSales = ({ totalNetSales, cashFlow, dragHandleProps }: Props) => {
   return (
     <div className="bg-slate-800 shadow-lg border border-slate-700/50 rounded-xl h-full overflow-hidden text-white">
       <div
@@ -22,15 +15,15 @@ const DailyExpensesCard = ({
         {...dragHandleProps?.listeners}
         className="hover:bg-slate-700/30 p-6 pb-2 transition-colors cursor-grab active:cursor-grabbing"
       >
-        <h2 className="font-bold text-xl">Daily Expenses</h2>
+        <h2 className="font-bold text-xl">Daily Net Sales</h2>
       </div>
 
       <div className="p-6 pt-2">
         <div className="mb-6">
-          <p className="text-slate-400 text-sm">Total Expenses</p>
-          <p className="font-bold text-rose-400 text-3xl">
+          <p className="text-slate-400 text-sm">Total Net Sales</p>
+          <p className="font-bold text-emerald-400 text-3xl">
             ₱
-            {totalExpenses.toLocaleString(undefined, {
+            {totalNetSales.toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })}
@@ -43,9 +36,9 @@ const DailyExpensesCard = ({
               className="flex justify-between items-center pb-2 border-slate-700 last:border-0 border-b"
             >
               <span className="text-slate-300">{entry.category}</span>
-              <span className="font-medium text-rose-100">
+              <span className="font-medium">
                 ₱
-                {entry.cash_out.toLocaleString(undefined, {
+                {entry.balance.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
@@ -57,5 +50,4 @@ const DailyExpensesCard = ({
     </div>
   );
 };
-
-export default DailyExpensesCard;
+export default DailyNetSales;

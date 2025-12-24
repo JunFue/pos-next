@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import dayjs from "dayjs";
-import { fetchCashFlowByRange } from "../lib/dashboard.api";
+import { fetchCashFlowByRange } from "../../lib/dashboard.api";
 import { DragHandleProps } from "./DashboardGrid";
 import { DateColumnFilter } from "@/app/expenses/components/cashout/components/DateColumnFilter";
-import { useDashboardDateStore } from "../store/useDashboardDateStore"; // Import the new store
+import { useDashboardDateStore } from "../../store/useDashboardDateStore"; // Import the new store
 interface MonthlyGrossProps {
   dragHandleProps?: DragHandleProps;
 }

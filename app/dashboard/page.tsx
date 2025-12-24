@@ -4,9 +4,9 @@ import React, { useState } from "react";
 import { Loader2, ArrowBigLeft } from "lucide-react";
 import { FinancialReportContainer } from "./components/financial-report/FinancialReportContainer";
 import { useDashboardMetrics } from "./hooks/useDashboardMetrics";
-import { DashboardGrid } from "./components/DashboardGrid";
+import { DashboardGrid } from "./components/overview/DashboardGrid";
 import Link from "next/link";
-import { InventorySummary } from "./components/InventorySummary";
+import { InventorySummary } from "./components/overview/InventorySummary";
 import { DashboardNav, DashboardView } from "./utils/DashboardNav";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 

@@ -7,22 +7,16 @@ import { Loader2 } from "lucide-react";
 import "react-data-grid/lib/styles.css";
 import { DataGrid } from "react-data-grid";
 import { useInventory } from "../../../dashboard/hooks/useInventory";
-import { InventorySummary } from "@/app/dashboard/components/InventorySummary";
+import { InventorySummary } from "@/app/dashboard/components/overview/InventorySummary";
 import { useStocksLogic } from "./hooks/useStocksLogic";
 import { getStocksColumns } from "./components/Columns";
 
-
 export default function StocksMonitor() {
   const { inventory, isLoading, error } = useInventory();
-  
+
   // Custom hook handles filtering/sorting state and logic
-  const { 
-    processedData, 
-    filters, 
-    sortState, 
-    handleApplyFilter, 
-    handleSort 
-  } = useStocksLogic(inventory);
+  const { processedData, filters, sortState, handleApplyFilter, handleSort } =
+    useStocksLogic(inventory);
 
   if (isLoading) {
     return (
@@ -49,9 +43,9 @@ export default function StocksMonitor() {
       <InventorySummary showNavigation={false} />
 
       <div className="flex flex-col gap-4">
-        <HeaderSection 
-          totalCount={processedData.length} 
-          originalCount={inventory?.length || 0} 
+        <HeaderSection
+          totalCount={processedData.length}
+          originalCount={inventory?.length || 0}
         />
 
         <div className="border border-slate-700 rounded-lg overflow-hidden glass-effect">
@@ -70,11 +64,19 @@ export default function StocksMonitor() {
 }
 
 // Sub-component for the header section to keep the main return clean
-function HeaderSection({ totalCount, originalCount }: { totalCount: number; originalCount: number }) {
+function HeaderSection({
+  totalCount,
+  originalCount,
+}: {
+  totalCount: number;
+  originalCount: number;
+}) {
   return (
-    <div className="flex justify-between items-end border-slate-700 pt-6 border-t">
+    <div className="flex justify-between items-end pt-6 border-slate-700 border-t">
       <div>
-        <h2 className="font-bold text-2xl tracking-wide">Detailed Stock Table</h2>
+        <h2 className="font-bold text-2xl tracking-wide">
+          Detailed Stock Table
+        </h2>
         <p className="text-slate-400 text-sm">
           Real-time calculated stock levels for all items
         </p>
