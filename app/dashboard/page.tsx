@@ -99,7 +99,10 @@ export function DashboardContent() {
 }
 
 export default function DashboardPage() {
-  <Suspense fallback={<div className="p-6 text-white">Loading...</div>}>
-    <DashboardContent />
-  </Suspense>;
+  // FIX: Added the 'return' keyword below
+  return (
+    <Suspense fallback={<div className="p-6 text-white">Loading...</div>}>
+      <DashboardContent />
+    </Suspense>
+  );
 }
