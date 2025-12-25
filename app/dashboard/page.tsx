@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
 import { Loader2, ArrowBigLeft } from "lucide-react";
 import { FinancialReportContainer } from "./components/financial-report/FinancialReportContainer";
 import { useDashboardMetrics } from "./hooks/useDashboardMetrics";
@@ -17,7 +17,7 @@ const DEFAULT_ITEMS = [
   "monthly-gross",
 ];
 
-export default function DashboardPage() {
+export function DashboardContent() {
   // --- URL State Management ---
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -96,4 +96,10 @@ export default function DashboardPage() {
       </div>
     </div>
   );
+}
+
+export default function DashboardPage() {
+  <Suspense fallback={<div className="p-6 text-white">Loading...</div>}>
+    <DashboardContent />
+  </Suspense>;
 }
