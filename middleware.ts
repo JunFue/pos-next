@@ -60,17 +60,14 @@ export async function middleware(request: NextRequest) {
       const isActive = sub?.status === "PAID" && endDate && endDate > now;
 
       // Define paths to exempt (so they don't get stuck in a redirect loop)
-      const isSubscriptionPage = request.nextUrl.pathname.startsWith(
-        "/dashboard/settings"
-      ); // Assuming settings is where subscription is
+      const isSubscriptionPage =
+        request.nextUrl.pathname.startsWith("/settings"); // Assuming settings is where subscription is
       const isApiRoute = request.nextUrl.pathname.startsWith("/api");
 
       // If inactive and NOT on the subscription page, redirect them
       if (!isActive && !isSubscriptionPage && !isApiRoute) {
         // Redirect to your subscription settings page
-        return NextResponse.redirect(
-          new URL("/dashboard/settings", request.url)
-        );
+        return NextResponse.redirect(new URL("/settings", request.url));
       }
     }
   }

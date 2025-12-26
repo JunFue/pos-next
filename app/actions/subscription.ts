@@ -80,8 +80,8 @@ export async function createXenditSubscription(storeId: string) {
     payer_email: member.email || "customer@example.com",
     description: `Monthly Subscription for Store (User: ${user.email})`,
     invoice_duration: 86400,
-    success_redirect_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/settings?payment=success`,
-    failure_redirect_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/settings?payment=failure`,
+    success_redirect_url: `${process.env.NEXT_PUBLIC_SITE_URL}/settings?payment=success`,
+    failure_redirect_url: `${process.env.NEXT_PUBLIC_SITE_URL}/settings?payment=failure`,
     currency: "PHP",
     meta: {
       store_id: storeId,
