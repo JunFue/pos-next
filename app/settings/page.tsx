@@ -4,6 +4,7 @@ import VoucherSettings from "./components/VoucherSettings";
 import SubscriptionSettings from "./components/SubscriptionSettings";
 import CurrencySelector from "./components/CurrencySelector";
 import LowStockSettings from "./components/LowStockSettings";
+import PriceEditingSettings from "./components/PriceEditingSettings";
 import { Settings, CreditCard, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
@@ -62,6 +63,11 @@ export default function SettingsPage() {
         {/* Low Stock Settings Section */}
         <section className="bg-slate-900/50 p-8 border border-slate-800 rounded-2xl glass-effect">
            <LowStockSettings />
+        </section>
+
+        {/* Price Editing Settings Section */}
+        <section className="bg-slate-900/50 p-8 border border-slate-800 rounded-2xl glass-effect">
+           <PriceEditingSettings />
         </section>
       </div>
     </div>

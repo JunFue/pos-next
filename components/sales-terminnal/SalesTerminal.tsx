@@ -22,6 +22,7 @@ const SalesTerminal = () => {
     cartItems,
     onAddToCart,
     onRemoveItem,
+    onUpdateItem,
     onDoneSubmit,
     triggerDoneSubmit,
     onClear,
@@ -64,7 +65,11 @@ const SalesTerminal = () => {
             />
           </div>
           <div className="border border-primary-light rounded-2xl w-full h-full overflow-hidden">
-            <TerminalCart rows={cartItems} onRemoveItem={onRemoveItem} />
+            <TerminalCart 
+              rows={cartItems} 
+              onRemoveItem={onRemoveItem} 
+              onUpdateItem={onUpdateItem}
+            />
           </div>
         </form>
       </FormProvider>

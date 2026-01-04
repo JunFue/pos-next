@@ -75,7 +75,6 @@ export const fetchItems = async (): Promise<Item[]> => {
     throw new Error(error.message);
   }
 
-  // @ts-ignore
   return data.map(fromDatabaseObject);
 };
 
@@ -98,7 +97,6 @@ export const insertItem = async (item: Item): Promise<Item> => {
     throw new Error(error.message);
   }
 
-  // @ts-ignore
   return fromDatabaseObject(data);
 };
 
@@ -120,7 +118,7 @@ export const updateItem = async (item: Item): Promise<Item> => {
     throw new Error(error.message);
   }
   
-  // @ts-ignore
+ 
   return fromDatabaseObject(data);
 };
 
@@ -178,6 +176,5 @@ export const insertManyItems = async (items: Item[]): Promise<Item[]> => {
     throw new Error(error.message);
   }
 
-  // @ts-ignore
   return data.map(fromDatabaseObject);
 };

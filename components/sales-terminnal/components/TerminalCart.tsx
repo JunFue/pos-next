@@ -1,9 +1,10 @@
 // app/inventory/components/stock-management/components/TerminalCart.tsx
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { DataGrid, Column } from "react-data-grid";
-import { XCircle } from "lucide-react";
+import { XCircle, Lock, Unlock } from "lucide-react";
+import { useSettingsStore } from "@/store/useSettingsStore";
 
 // 1. Updated CartItem type to include 'discount'
 export type CartItem = {
@@ -19,6 +20,7 @@ export type CartItem = {
 type TerminalCartProps = {
   rows: CartItem[];
   onRemoveItem: (sku: string) => void;
+  onUpdateItem: (sku: string, updates: Partial<CartItem>) => void;
 };
 
 type DeleteColumn<R> = Column<R> & {
@@ -43,7 +45,10 @@ const DeleteFormatter = ({ row, column }: CustomFormatterProps<CartItem>) => {
   );
 };
 
-export const TerminalCart = ({ rows, onRemoveItem }: TerminalCartProps) => {
+export const TerminalCart = ({ rows, onRemoveItem, onUpdateItem }: TerminalCartProps) => {
+  const { isPriceEditingEnabled } = useSettingsStore();
+  const [isEditingActive, setIsEditingActive] = useState(false);
+
   const columns: readonly Column<CartItem>[] = [
     {
       key: "sku",
@@ -58,7 +63,38 @@ export const TerminalCart = ({ rows, onRemoveItem }: TerminalCartProps) => {
     {
       key: "unitPrice",
       name: "Unit Price",
-      renderCell: ({ row }) => <span>{row.unitPrice.toFixed(2)}</span>,
+      renderHeaderCell: () => (
+        <div className="flex items-center gap-2">
+          <span>Unit Price</span>
+          {isPriceEditingEnabled && (
+            <button
+              onClick={() => setIsEditingActive(!isEditingActive)}
+              className="text-slate-400 hover:text-cyan-400 transition-colors"
+            >
+              {isEditingActive ? <Unlock size={14} /> : <Lock size={14} />}
+            </button>
+          )}
+        </div>
+      ),
+      renderCell: ({ row }) => {
+        if (isPriceEditingEnabled && isEditingActive) {
+          return (
+            <input
+              type="number"
+              className="w-full bg-slate-800 text-white px-1 py-0.5 rounded border border-slate-600 focus:border-cyan-500 outline-none text-right"
+              value={row.unitPrice}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                if (!isNaN(val)) {
+                  onUpdateItem(row.sku, { unitPrice: val });
+                }
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          );
+        }
+        return <span>{row.unitPrice.toFixed(2)}</span>;
+      },
       resizable: true,
     },
     {

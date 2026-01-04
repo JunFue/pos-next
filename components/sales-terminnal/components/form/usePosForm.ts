@@ -25,6 +25,7 @@ interface UsePosFormReturn {
   cartItems: CartItem[];
   onAddToCart: () => void;
   onRemoveItem: (sku: string) => void;
+  onUpdateItem: (sku: string, updates: Partial<CartItem>) => void;
   onClear: () => void;
   onDoneSubmit: SubmitHandler<PosFormValues>;
   triggerDoneSubmit: () => void;
@@ -133,6 +134,22 @@ export const usePosForm = (): UsePosFormReturn => {
     setCartItems((prevCart) => prevCart.filter((item) => item.sku !== sku));
   };
 
+  const onUpdateItem = (sku: string, updates: Partial<CartItem>) => {
+    setCartItems((prevCart) =>
+      prevCart.map((item) => {
+        if (item.sku === sku) {
+          const newItem = { ...item, ...updates };
+          // Recalculate total if price or quantity changes
+          if (updates.unitPrice !== undefined || updates.quantity !== undefined || updates.discount !== undefined) {
+             newItem.total = (newItem.unitPrice * newItem.quantity) - (newItem.discount || 0);
+          }
+          return newItem;
+        }
+        return item;
+      })
+    );
+  };
+
   // --- SUBMISSION HANDLER ---
   const onDoneSubmit: SubmitHandler<PosFormValues> = async (data) => {
     console.log("📝 [Form] onDoneSubmit triggered", data);
@@ -206,6 +223,7 @@ export const usePosForm = (): UsePosFormReturn => {
     cartItems,
     onAddToCart,
     onRemoveItem,
+    onUpdateItem,
     onClear,
     onDoneSubmit,
     triggerDoneSubmit,

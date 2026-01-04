@@ -7,8 +7,10 @@ import { CurrencyCode } from '@/lib/utils/currency';
 interface SettingsState {
   currency: CurrencyCode;
   lowStockThreshold: number;
+  isPriceEditingEnabled: boolean;
   setCurrency: (currency: CurrencyCode) => void;
   setLowStockThreshold: (threshold: number) => void;
+  setPriceEditingEnabled: (enabled: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -17,8 +19,10 @@ export const useSettingsStore = create<SettingsState>()(
       currency: 'USD',
       // UPDATED: Hardcoded default to 100
       lowStockThreshold: 100, 
+      isPriceEditingEnabled: false,
       setCurrency: (currency) => set({ currency }),
       setLowStockThreshold: (lowStockThreshold) => set({ lowStockThreshold }),
+      setPriceEditingEnabled: (enabled) => set({ isPriceEditingEnabled: enabled }),
     }),
     {
       name: 'pos-settings-storage',
