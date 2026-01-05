@@ -40,6 +40,7 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
   // --- LOCAL UI STATE ---
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   
   // Find the currently selected category object based on the ID passed in 'value'
   const selectedCategory = categories.find(c => c.id === value);
@@ -52,6 +53,13 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
 
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // Filter Logic (moved up for use in keyboard handler)
+  const filtered = categories.filter(c => 
+    c.category.toLowerCase().includes(search.toLowerCase())
+  );
+  const exactMatch = filtered.some(c => c.category.toLowerCase() === search.toLowerCase());
 
   // 1. Close dropdown on click outside
   useEffect(() => {
@@ -59,6 +67,7 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
         setEditingId(null);
+        setHighlightedIndex(-1);
         // Revert search text to the selected name if the user didn't pick anything
         if (selectedName) setSearch(selectedName);
         else if (!value) setSearch("");
@@ -78,6 +87,22 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
     }
   }, [value, selectedName, isOpen]);
 
+  // 3. Reset highlighted index when filtered results change
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [search]);
+
+  // 4. Scroll highlighted item into view
+  useEffect(() => {
+    if (highlightedIndex >= 0 && listRef.current) {
+      const items = listRef.current.querySelectorAll('[data-category-item]');
+      const item = items[highlightedIndex] as HTMLElement;
+      if (item) {
+        item.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }, [highlightedIndex]);
+
   // --- HANDLERS ---
   
   const handleSelect = (categoryId: string, categoryName: string) => {
@@ -85,6 +110,50 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
     onChange(categoryId); // Send UUID to parent
     setSearch(categoryName); // Show Name to user
     setIsOpen(false);
+    setHighlightedIndex(-1);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isOpen) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        setIsOpen(true);
+        return;
+      }
+    }
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setHighlightedIndex(prev => 
+          prev < filtered.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setHighlightedIndex(prev => 
+          prev > 0 ? prev - 1 : 0
+        );
+        break;
+      case "Enter":
+        e.preventDefault();
+        if (highlightedIndex >= 0 && highlightedIndex < filtered.length) {
+          const cat = filtered[highlightedIndex];
+          handleSelect(cat.id, cat.category);
+        } else if (!exactMatch && search.trim() !== "") {
+          // Create new category if no match
+          handleCreate();
+        }
+        break;
+      case "Escape":
+        e.preventDefault();
+        setIsOpen(false);
+        setHighlightedIndex(-1);
+        // Revert search text to the selected name
+        if (selectedName) setSearch(selectedName);
+        else if (!value) setSearch("");
+        break;
+    }
   };
 
   const handleCreate = async () => {
@@ -100,6 +169,7 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
         setSearch(newCat.category);
       }
       setIsOpen(false);
+      setHighlightedIndex(-1);
     } catch (err) {
       console.error(err);
     } finally {
@@ -157,12 +227,6 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
     }
   };
 
-  // Filter Logic
-  const filtered = categories.filter(c => 
-    c.category.toLowerCase().includes(search.toLowerCase())
-  );
-  const exactMatch = filtered.some(c => c.category.toLowerCase() === search.toLowerCase());
-
   return (
     <div className="relative w-full" ref={containerRef}>
       {/* Input Field */}
@@ -177,6 +241,7 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
             // We only call onChange when a specific valid category is clicked or created.
           }}
           onFocus={() => setIsOpen(true)}
+          onKeyDown={handleKeyDown}
           disabled={disabled || storeLoading}
           placeholder={storeLoading ? "Loading..." : "Select or create category..."}
           className={`w-full input-dark pr-10 ${error ? "border-red-500" : ""}`}
@@ -194,13 +259,20 @@ export const CategorySelect: React.FC<CategorySelectProps> = ({
       {error && <p className="mt-1 text-red-400 text-xs flex items-center gap-1"><AlertCircle className="w-3 h-3"/> {error}</p>}
 
       {isOpen && !disabled && (
-        <div className="absolute z-50 w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto animate-in fade-in zoom-in-95">
+        <div 
+          ref={listRef}
+          className="absolute z-50 w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto animate-in fade-in zoom-in-95"
+        >
           
-          {filtered.map(cat => (
+          {filtered.map((cat, index) => (
             <div 
-              key={cat.id} 
-              className="group flex items-center justify-between px-3 py-2 hover:bg-slate-800 cursor-pointer text-sm text-slate-300"
+              key={cat.id}
+              data-category-item
+              className={`group flex items-center justify-between px-3 py-2 cursor-pointer text-sm text-slate-300 ${
+                highlightedIndex === index ? "bg-slate-700" : "hover:bg-slate-800"
+              }`}
               onClick={() => handleSelect(cat.id, cat.category)} // Pass ID and Name
+              onMouseEnter={() => setHighlightedIndex(index)}
             >
               {editingId === cat.id ? (
                 // --- Edit Mode ---
