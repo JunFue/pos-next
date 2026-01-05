@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect } from "react";
+
 import { useMediaQuery } from "@/app/hooks/useMediaQuery";
 import { useViewStore } from "../window-layouts/store/useViewStore";
 import FormFields from "./components/FormFields";
-import TerminalButtons from "./components/buttons/TerminalButtons";
+
 import TerminalHeader from "./components/TerminalHeader";
 
 import { FormProvider } from "react-hook-form";
@@ -33,6 +35,19 @@ const SalesTerminal = () => {
     clearErrorMessage,
   } = usePosForm();
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClear();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClear]);
+
 
   function ScreenLogic() {
     if (isSplit && !isMobile) {
@@ -57,11 +72,6 @@ const SalesTerminal = () => {
             <FormFields
               onAddToCartClick={onAddToCart}
               onDoneSubmitTrigger={triggerDoneSubmit}
-            />
-            <TerminalButtons
-              onAddToCartClick={onAddToCart}
-              onDoneClick={triggerDoneSubmit}
-              onClearClick={onClear}
             />
           </div>
           <div className="border border-primary-light rounded-2xl w-full h-full overflow-hidden">

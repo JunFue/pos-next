@@ -49,7 +49,7 @@ export default function HomePage() {
   const closeModal = () => setAuthModalState("hidden");
 
   const handleLoginSuccess = () => {
-    closeModal();
+    window.location.href = "/";
   };
 
   const onSignOutClick = async () => {
@@ -60,7 +60,7 @@ export default function HomePage() {
     } catch (error) {
       console.error("Logout process error:", error);
     } finally {
-      window.location.reload();
+      window.location.href = "/login";
     }
   };
 
