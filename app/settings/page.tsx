@@ -5,6 +5,7 @@ import SubscriptionSettings from "./components/SubscriptionSettings";
 import CurrencySelector from "./components/CurrencySelector";
 import LowStockSettings from "./components/LowStockSettings";
 import PriceEditingSettings from "./components/PriceEditingSettings";
+import AccountSettings from "./components/AccountSettings";
 import { Settings, CreditCard, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
@@ -27,6 +28,9 @@ export default function SettingsPage() {
       </div>
       
       <div className="space-y-8">
+        {/* Account Settings Section */}
+        <AccountSettings />
+
         {/* General Settings Section */}
         <section className="relative p-8 rounded-2xl">
           {/* Background with glass effect */}
