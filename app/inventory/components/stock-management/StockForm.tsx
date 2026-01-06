@@ -8,7 +8,6 @@ import { StockData } from "./lib/stocks.api";
 import ItemAutoComplete from "@/utils/ItemAutoComplete";
 import { useViewStore } from "@/components/window-layouts/store/useViewStore";
 
-
 interface StockFormProps {
   onSubmit: SubmitHandler<StockFormSchema>;
   itemToEdit?: StockData | null;
@@ -88,25 +87,47 @@ export function StockForm({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    // 1. Allow Shift+Enter to submit normally (optional convenience)
     if (e.key === "Enter" && e.shiftKey) {
       e.preventDefault();
       handleSubmit(handleFormSubmit)();
       return;
     }
 
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
+    // 2. Handle Enter Key Navigation
+    if (e.key === "Enter") {
       const target = e.target as HTMLElement;
 
-      if (target.id === "stockFlow") {
+      // If we are on the submit button, let the default click happen.
+      if (submitButtonRef.current && target === submitButtonRef.current) {
         return;
       }
 
-      if (target.id === "quantity") {
+      // Prevent default form submission for all other inputs
+      e.preventDefault();
+
+      // Determine where to move focus next
+      // We check 'name' attributes primarily as they are more reliable with RHF
+      const name = target.getAttribute("name");
+
+      if (name === "itemName" || target.id === "itemName") {
+        // If coming from AutoComplete, move to StockFlow
+        // (Note: To open StockFlow dropdown, user should press Space or Alt+Down)
+        stockFlowRef.current?.focus();
+        try {
+           // Optional: Try to auto-open in supported browsers (Chrome/Edge 109+)
+           // This may not work in all browsers.
+           stockFlowRef.current?.showPicker();
+        } catch (err) {
+           // Ignore if not supported
+        }
+      } else if (name === "stockFlow" || target.id === "stockFlow") {
+        quantityRef.current?.focus();
+      } else if (name === "quantity" || target.id === "quantity") {
         capitalPriceRef.current?.focus();
-      } else if (target.id === "capitalPrice") {
+      } else if (name === "capitalPrice" || target.id === "capitalPrice") {
         notesRef.current?.focus();
-      } else if (target.id === "notes") {
+      } else if (name === "notes" || target.id === "notes") {
         submitButtonRef.current?.focus();
       }
     }
@@ -172,6 +193,8 @@ export function StockForm({
               className="w-full input-dark"
               onItemSelect={() => {
                 stockFlowRef.current?.focus();
+                // Attempt to open the dropdown automatically after selection
+                try { stockFlowRef.current?.showPicker(); } catch (e) {}
               }}
             />
           )}
@@ -195,7 +218,6 @@ export function StockForm({
           }}
           onChange={(e) => {
             rhfStockFlowOnChange(e);
-            quantityRef.current?.focus();
           }}
           className={`w-full input-dark ${
             errors.stockFlow ? "border-red-500" : ""
@@ -232,6 +254,7 @@ export function StockForm({
             errors.quantity ? "border-red-500" : ""
           }`}
           placeholder="0"
+          onFocus={(e) => e.target.select()} // Auto-select text on focus
         />
         {errors.quantity && (
           <p className="mt-1 text-red-300 text-sm">{errors.quantity.message}</p>
@@ -259,6 +282,7 @@ export function StockForm({
             errors.capitalPrice ? "border-red-500" : ""
           }`}
           placeholder="0.00"
+          onFocus={(e) => e.target.select()} // Auto-select text on focus
         />
         {errors.capitalPrice && (
           <p className="mt-1 text-red-300 text-sm">
