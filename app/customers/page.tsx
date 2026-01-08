@@ -1,10 +1,11 @@
-import FeaturePlaceholder from "../components/FeaturePlaceholder";
+import React from "react";
+import { fetchCustomerFeatureData } from "./api/services";
+import CustomerFeatureLayout from "./components/CustomerFeatureLayout";
 
-export default function CustomersPage() {
-  return (
-    <FeaturePlaceholder 
-      title="Customers Management" 
-      description="We are building a comprehensive customer relationship management system to help you track and engage with your loyal customers."
-    />
-  );
+export default async function CustomerPage() {
+  // 1. Fetch data on the server (Server Side Rendering)
+  const data = await fetchCustomerFeatureData();
+
+  // 2. Pass data to Client Component to hydrate SWR
+  return <CustomerFeatureLayout initialData={data} />;
 }
