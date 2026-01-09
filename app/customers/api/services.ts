@@ -5,15 +5,18 @@ const supabase = createClient();
 
 export const fetchCustomerFeatureData = async () => {
   const supabase = createClient();
-  
+
   const [groupsRes, customersRes] = await Promise.all([
     supabase.from("customer_groups").select("*").order("name"),
-    supabase.from("customers").select("*, group:customer_groups(*)").order("created_at", { ascending: false })
+    supabase
+      .from("customers")
+      .select("*, group:customer_groups(*)")
+      .order("created_at", { ascending: false }),
   ]);
 
-  return { 
-    groups: groupsRes.data || [], 
-    customers: customersRes.data || [] 
+  return {
+    groups: groupsRes.data || [],
+    customers: customersRes.data || [],
   };
 };
 export const fetchDashboardData = async () => {
@@ -31,12 +34,14 @@ export const fetchDashboardData = async () => {
 };
 
 export const createGroup = async (name: string) => {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error("No user found");
 
   const role = user.user_metadata?.role || "user";
   const isAdmin = role === "admin";
-  
+
   // Use triggers in DB to handle admin_id, or pass strictly if needed
   return await supabase.from("customer_groups").insert({
     name,
@@ -50,8 +55,10 @@ export const deleteGroup = async (id: string) => {
   return await supabase.from("customer_groups").delete().eq("id", id);
 };
 
-export const createCustomer = async (formData: CustomerFormValues) => {
-  const { data: { user } } = await supabase.auth.getUser();
+export const createCustomer = async (formData: Partial<CustomerFormValues>) => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) throw new Error("No user found");
 
   return await supabase.from("customers").insert({
@@ -62,7 +69,13 @@ export const createCustomer = async (formData: CustomerFormValues) => {
   });
 };
 
-export const updateCustomerGroup = async (customerId: string, groupId: string) => {
+export const updateCustomerGroup = async (
+  customerId: string,
+  groupId: string
+) => {
   const val = groupId === "ungrouped" ? null : groupId;
-  return await supabase.from("customers").update({ group_id: val }).eq("id", customerId);
+  return await supabase
+    .from("customers")
+    .update({ group_id: val })
+    .eq("id", customerId);
 };
