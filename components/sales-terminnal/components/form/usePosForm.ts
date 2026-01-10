@@ -9,7 +9,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useSWRConfig } from "swr";
 import { useItems } from "@/app/inventory/hooks/useItems";
 import { useInventory } from "@/app/dashboard/hooks/useInventory";
-import { useAuthStore } from "@/store/useAuthStore"; // <--- 1. IMPORT AUTH CONTEXT
+import { useAuthStore } from "@/store/useAuthStore";
+
 import {
   getDefaultFormValues,
   PosFormValues,
@@ -19,6 +20,7 @@ import {
 import { CartItem } from "../TerminalCart";
 import { handleAddToCart, handleClear, handleDone } from "../buttons/handlers";
 import { TransactionResult } from "../buttons/handlers/done";
+import { useTransactionStore } from "@/app/settings/backdating/stores/useTransactionStore";
 
 interface UsePosFormReturn {
   methods: UseFormReturn<PosFormValues>;
@@ -39,7 +41,8 @@ interface UsePosFormReturn {
 
 export const usePosForm = (): UsePosFormReturn => {
   const { mutate } = useSWRConfig();
-  const { user } = useAuthStore(); // <--- 2. GET USER FROM CONTEXT
+  const { user } = useAuthStore();
+  const { customTransactionDate } = useTransactionStore(); // <--- [NEW] Get Custom Date
   const { items: allItems } = useItems();
   const { inventory: inventoryData } = useInventory();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -140,8 +143,13 @@ export const usePosForm = (): UsePosFormReturn => {
         if (item.sku === sku) {
           const newItem = { ...item, ...updates };
           // Recalculate total if price or quantity changes
-          if (updates.unitPrice !== undefined || updates.quantity !== undefined || updates.discount !== undefined) {
-             newItem.total = (newItem.unitPrice * newItem.quantity) - (newItem.discount || 0);
+          if (
+            updates.unitPrice !== undefined ||
+            updates.quantity !== undefined ||
+            updates.discount !== undefined
+          ) {
+            newItem.total =
+              newItem.unitPrice * newItem.quantity - (newItem.discount || 0);
           }
           return newItem;
         }
@@ -190,7 +198,15 @@ export const usePosForm = (): UsePosFormReturn => {
     setIsSubmitting(true);
 
     try {
-      const result = await handleDone(data, cartItems, user.id);
+      // 4. [NEW] Pass customTransactionDate to handleDone
+      const result = await handleDone(
+        data,
+        cartItems,
+        user.id, // Ensure user.id is not null or undefined
+        customTransactionDate // This is a string or null
+          ? new Date(customTransactionDate) // Convert to Date object if it's a string
+          : null // Keep null if it's null
+      );
 
       console.log("📝 [Form] handleDone result:", result);
 

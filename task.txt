@@ -1,0 +1,7 @@
+Issues to fix:
+
+The users table on supabase, sets a store_id on the admin
+
+
+Features to add:
+

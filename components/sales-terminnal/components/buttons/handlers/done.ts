@@ -39,7 +39,8 @@ const withTimeout = <T>(
 export const handleDone = async (
   data: PosFormValues,
   cartItems: CartItem[],
-  cashierId: string
+  cashierId: string,
+  customDate: Date | null // <--- [NEW] Accept the custom date
 ): Promise<TransactionResult> => {
   console.log("--- 🛠 [Logic] handleDone started ---");
 
@@ -50,6 +51,9 @@ export const handleDone = async (
 
     console.log("2️⃣ [Logic] Preparing Payloads...");
 
+    // [NEW] Format date if exists
+    const transactionTime = customDate ? customDate.toISOString() : null;
+
     const headerPayload = {
       invoice_no: data.transactionNo,
       customer_name: data.customerName,
@@ -59,6 +63,7 @@ export const handleDone = async (
       change: data.change,
       transaction_no: data.transactionNo,
       cashier_name: cashierId,
+      transaction_time: transactionTime, // <--- [NEW] Include in payload
     };
 
     const itemsPayload = cartItems.map((item) => ({
@@ -128,7 +133,9 @@ export const handleDone = async (
 
         if (defaultSource) {
           await createExpense({
-            transaction_date: new Date().toISOString().split("T")[0],
+            transaction_date: customDate
+              ? customDate.toISOString().split("T")[0]
+              : new Date().toISOString().split("T")[0], // <--- [NEW] Use custom date for expense too if exists
             source: defaultSource.category,
             classification: "Voucher Deduction",
             amount: Number(data.voucher),
@@ -146,7 +153,7 @@ export const handleDone = async (
 
     return {
       ...headerPayload,
-      transaction_time: new Date().toISOString(),
+      transaction_time: transactionTime || new Date().toISOString(),
     } as TransactionResult;
   } catch (err) {
     console.error("❌ [Logic] Crash in handleDone:", err);
