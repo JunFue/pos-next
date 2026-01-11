@@ -7,7 +7,7 @@ const SWR_KEY = "customer-feature-data";
 export const useCustomerData = () => {
   const { data, error, isLoading } = useSWR(SWR_KEY, fetchCustomerFeatureData);
 
-  const { searchTerm, selectedGroupId } = useCustomerStore();
+  const { searchTerm, selectedGroupId, selectedCustomerId } = useCustomerStore();
 
   const groups = data?.groups || [];
   const rawCustomers = data?.customers || [];
@@ -39,15 +39,30 @@ export const useCustomerData = () => {
       ? "Ungrouped Customers"
       : groups.find((g) => g.id === selectedGroupId)?.name || "Unknown";
 
+
+  // [NEW] Find the selected customer for the detail view
+  
+  const selectedCustomer = rawCustomers.find(c => c.id === selectedCustomerId) || null;
+  
+  // [NEW] Find the group name for the specific customer
+  const selectedCustomerGroupName = selectedCustomer?.group_id 
+    ? groups.find(g => g.id === selectedCustomer.group_id)?.name 
+    : "Ungrouped";
+
   return {
     groups,
     customers: filteredCustomers,
-    guestTransactions: filteredGuestTransactions, // [NEW] Export
+    guestTransactions: filteredGuestTransactions,
     rawCustomers,
     currentGroupName,
+    
+    // [NEW] Export these
+    selectedCustomer,
+    selectedCustomerGroupName,
+    
     isLoading,
     isError: error,
-    selectedGroupId, // Export this so we can check it in the layout
+    selectedGroupId,
   };
 };
 

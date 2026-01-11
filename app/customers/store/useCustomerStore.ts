@@ -11,6 +11,13 @@ interface CustomerState {
   isGroupModalOpen: boolean;
   isCustomerModalOpen: boolean;
   activeCustomerId: string | null; // For the edit button
+
+  // --- NEW STATE ---
+  selectedCustomerId: string | null;
+  setSelectedCustomerId: (id: string | null) => void;
+  
+  viewMode: 'list' | 'detail';
+  setViewMode: (mode: 'list' | 'detail') => void;
   
   openGroupModal: () => void;
   closeGroupModal: () => void;
@@ -25,6 +32,12 @@ export const useCustomerStore = create<CustomerState>((set) => ({
   isGroupModalOpen: false,
   isCustomerModalOpen: false,
   activeCustomerId: null,
+  // --- NEW ACTIONS ---
+  selectedCustomerId: null,
+  setSelectedCustomerId: (id) => set({ selectedCustomerId: id }),
+  
+  viewMode: 'list',
+  setViewMode: (mode) => set({ viewMode: mode }),
 
   setSelectedGroupId: (id) => set({ selectedGroupId: id }),
   setSearchTerm: (term) => set({ searchTerm: term }),
