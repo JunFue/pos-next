@@ -32,7 +32,7 @@ export default function CustomerFeatureLayout({ initialData }: Props) {
     <SWRConfig value={{ fallback: { "customer-feature-data": initialData } }}>
       <div className="flex flex-col bg-gray-900 max-w-screen h-screen overflow-hidden font-sans text-gray-100">
         {/* Top Nav (Fixed) */}
-        <div className="px-6 py-3 border-gray-700 border-b flex-shrink-0">
+        <div className="px-6 py-3 border-gray-700 border-b shrink-0">
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-slate-400 hover:text-white text-sm transition-colors"
@@ -43,22 +43,22 @@ export default function CustomerFeatureLayout({ initialData }: Props) {
         </div>
 
         {/* Content Grid */}
-        <div className="flex-1 grid grid-cols-16 overflow-hidden">
+        <div className="flex-1 grid grid-cols-[280px_1fr] overflow-hidden">
           {/* Sidebar (Fixed) */}
-          <div className="col-span-4 bg-gray-800 border-gray-700 border-r h-full overflow-hidden">
+          <div className="bg-gray-800 border-gray-700 border-r h-full overflow-hidden">
             <CustomerSidebar />
           </div>
 
           {/* Main Content Area */}
-          <div className="flex flex-col col-span-12 bg-gray-900 min-w-0 min-h-0 h-full">
+          <div className="flex flex-col bg-gray-900 min-w-0 h-full min-h-0">
             {/* Dynamic Header (Fixed) */}
-            <div className="z-10 w-full h-fit bg-gray-900 flex-shrink-0 border-b border-gray-800">
+            <div className="z-10 bg-gray-900 border-gray-700 border-b w-full min-h-24 h-auto">
               <HeaderSwitcher />
             </div>
 
             {/* Dynamic Content (Scrollable Container) */}
             {/* Removed p-6 here so scrollbars hit the edge of the screen */}
-            <div className="relative flex-1 overflow-hidden bg-gray-900 min-h-0">
+            <div className="flex-1 bg-gray-900 min-h-0 overflow-hidden">
               <ContentSwitcher />
             </div>
           </div>
@@ -91,7 +91,7 @@ const ContentSwitcher = () => {
 
   // 2. Table Views - Wrapped in a container to maintain the padding we removed from the layout
   return (
-    <div className="h-full p-6 overflow-hidden">
+    <div className="p-6 h-full overflow-hidden">
       {selectedGroupId === "ungrouped" ? (
         <GuestTransactionsTable />
       ) : (

@@ -68,29 +68,24 @@ export const createCustomer = async (formData: FormData) => {
 
   if (!user) throw new Error("No user found");
 
-  // 1. Extract and Sanitize Text Fields
+  // 1. Extract Fields (Same as before)
   const full_name = formData.get("full_name") as string;
   const phone_number = formData.get("phone_number") as string;
-
   const emailRaw = formData.get("email") as string;
   const email = emailRaw || null;
-
   const addressRaw = formData.get("address") as string;
   const address = addressRaw || null;
-
   const remarksRaw = formData.get("remarks") as string;
   const remarks = remarksRaw || null;
-
   const birthdateRaw = formData.get("birthdate") as string;
   const birthdate = birthdateRaw || null;
-
   const dateRegRaw = formData.get("date_of_registration") as string;
   const date_of_registration = dateRegRaw || new Date().toISOString();
 
   const groupIdRaw = formData.get("group_id") as string;
   const group_id = groupIdRaw && groupIdRaw !== "" ? groupIdRaw : null;
 
-  // 2. Handle File Uploads
+  // 2. Handle Image Uploads
   const files = formData.getAll("documents");
   const uploadedUrls: string[] = [];
 
@@ -99,26 +94,35 @@ export const createCustomer = async (formData: FormData) => {
       if (fileEntry instanceof File) {
         const file = fileEntry;
 
-        // Create a clean file path: customers/{user_id}/{timestamp}_{safe_filename}
+        // [NEW] Validation: Ensure it's an image
+        if (!file.type.startsWith("image/")) {
+          console.warn(`Skipping non-image file: ${file.name}`);
+          continue;
+        }
+
+        // Create path: customers/{user_id}/{timestamp}_{safe_filename}
         const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
         const filePath = `customers/${user.id}/${Date.now()}_${safeName}`;
 
-        // Upload to Supabase Storage (Bucket: 'documents')
+        // [NEW] Upload to 'customer-documents' bucket
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("documents")
-          .upload(filePath, file);
+          .from("customer-documents") // <--- CHANGED HERE
+          .upload(filePath, file, {
+            cacheControl: "3600",
+            upsert: false,
+          });
 
         if (uploadError) {
           console.error(`Failed to upload ${file.name}:`, uploadError);
-          // Continue with other files even if one fails
           continue;
         }
 
         if (uploadData) {
-          // Get Public URL for the uploaded file
           const {
             data: { publicUrl },
-          } = supabase.storage.from("documents").getPublicUrl(uploadData.path);
+          } = supabase.storage
+            .from("customer-documents") // <--- CHANGED HERE
+            .getPublicUrl(uploadData.path);
 
           uploadedUrls.push(publicUrl);
         }
@@ -126,7 +130,7 @@ export const createCustomer = async (formData: FormData) => {
     }
   }
 
-  // 3. Insert Customer Record into Database
+  // 3. Insert Record (No changes needed to schema, text[] is correct for URLs)
   return await supabase.from("customers").insert({
     full_name,
     phone_number,
@@ -136,8 +140,8 @@ export const createCustomer = async (formData: FormData) => {
     birthdate,
     date_of_registration,
     group_id,
-    documents: uploadedUrls, // Save the array of public URLs
-    store_id: user.user_metadata?.store_id, // Link to the user's store
+    documents: uploadedUrls,
+    store_id: user.user_metadata?.store_id,
   });
 };
 

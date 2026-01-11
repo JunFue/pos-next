@@ -33,14 +33,24 @@ export type CustomerFormValues = z.infer<typeof customerSchema>;
 
 export type Customer = {
   id: string;
+  created_at: string; // timestamp
+  store_id: string;
   full_name: string;
   phone_number: string | null;
-  email: string | null; //
-  address: string | null; //
-  remarks: string | null; //
-  birthdate: string | null; //
-  date_of_registration: string; //
-  documents: string[]; //
+  email: string | null;
+  address: string | null;
+
+  // These were missing or causing issues
+  total_spent: number | null;
+  visit_count: number | null;
+  last_visit_at: string | null;
+  remarks: string | null;
   group_id: string | null;
-  total_spent: number;
+  admin_id: string | null;
+  documents: string[] | null; // Array of strings (URLs)
+  birthdate: string | null;
+  date_of_registration: string | null;
+
+  // Join fields (optional)
+  group?: CustomerGroup;
 };

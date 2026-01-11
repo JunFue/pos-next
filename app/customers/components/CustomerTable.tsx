@@ -28,7 +28,7 @@ export const CustomerTable = () => {
     <div className="bg-gray-800 rounded-2xl border border-gray-700 shadow-xl overflow-hidden flex flex-col h-full"> {/* Added h-full */}
       <div className="overflow-x-auto w-full h-full">
         <table className="w-full text-left min-w-[600px]">
-          <thead className="bg-gray-900/50 text-gray-400 text-xs font-bold uppercase sticky top-0 z-10 backdrop-blur-sm"> {/* Added sticky header */}
+          <thead className="bg-gray-900/50 text-gray-400 text-xs font-bold uppercase sticky top-0 z-10 backdrop-blur-sm">
             <tr>
               <th className="p-5">Name</th>
               <th className="p-5">Contact</th>

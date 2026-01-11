@@ -1,4 +1,3 @@
-import React from "react";
 import { Search, UserPlus } from "lucide-react";
 import { useCustomerStore } from "../store/useCustomerStore";
 import { useCustomerData } from "../hooks/useCustomerData";
