@@ -2,7 +2,7 @@
 
 import FormFields from "./components/FormFields";
 
-import TerminalHeader from "./components/TerminalHeader";
+import TerminalHeader from "./components/terminal-header/TerminalHeader";
 
 import { FormProvider } from "react-hook-form";
 import "react-data-grid/lib/styles.css";
