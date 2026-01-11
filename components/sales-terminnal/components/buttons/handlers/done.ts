@@ -40,7 +40,8 @@ export const handleDone = async (
   data: PosFormValues,
   cartItems: CartItem[],
   cashierId: string,
-  customDate: Date | null // <--- [NEW] Accept the custom date
+  customDate: Date | null, // <--- [NEW] Accept the custom date
+  customerId: string | null
 ): Promise<TransactionResult> => {
   console.log("--- 🛠 [Logic] handleDone started ---");
 
@@ -64,6 +65,7 @@ export const handleDone = async (
       transaction_no: data.transactionNo,
       cashier_name: cashierId,
       transaction_time: transactionTime, // <--- [NEW] Include in payload
+      customer_id: customerId || null,
     };
 
     const itemsPayload = cartItems.map((item) => ({

@@ -15,44 +15,43 @@ export const FormFields = React.memo(
     const { register, control, setValue, setFocus } =
       useFormContext<PosFormValues>();
 
-    
-const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-  if (e.key !== "Enter") return;
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key !== "Enter") return;
 
-  const target = e.target as HTMLInputElement;
-  const fieldId = target.id as keyof PosFormValues;
+      const target = e.target as HTMLInputElement;
+      const fieldId = target.id as keyof PosFormValues;
 
-  // 1. Always prevent default to stop page reloads or double submissions
-  if (fieldId !== "voucher") {
-    e.preventDefault();
-  }
+      // 1. Always prevent default to stop page reloads or double submissions
+      if (fieldId !== "voucher") {
+        e.preventDefault();
+      }
 
-  switch (fieldId) {
-    case "customerName":
-      setFocus("barcode");
-      break;
-    case "barcode":
-      setFocus("quantity");
-      break;
-    case "quantity":
-      setFocus("discount");
-      break;
-    case "discount":
-      onAddToCartClick();
-      setFocus("barcode");
-      break;
-    case "payment":
-      setFocus("voucher");
-      break;
-    case "voucher":
-      // FIX: Explicitly trigger the done action logic
-      e.preventDefault(); // Stop natural form submit
-      onDoneSubmitTrigger(); // Call the parent handler
-      break;
-    default:
-      break;
-  }
-};
+      switch (fieldId) {
+        case "customerName":
+          setFocus("barcode");
+          break;
+        case "barcode":
+          setFocus("quantity");
+          break;
+        case "quantity":
+          setFocus("discount");
+          break;
+        case "discount":
+          onAddToCartClick();
+          setFocus("barcode");
+          break;
+        case "payment":
+          setFocus("voucher");
+          break;
+        case "voucher":
+          // FIX: Explicitly trigger the done action logic
+          e.preventDefault(); // Stop natural form submit
+          onDoneSubmitTrigger(); // Call the parent handler
+          break;
+        default:
+          break;
+      }
+    };
 
     type FieldConfig = {
       title: string;
@@ -122,8 +121,8 @@ const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
 
     return (
-      <div className="flex flex-col justify-center w-full h-full grow p-2">
-        <div className="gap-y-4 gap-x-2 grid grid-cols-6 grid-rows-3 w-full h-auto text-white">
+      <div className="flex flex-col justify-center p-2 w-full h-full grow">
+        <div className="gap-x-2 gap-y-4 grid grid-cols-6 grid-rows-3 w-full h-auto text-white">
           {fields.map((field) => (
             <React.Fragment key={field.id}>
               <label
@@ -158,7 +157,7 @@ const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
                             });
                             setFocus("quantity");
                           }}
-                          className="w-full h-8 sm:h-10 text-sm sm:text-base input-dark px-2"
+                          className="px-2 w-full h-8 sm:h-10 text-sm sm:text-base input-dark"
                         />
                       </div>
                     )}

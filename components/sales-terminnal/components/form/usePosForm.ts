@@ -37,16 +37,22 @@ interface UsePosFormReturn {
   closeSuccessModal: () => void;
   errorMessage: string | null;
   clearErrorMessage: () => void;
+  // [NEW] Export Customer State
+  customerId: string | null;
+  setCustomerId: (id: string | null) => void;
 }
 
 export const usePosForm = (): UsePosFormReturn => {
   const { mutate } = useSWRConfig();
   const { user } = useAuthStore();
-  const { customTransactionDate } = useTransactionStore(); // <--- [NEW] Get Custom Date
+  const { customTransactionDate } = useTransactionStore();
   const { items: allItems } = useItems();
   const { inventory: inventoryData } = useInventory();
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
+  // [NEW] Customer State
+  const [customerId, setCustomerId] = useState<string | null>(null);
+
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [liveTime, setLiveTime] = useState("");
   const [successData, setSuccessData] = useState<TransactionResult | null>(
@@ -130,6 +136,7 @@ export const usePosForm = (): UsePosFormReturn => {
   const onClear = () => {
     console.log("🧹 [Form] onClear triggered");
     handleClear({ setCartItems, reset });
+    setCustomerId(null); // [NEW] Reset customer association
     setTimeout(() => setFocus("customerName"), 50);
   };
 
@@ -142,7 +149,6 @@ export const usePosForm = (): UsePosFormReturn => {
       prevCart.map((item) => {
         if (item.sku === sku) {
           const newItem = { ...item, ...updates };
-          // Recalculate total if price or quantity changes
           if (
             updates.unitPrice !== undefined ||
             updates.quantity !== undefined ||
@@ -162,22 +168,14 @@ export const usePosForm = (): UsePosFormReturn => {
   const onDoneSubmit: SubmitHandler<PosFormValues> = async (data, event) => {
     console.log("📝 [Form] onDoneSubmit triggered", data);
 
-    // Prevent submission on Enter key for non-voucher inputs
     if (event) {
       const activeElement = document.activeElement as HTMLElement;
       if (activeElement && activeElement.tagName === "INPUT") {
         const name = activeElement.getAttribute("name");
-        console.log(`[Form] Submission attempt from input: ${name}`);
-        if (name !== "voucher") {
-          console.log(
-            "[Form] Blocking submission from non-voucher input. Only voucher input can trigger submit via Enter."
-          );
-          return;
-        }
+        if (name !== "voucher") return;
       }
     }
 
-    // 3. VALIDATE USER SESSION
     if (!user || !user.id) {
       setErrorMessage("Session invalid or expired. Please reload/login.");
       return;
@@ -198,14 +196,17 @@ export const usePosForm = (): UsePosFormReturn => {
     setIsSubmitting(true);
 
     try {
-      // 4. [NEW] Pass customTransactionDate to handleDone
+      // [NEW] Pass customerId and customTransactionDate
+      const effectiveDate = customTransactionDate
+        ? new Date(customTransactionDate)
+        : null;
+
       const result = await handleDone(
         data,
         cartItems,
-        user.id, // Ensure user.id is not null or undefined
-        customTransactionDate // This is a string or null
-          ? new Date(customTransactionDate) // Convert to Date object if it's a string
-          : null // Keep null if it's null
+        user.id,
+        effectiveDate,
+        customerId
       );
 
       console.log("📝 [Form] handleDone result:", result);
@@ -233,9 +234,8 @@ export const usePosForm = (): UsePosFormReturn => {
   };
 
   const closeSuccessModal = () => {
-    console.log("❎ [Form] closeSuccessModal triggered");
     setSuccessData(null);
-    onClear(); // Clear form for next customer
+    onClear();
   };
 
   const clearErrorMessage = () => {
@@ -264,5 +264,7 @@ export const usePosForm = (): UsePosFormReturn => {
     closeSuccessModal,
     errorMessage,
     clearErrorMessage,
+    customerId, // [NEW]
+    setCustomerId, // [NEW]
   };
 };

@@ -28,6 +28,7 @@ const SalesTerminal = () => {
     closeSuccessModal,
     errorMessage,
     clearErrorMessage,
+    setCustomerId,
   } = usePosForm();
 
   // 2. Call the hook and pass the onClear function
@@ -37,7 +38,7 @@ const SalesTerminal = () => {
   return (
     <div className="relative flex flex-col p-1 h-full">
       <FormProvider {...methods}>
-        <TerminalHeader liveTime={liveTime} />
+        <TerminalHeader liveTime={liveTime} setCustomerId={setCustomerId} />
 
         <form
           id="sales-form"
