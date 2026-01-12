@@ -1,22 +1,51 @@
-import React from "react";
-import { Folder, FolderPlus, Layers, Trash2, Users } from "lucide-react";
+import React, { useState } from "react";
+import { Folder, FolderPlus, Layers, Trash2, Users, Edit2, Check, X } from "lucide-react";
 import { useCustomerStore } from "../store/useCustomerStore";
 import {
   useCustomerData,
   useCustomerMutations,
 } from "../hooks/useCustomerData";
-import { deleteGroup } from "../api/services";
+import { deleteGroup, renameCustomerGroup } from "../api/services";
 
 export const CustomerSidebar = () => {
-  const { groups } = useCustomerData();
+  const { groups, customers } = useCustomerData();
   const { refreshData } = useCustomerMutations();
   const { selectedGroupId, setSelectedGroupId, openGroupModal } =
     useCustomerStore();
 
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
+
   const handleDelete = async (id: string) => {
+    // Check if group has customers
+    const hasCustomers = customers.some((c) => c.group_id === id);
+    if (hasCustomers) {
+      alert("Cannot delete group. Please remove all customers from this group first.");
+      return;
+    }
+
     if (!confirm("Delete group?")) return;
     await deleteGroup(id);
     refreshData();
+    if (selectedGroupId === id) setSelectedGroupId("all");
+  };
+
+  const startEditing = (id: string, currentName: string) => {
+    setEditingGroupId(id);
+    setEditingName(currentName);
+  };
+
+  const saveEdit = async () => {
+    if (!editingGroupId || !editingName.trim()) return;
+    await renameCustomerGroup(editingGroupId, editingName.trim());
+    refreshData();
+    setEditingGroupId(null);
+    setEditingName("");
+  };
+
+  const cancelEdit = () => {
+    setEditingGroupId(null);
+    setEditingName("");
   };
 
   return (
@@ -61,29 +90,65 @@ export const CustomerSidebar = () => {
         {/* Dynamic Groups */}
         {groups.map((g) => (
           <div key={g.id} className="group relative flex items-center mb-1">
-            <button
-              onClick={() => setSelectedGroupId(g.id)}
-              className={`w-full text-left p-3 rounded-lg flex items-center gap-3 transition-all ${
-                selectedGroupId === g.id
-                  ? "bg-gray-700 text-white border-l-4 border-blue-500"
-                  : "text-gray-400 hover:bg-gray-700/50"
-              }`}
-            >
-              <Folder
-                size={18}
-                className={g.is_shared ? "text-yellow-500" : "text-emerald-500"}
-              />
-              <span className="flex-1 truncate">{g.name}</span>
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDelete(g.id);
-              }}
-              className="right-2 absolute hover:bg-gray-600 opacity-0 group-hover:opacity-100 p-1 rounded text-gray-500 hover:text-red-400 transition"
-            >
-              <Trash2 size={14} />
-            </button>
+            {editingGroupId === g.id ? (
+              <div className="flex items-center gap-2 bg-gray-700 p-2 rounded-lg w-full">
+                <input
+                  autoFocus
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveEdit();
+                    if (e.key === "Escape") cancelEdit();
+                  }}
+                  className="bg-gray-900 px-2 py-1 border border-blue-500 rounded w-full text-sm text-white focus:outline-none"
+                />
+                <button onClick={saveEdit} className="text-green-400 hover:text-green-300">
+                  <Check size={16} />
+                </button>
+                <button onClick={cancelEdit} className="text-red-400 hover:text-red-300">
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => setSelectedGroupId(g.id)}
+                  className={`w-full text-left p-3 rounded-lg flex items-center gap-3 transition-all ${
+                    selectedGroupId === g.id
+                      ? "bg-gray-700 text-white border-l-4 border-blue-500"
+                      : "text-gray-400 hover:bg-gray-700/50"
+                  }`}
+                >
+                  <Folder
+                    size={18}
+                    className={g.is_shared ? "text-yellow-500" : "text-emerald-500"}
+                  />
+                  <span className="flex-1 truncate">{g.name}</span>
+                </button>
+                <div className="right-2 absolute flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      startEditing(g.id, g.name);
+                    }}
+                    className="hover:bg-gray-600 p-1 rounded text-gray-500 hover:text-blue-400 transition"
+                    title="Rename"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(g.id);
+                    }}
+                    className="hover:bg-gray-600 p-1 rounded text-gray-500 hover:text-red-400 transition"
+                    title="Delete"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         ))}
       </div>

@@ -51,6 +51,7 @@ export type Customer = {
   document_metadata: {
     folders: { id: string; name: string; filePaths: string[] }[];
     fileNames?: Record<string, string>;
+    isLocked?: boolean;
   } | null;
   birthdate: string | null;
   date_of_registration: string | null;

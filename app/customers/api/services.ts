@@ -229,3 +229,40 @@ export const deleteCustomerDocument = async (
     console.warn("Could not delete file from storage:", e);
   }
 };
+
+export const renameCustomerGroup = async (groupId: string, name: string) => {
+  return await supabase
+    .from("customer_groups")
+    .update({ name })
+    .eq("id", groupId);
+};
+
+export const deleteCustomer = async (customerId: string) => {
+  return await supabase.from("customers").delete().eq("id", customerId);
+};
+
+export const bulkUpdateCustomerGroup = async (
+  customerIds: string[],
+  groupId: string
+) => {
+  const val = groupId === "ungrouped" ? null : groupId;
+  return await supabase
+    .from("customers")
+    .update({ group_id: val })
+    .in("id", customerIds);
+};
+
+export const toggleCustomerLock = async (
+  customerId: string,
+  isLocked: boolean,
+  currentMetadata: any
+) => {
+  const updatedMetadata = {
+    ...currentMetadata,
+    isLocked,
+  };
+  return await supabase
+    .from("customers")
+    .update({ document_metadata: updatedMetadata })
+    .eq("id", customerId);
+};
