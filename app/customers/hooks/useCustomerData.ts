@@ -1,4 +1,4 @@
-import useSWR, { useSWRConfig } from "swr";
+import useSWR, { useSWRConfig, mutate } from "swr";
 import { fetchCustomerFeatureData } from "../api/services";
 import { useCustomerStore } from "../store/useCustomerStore";
 
@@ -63,6 +63,7 @@ export const useCustomerData = () => {
     isLoading,
     isError: error,
     selectedGroupId,
+    refreshCustomers: () => mutate(SWR_KEY),
   };
 };
 

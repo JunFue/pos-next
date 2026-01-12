@@ -48,6 +48,10 @@ export type Customer = {
   group_id: string | null;
   admin_id: string | null;
   documents: string[] | null; // Array of strings (URLs)
+  document_metadata: {
+    folders: { id: string; name: string; filePaths: string[] }[];
+    fileNames?: Record<string, string>;
+  } | null;
   birthdate: string | null;
   date_of_registration: string | null;
 

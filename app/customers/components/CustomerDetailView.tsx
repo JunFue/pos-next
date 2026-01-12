@@ -14,6 +14,7 @@ import {
   Clock,
 } from "lucide-react";
 import Image from "next/image";
+import { DocumentGallery } from "./DocumentGallery";
 
 import { useViewStore } from "../../../components/window-layouts/store/useViewStore";
 
@@ -52,7 +53,7 @@ export const CustomerDetailView = () => {
           {/* Identity Card */}
           <div className="bg-gray-800 shadow-lg p-6 border border-gray-700 rounded-2xl">
             <div className="flex flex-col items-center text-center">
-              <div className="flex justify-center items-center bg-gradient-to-br from-blue-500 to-purple-600 shadow-inner mb-2 rounded-full w-24 h-24 font-bold text-white text-3xl">
+              <div className="flex justify-center items-center bg-linear-to-br from-blue-500 to-purple-600 shadow-inner mb-2 rounded-full w-24 h-24 font-bold text-white text-3xl">
                 {selectedCustomer.full_name.charAt(0).toUpperCase()}
               </div>
               <p className="font-semibold text-gray-400 text-xs uppercase tracking-widest">
@@ -131,52 +132,8 @@ export const CustomerDetailView = () => {
             </div>
           </div>
 
-          {/* Images Gallery Section */}
-          <div className="bg-gray-800 shadow-lg p-6 border border-gray-700 rounded-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center gap-2">
-                <ImageIcon className="text-gray-400" size={18} />
-                <h3 className="font-bold text-white text-lg">
-                  Attached Images
-                </h3>
-              </div>
-              <span className="text-gray-500 text-xs">
-                {selectedCustomer.documents?.length || 0} Images
-              </span>
-            </div>
-
-            {selectedCustomer.documents &&
-            selectedCustomer.documents.length > 0 ? (
-              <div className="gap-4 grid grid-cols-2 sm:grid-cols-3">
-                {selectedCustomer.documents.map(
-                  (docUrl: string, idx: number) => (
-                    <button
-                      key={idx}
-                      onClick={() => setPreviewImage(docUrl)}
-                      className="group relative bg-gray-900 border border-gray-700/50 hover:border-blue-500/50 rounded-xl aspect-video overflow-hidden transition-all"
-                    >
-                      <Image
-                        src={docUrl}
-                        alt={`Document ${idx + 1}`}
-                        fill
-                        sizes="(max-width: 640px) 50vw, 33vw"
-                        className="opacity-80 group-hover:opacity-100 object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 flex justify-center items-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="bg-black/50 backdrop-blur-sm px-2 py-1 rounded font-medium text-white text-xs">
-                          View Full
-                        </span>
-                      </div>
-                    </button>
-                  )
-                )}
-              </div>
-            ) : (
-              <div className="py-8 border-2 border-gray-700 border-dashed rounded-xl text-gray-500 text-sm text-center">
-                No images uploaded.
-              </div>
-            )}
-          </div>
+          {/* Documents Gallery Section */}
+          <DocumentGallery customer={selectedCustomer} />
 
           {/* Recent Transactions Placeholder */}
           <div className="bg-gray-800 opacity-75 shadow-lg p-6 border border-gray-700 rounded-2xl">

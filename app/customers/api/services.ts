@@ -155,3 +155,77 @@ export const updateCustomerGroup = async (
     .update({ group_id: val })
     .eq("id", customerId);
 };
+
+export const updateCustomer = async (
+  customerId: string,
+  data: Partial<any>
+) => {
+  return await supabase.from("customers").update(data).eq("id", customerId);
+};
+
+export const uploadCustomerDocument = async (
+  customerId: string,
+  file: File
+) => {
+  const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+  const filePath = `customers/${customerId}/${Date.now()}_${safeName}`;
+
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from("customer-documents")
+    .upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: false,
+    });
+
+  if (uploadError) throw uploadError;
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("customer-documents").getPublicUrl(uploadData.path);
+
+  return publicUrl;
+};
+
+export const updateCustomerDocumentMetadata = async (
+  customerId: string,
+  metadata: any
+) => {
+  return await supabase
+    .from("customers")
+    .update({ document_metadata: metadata })
+    .eq("id", customerId);
+};
+
+export const deleteCustomerDocument = async (
+  customerId: string,
+  fileUrl: string
+) => {
+  // 1. Get current documents
+  const { data: customer } = await supabase
+    .from("customers")
+    .select("documents")
+    .eq("id", customerId)
+    .single();
+
+  if (!customer || !customer.documents) return;
+
+  const updatedDocs = customer.documents.filter((doc: string) => doc !== fileUrl);
+
+  // 2. Update documents array
+  await supabase
+    .from("customers")
+    .update({ documents: updatedDocs })
+    .eq("id", customerId);
+
+  // 3. Optional: Delete from storage (if we can parse the path)
+  // URL format: .../customer-documents/customers/user_id/timestamp_filename
+  try {
+    const urlObj = new URL(fileUrl);
+    const path = urlObj.pathname.split("/customer-documents/")[1];
+    if (path) {
+      await supabase.storage.from("customer-documents").remove([path]);
+    }
+  } catch (e) {
+    console.warn("Could not delete file from storage:", e);
+  }
+};
