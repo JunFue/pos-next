@@ -1,23 +1,4 @@
 import { useState } from "react";
-import {
-  User,
-  Upload,
-  X,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-  FileText,
-  Loader2,
-  CheckCircle2,
-  Users,
-  Heart,
-  Scan,
-  Cpu,
-  AlertCircle,
-  Camera,
-  Sparkles,
-} from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import imageCompression from "browser-image-compression";
@@ -28,6 +9,13 @@ import {
 } from "../../hooks/useCustomerData";
 import { createCustomer } from "../../api/services";
 import { CustomerFormValues, customerSchema } from "../../lib/types";
+
+// Sub-components
+import { ViewSwitcher } from "./register-customer/ViewSwitcher";
+import { ManualForm } from "./register-customer/ManualForm";
+import { AiScanView } from "./register-customer/AiScanView";
+import { DocumentUpload } from "./register-customer/DocumentUpload";
+import { FormFooter } from "./register-customer/FormFooter";
 
 interface RegisterCustomerFormProps {
   onSuccess: () => void;
@@ -64,8 +52,8 @@ export const RegisterCustomerForm = ({
       group_id: "",
       birthdate: "",
       date_of_registration: new Date().toISOString().split("T")[0],
-      civil_status: "",
-      gender: "",
+      civil_status: "" as any,
+      gender: "" as any,
     },
   });
 
@@ -199,31 +187,7 @@ export const RegisterCustomerForm = ({
   return (
     <>
       <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
-        {/* View Switcher */}
-        <div className="flex bg-slate-950/50 mb-6 p-1 border border-slate-800 rounded-xl">
-          <button
-            onClick={() => setView("manual")}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
-              view === "manual"
-                ? "bg-slate-800 text-white shadow-lg"
-                : "text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <User className="w-4 h-4" />
-            Manual Input
-          </button>
-          <button
-            onClick={() => setView("ai-scan")}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
-              view === "ai-scan"
-                ? "bg-cyan-600 text-white shadow-lg"
-                : "text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <Scan className="w-4 h-4" />
-            AI Scan Auto Fill
-          </button>
-        </div>
+        <ViewSwitcher view={view} setView={setView} />
 
         {view === "manual" ? (
           <form
@@ -231,325 +195,33 @@ export const RegisterCustomerForm = ({
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-6"
           >
-          {/* ROW 1: Name & Phone */}
-          <div className="gap-4 grid md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 font-medium text-slate-300 text-sm">
-                <User className="w-4 h-4 text-cyan-400" /> Full Name
-              </label>
-              <input
-                {...register("full_name")}
-                className="bg-slate-950/50 focus:bg-slate-950 px-4 py-3 border border-slate-800 focus:border-cyan-500/50 rounded-xl focus:outline-none w-full text-white placeholder:text-slate-600 transition-all"
-                placeholder="e.g. Juan Dela Cruz"
-              />
-              {errors.full_name && (
-                <p className="text-red-400 text-xs">
-                  {errors.full_name.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 font-medium text-slate-300 text-sm">
-                <Phone className="w-4 h-4 text-cyan-400" /> Phone Number
-              </label>
-              <input
-                {...register("phone_number")}
-                className="bg-slate-950/50 focus:bg-slate-950 px-4 py-3 border border-slate-800 focus:border-cyan-500/50 rounded-xl focus:outline-none w-full text-white placeholder:text-slate-600 transition-all"
-                placeholder="0912 345 6789"
-              />
-            </div>
-          </div>
-
-          {/* ROW 2: Email & Group */}
-          <div className="gap-4 grid md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 font-medium text-slate-300 text-sm">
-                <Mail className="w-4 h-4 text-cyan-400" /> Email Address
-              </label>
-              <input
-                type="email"
-                {...register("email")}
-                className="bg-slate-950/50 focus:bg-slate-950 px-4 py-3 border border-slate-800 focus:border-cyan-500/50 rounded-xl focus:outline-none w-full text-white placeholder:text-slate-600 transition-all"
-                placeholder="juan@example.com"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 font-medium text-slate-300 text-sm">
-                <Users className="w-4 h-4 text-cyan-400" /> Customer Group
-              </label>
-              <select
-                {...register("group_id")}
-                className="bg-slate-950/50 focus:bg-slate-950 px-4 py-3 border border-slate-800 focus:border-cyan-500/50 rounded-xl focus:outline-none w-full text-white placeholder:text-slate-600 transition-all appearance-none"
-              >
-                <option value="">Select Group (Optional)</option>
-                {groups.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* ROW 3: Address */}
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 font-medium text-slate-300 text-sm">
-              <MapPin className="w-4 h-4 text-cyan-400" /> Complete Address
-            </label>
-            <input
-              {...register("address")}
-              className="bg-slate-950/50 focus:bg-slate-950 px-4 py-3 border border-slate-800 focus:border-cyan-500/50 rounded-xl focus:outline-none w-full text-white placeholder:text-slate-600 transition-all"
-              placeholder="House No, Street, Barangay, City"
+            <ManualForm 
+              register={register} 
+              errors={errors} 
+              groups={groups} 
             />
-          </div>
-
-          {/* ROW 4: Dates */}
-          <div className="gap-4 grid md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 font-medium text-slate-300 text-sm">
-                <Calendar className="w-4 h-4 text-cyan-400" /> Birthdate
-              </label>
-              <input
-                type="date"
-                {...register("birthdate")}
-                className="bg-slate-950/50 focus:bg-slate-950 px-4 py-3 border border-slate-800 focus:border-cyan-500/50 rounded-xl focus:outline-none w-full text-white placeholder:text-slate-600 transition-all scheme-dark"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 font-medium text-slate-300 text-sm">
-                <Calendar className="w-4 h-4 text-cyan-400" /> Registration
-                Date
-              </label>
-              <input
-                type="date"
-                {...register("date_of_registration")}
-                className="bg-slate-950/50 focus:bg-slate-950 px-4 py-3 border border-slate-800 focus:border-cyan-500/50 rounded-xl focus:outline-none w-full text-white placeholder:text-slate-600 transition-all scheme-dark"
-              />
-            </div>
-          </div>
-
-          {/* ROW 5: Civil Status & Gender */}
-          <div className="gap-4 grid md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 font-medium text-slate-300 text-sm">
-                <Heart className="w-4 h-4 text-cyan-400" /> Civil Status
-              </label>
-              <select
-                {...register("civil_status")}
-                className="bg-slate-950/50 focus:bg-slate-950 px-4 py-3 border border-slate-800 focus:border-cyan-500/50 rounded-xl focus:outline-none w-full text-white placeholder:text-slate-600 transition-all appearance-none"
-              >
-                <option value="">Select Status (Optional)</option>
-                <option value="Single">Single</option>
-                <option value="Married">Married</option>
-                <option value="Widowed">Widowed</option>
-                <option value="Divorced">Divorced</option>
-                <option value="Separated">Separated</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 font-medium text-slate-300 text-sm">
-                <User className="w-4 h-4 text-cyan-400" /> Gender
-              </label>
-              <select
-                {...register("gender")}
-                className="bg-slate-950/50 focus:bg-slate-950 px-4 py-3 border border-slate-800 focus:border-cyan-500/50 rounded-xl focus:outline-none w-full text-white placeholder:text-slate-600 transition-all appearance-none"
-              >
-                <option value="">Select Gender (Optional)</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Not Specified">Not Specified</option>
-              </select>
-            </div>
-          </div>
-
-          {/* ROW 5: Remarks */}
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 font-medium text-slate-300 text-sm">
-              <FileText className="w-4 h-4 text-cyan-400" /> Remarks / Notes
-            </label>
-            <textarea
-              {...register("remarks")}
-              rows={2}
-              className="bg-slate-950/50 focus:bg-slate-950 px-4 py-3 border border-slate-800 focus:border-cyan-500/50 rounded-xl focus:outline-none w-full text-white placeholder:text-slate-600 transition-all resize-none"
-              placeholder="Any additional info..."
+            
+            <DocumentUpload 
+              isCompressing={isCompressing}
+              compressedFiles={compressedFiles}
+              handleImageUpload={handleImageUpload}
+              removeFile={removeFile}
             />
-          </div>
-
-          {/* ROW 6: DOCUMENT UPLOAD (Auto-Compress) */}
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 font-medium text-slate-300 text-sm">
-              <Upload className="w-4 h-4 text-cyan-400" /> Documents / ID
-            </label>
-
-            <div className="group relative">
-              <div
-                className={`flex flex-col justify-center items-center border-2 border-dashed ${
-                  isCompressing
-                    ? "border-cyan-500/50 bg-cyan-500/5 cursor-wait"
-                    : "border-slate-700 hover:border-cyan-500/50 hover:bg-slate-800/50 cursor-pointer"
-                } rounded-xl h-32 transition-all`}
-              >
-                {isCompressing ? (
-                  <div className="flex flex-col items-center animate-pulse">
-                    <Loader2 className="mb-2 w-8 h-8 text-cyan-400 animate-spin" />
-                    <p className="font-medium text-cyan-400 text-sm">
-                      Compressing & Optimizing...
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="bg-slate-800 mb-2 p-3 rounded-full text-cyan-400 group-hover:scale-110 transition-transform">
-                      <Upload className="w-6 h-6" />
-                    </div>
-                    <p className="font-medium text-slate-300 text-sm">
-                      Click to upload documents
-                    </p>
-                    <p className="text-slate-500 text-xs">
-                      Images are auto-compressed (Max 200kb)
-                    </p>
-                  </>
-                )}
-              </div>
-              <input
-                type="file"
-                multiple
-                disabled={isCompressing}
-                onChange={handleImageUpload}
-                className="absolute inset-0 opacity-0"
-                accept="image/*,application/pdf"
-              />
-            </div>
-
-            {/* Uploaded Files Preview List */}
-            {compressedFiles.length > 0 && (
-              <div className="gap-2 grid grid-cols-1 sm:grid-cols-2 mt-2">
-                {compressedFiles.map((file, idx) => (
-                  <div
-                    key={idx}
-                    className="slide-in-from-bottom-2 flex justify-between items-center bg-slate-800/50 px-3 py-2 border border-slate-700 rounded-lg animate-in fade-in"
-                  >
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                      <div className="flex flex-col overflow-hidden">
-                        <span className="font-medium text-slate-300 text-xs truncate">
-                          {file.name}
-                        </span>
-                        <span className="text-[10px] text-slate-500">
-                          {(file.size / 1024).toFixed(0)} KB
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeFile(idx)}
-                      className="hover:bg-red-500/20 p-1 rounded text-slate-500 hover:text-red-400 transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            </div>
           </form>
         ) : (
-          <div className="flex flex-col items-center justify-center py-8 space-y-8 animate-in fade-in slide-in-from-bottom-4">
-            <div className="text-center space-y-2">
-              <div className="inline-flex p-4 bg-cyan-500/10 rounded-full mb-2">
-                <Sparkles className="w-10 h-10 text-cyan-400" />
-              </div>
-              <h3 className="text-xl font-bold text-white">AI Document Scanner</h3>
-              <p className="text-slate-400 text-sm max-w-sm mx-auto">
-                Use Gemini AI to automatically extract information from ID cards or registration documents.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 w-full max-w-md">
-              <div className="relative group">
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={handleAiScan}
-                  disabled={isAiProcessing}
-                  className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                />
-                <div className={`flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-2xl transition-all ${
-                  isAiProcessing 
-                    ? "border-cyan-500 bg-cyan-500/5" 
-                    : "border-slate-700 group-hover:border-cyan-500/50 group-hover:bg-slate-800/50"
-                }`}>
-                  {isAiProcessing ? (
-                    <div className="flex flex-col items-center space-y-4">
-                      <div className="relative">
-                        <Loader2 className="w-12 h-12 text-cyan-400 animate-spin" />
-                        <Cpu className="w-6 h-6 text-cyan-400 absolute inset-0 m-auto animate-pulse" />
-                      </div>
-                      <div className="text-center">
-                        <p className="font-bold text-cyan-400">AI is Analyzing...</p>
-                        <p className="text-xs text-slate-500">Extracting data using Gemini 1.5 Pro</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="bg-cyan-500/20 p-4 rounded-full mb-4 group-hover:scale-110 transition-transform">
-                        <Camera className="w-8 h-8 text-cyan-400" />
-                      </div>
-                      <p className="font-bold text-white">Open Camera</p>
-                      <p className="text-xs text-slate-500 mt-1">Capture document to auto-fill</p>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="text-xs font-bold text-amber-400 uppercase tracking-wider">Important Note</p>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    Please review all autofilled information for accuracy before submitting. AI may occasionally misread handwritten or blurry text.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4 flex flex-col items-center">
-              <div className="flex items-center gap-2 text-slate-500 text-xs">
-                <Cpu className="w-3 h-3" />
-                <span>Powered by Gemini 1.5 Pro AI Vision</span>
-              </div>
-            </div>
-          </div>
+          <AiScanView 
+            isAiProcessing={isAiProcessing} 
+            handleAiScan={handleAiScan} 
+          />
         )}
       </div>
 
-      {/* Footer Actions */}
-      <div className="p-6 border-slate-800 border-t">
-        <div className="flex gap-4">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl font-bold text-slate-200 transition-all"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            form="customer-form"
-            disabled={loading || isCompressing}
-            className="flex flex-1 justify-center items-center gap-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 shadow-cyan-900/20 shadow-lg py-3 rounded-xl font-bold text-white transition-all disabled:cursor-not-allowed"
-          >
-            {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              "Register Customer"
-            )}
-          </button>
-        </div>
-      </div>
+      <FormFooter 
+        onCancel={onCancel} 
+        loading={loading} 
+        isCompressing={isCompressing} 
+      />
     </>
   );
 };
+

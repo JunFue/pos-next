@@ -80,7 +80,7 @@ export function SplitScreenControls({
   // --- DESKTOP LAYOUT ---
   // Centered, pill-shaped, reveals on hover
   return (
-    <div className="group bottom-0 left-1/2 z-10 absolute flex justify-center items-center w-72 h-20 -translate-x-1/2 will-change-transform">
+    <div className="group bottom-0 left-1/2 z-100 absolute flex justify-center items-center w-72 h-20 -translate-x-1/2 will-change-transform">
       <div
         className={`
           transition-opacity duration-300 ease-in-out

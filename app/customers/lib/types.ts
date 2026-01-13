@@ -23,11 +23,15 @@ export const customerSchema = z.object({
   email: z.string().email("Invalid email address").optional().or(z.literal("")),
   address: z.string().optional().or(z.literal("")),
   remarks: z.string().optional().or(z.literal("")),
-  group_id: z.string().optional().or(z.literal("")),
-  birthdate: z.string().optional().or(z.literal("")),
+  group_id: z.string().min(1, "Customer group is required"),
+  birthdate: z.string().min(1, "Birthdate is required"),
   date_of_registration: z.string().min(1, "Registration date is required"),
-  civil_status: z.enum(["Single", "Married", "Widowed", "Divorced", "Separated"]).optional().or(z.literal("")),
-  gender: z.enum(["Male", "Female", "Not Specified"]).optional().or(z.literal("")),
+  civil_status: z.enum(["Single", "Married", "Widowed", "Divorced", "Separated"] as const, {
+    message: "Civil status is required",
+  }),
+  gender: z.enum(["Male", "Female", "Not Specified"] as const, {
+    message: "Gender is required",
+  }),
 });
 
 // Derive the type from the schema
