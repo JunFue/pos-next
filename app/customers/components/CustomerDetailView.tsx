@@ -12,6 +12,8 @@ import {
   ImageIcon,
   X,
   Clock,
+  Heart,
+  User,
 } from "lucide-react";
 import Image from "next/image";
 import { DocumentGallery } from "./DocumentGallery";
@@ -81,6 +83,16 @@ export const CustomerDetailView = () => {
                 icon={Calendar}
                 label="Birthday"
                 value={formatDate(selectedCustomer.birthdate)}
+              />
+              <InfoRow
+                icon={Heart}
+                label="Civil Status"
+                value={selectedCustomer.civil_status}
+              />
+              <InfoRow
+                icon={User}
+                label="Gender"
+                value={selectedCustomer.gender}
               />
             </div>
           </div>

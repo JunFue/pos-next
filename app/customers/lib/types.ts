@@ -26,6 +26,8 @@ export const customerSchema = z.object({
   group_id: z.string().optional().or(z.literal("")),
   birthdate: z.string().optional().or(z.literal("")),
   date_of_registration: z.string().min(1, "Registration date is required"),
+  civil_status: z.enum(["Single", "Married", "Widowed", "Divorced", "Separated"]).optional().or(z.literal("")),
+  gender: z.enum(["Male", "Female", "Not Specified"]).optional().or(z.literal("")),
 });
 
 // Derive the type from the schema
@@ -55,6 +57,8 @@ export type Customer = {
   } | null;
   birthdate: string | null;
   date_of_registration: string | null;
+  civil_status: "Single" | "Married" | "Widowed" | "Divorced" | "Separated" | null;
+  gender: "Male" | "Female" | "Not Specified" | null;
 
   // Join fields (optional)
   group?: CustomerGroup;

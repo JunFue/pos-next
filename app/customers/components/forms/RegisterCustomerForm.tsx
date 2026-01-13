@@ -11,6 +11,7 @@ import {
   Loader2,
   CheckCircle2,
   Users,
+  Heart,
 } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -55,6 +56,8 @@ export const RegisterCustomerForm = ({
       group_id: "",
       birthdate: "",
       date_of_registration: new Date().toISOString().split("T")[0],
+      civil_status: "",
+      gender: "",
     },
   });
 
@@ -245,6 +248,41 @@ export const RegisterCustomerForm = ({
                 {...register("date_of_registration")}
                 className="bg-slate-950/50 focus:bg-slate-950 px-4 py-3 border border-slate-800 focus:border-cyan-500/50 rounded-xl focus:outline-none w-full text-white placeholder:text-slate-600 transition-all scheme-dark"
               />
+            </div>
+          </div>
+
+          {/* ROW 5: Civil Status & Gender */}
+          <div className="gap-4 grid md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 font-medium text-slate-300 text-sm">
+                <Heart className="w-4 h-4 text-cyan-400" /> Civil Status
+              </label>
+              <select
+                {...register("civil_status")}
+                className="bg-slate-950/50 focus:bg-slate-950 px-4 py-3 border border-slate-800 focus:border-cyan-500/50 rounded-xl focus:outline-none w-full text-white placeholder:text-slate-600 transition-all appearance-none"
+              >
+                <option value="">Select Status (Optional)</option>
+                <option value="Single">Single</option>
+                <option value="Married">Married</option>
+                <option value="Widowed">Widowed</option>
+                <option value="Divorced">Divorced</option>
+                <option value="Separated">Separated</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 font-medium text-slate-300 text-sm">
+                <User className="w-4 h-4 text-cyan-400" /> Gender
+              </label>
+              <select
+                {...register("gender")}
+                className="bg-slate-950/50 focus:bg-slate-950 px-4 py-3 border border-slate-800 focus:border-cyan-500/50 rounded-xl focus:outline-none w-full text-white placeholder:text-slate-600 transition-all appearance-none"
+              >
+                <option value="">Select Gender (Optional)</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Not Specified">Not Specified</option>
+              </select>
             </div>
           </div>
 

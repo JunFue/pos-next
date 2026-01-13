@@ -101,6 +101,9 @@ export const createCustomer = async (formData: FormData) => {
   const groupIdRaw = formData.get("group_id") as string;
   const group_id = groupIdRaw && groupIdRaw !== "" ? groupIdRaw : null;
 
+  const civil_status = (formData.get("civil_status") as string) || null;
+  const gender = (formData.get("gender") as string) || null;
+
   // 2. Handle Image Uploads
   const files = formData.getAll("documents");
   const uploadedUrls: string[] = [];
@@ -156,6 +159,8 @@ export const createCustomer = async (formData: FormData) => {
     birthdate,
     date_of_registration,
     group_id,
+    civil_status,
+    gender,
     documents: uploadedUrls,
     store_id: user.user_metadata?.store_id,
   });
