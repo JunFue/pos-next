@@ -17,9 +17,7 @@ export const useItems = () => {
     isLoading,
     error,
   } = useSWR<Item[]>("items", async () => {
-    console.log("Fetching items...");
     const data = await fetchItems();
-    console.log("Fetched items:", data);
     return data;
   });
 

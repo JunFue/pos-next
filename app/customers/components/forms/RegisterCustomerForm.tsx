@@ -12,6 +12,11 @@ import {
   CheckCircle2,
   Users,
   Heart,
+  Scan,
+  Cpu,
+  AlertCircle,
+  Camera,
+  Sparkles,
 } from "lucide-react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,11 +44,14 @@ export const RegisterCustomerForm = ({
   const [loading, setLoading] = useState(false);
   const [compressedFiles, setCompressedFiles] = useState<File[]>([]);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [view, setView] = useState<"manual" | "ai-scan">("manual");
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
@@ -116,6 +124,50 @@ export const RegisterCustomerForm = ({
       prev.filter((_, index) => index !== indexToRemove)
     );
   };
+  
+  const handleAiScan = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsAiProcessing(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const response = await fetch("/api/ai/extract-customer", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("AI extraction failed");
+      }
+
+      const data = await response.json();
+
+      // Auto-fill form fields
+      if (data.full_name) setValue("full_name", data.full_name);
+      if (data.phone_number) setValue("phone_number", data.phone_number);
+      if (data.email) setValue("email", data.email);
+      if (data.address) setValue("address", data.address);
+      if (data.birthdate) setValue("birthdate", data.birthdate);
+      if (data.civil_status) setValue("civil_status", data.civil_status);
+      if (data.gender) setValue("gender", data.gender);
+      if (data.remarks) setValue("remarks", data.remarks);
+
+      // Add the scanned document to the compressed files list
+      setCompressedFiles((prev) => [...prev, file]);
+
+      // Switch back to manual view for review
+      setView("manual");
+    } catch (error) {
+      console.error("AI Scan Error:", error);
+      alert("Failed to extract information from the document. Please try again or enter manually.");
+    } finally {
+      setIsAiProcessing(false);
+      event.target.value = "";
+    }
+  };
 
   const onSubmit: SubmitHandler<CustomerFormValues> = async (data) => {
     setLoading(true);
@@ -147,11 +199,38 @@ export const RegisterCustomerForm = ({
   return (
     <>
       <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
-        <form
-          id="customer-form"
-          onSubmit={handleSubmit(onSubmit)}
-          className="space-y-6"
-        >
+        {/* View Switcher */}
+        <div className="flex bg-slate-950/50 mb-6 p-1 border border-slate-800 rounded-xl">
+          <button
+            onClick={() => setView("manual")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
+              view === "manual"
+                ? "bg-slate-800 text-white shadow-lg"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <User className="w-4 h-4" />
+            Manual Input
+          </button>
+          <button
+            onClick={() => setView("ai-scan")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
+              view === "ai-scan"
+                ? "bg-cyan-600 text-white shadow-lg"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <Scan className="w-4 h-4" />
+            AI Scan Auto Fill
+          </button>
+        </div>
+
+        {view === "manual" ? (
+          <form
+            id="customer-form"
+            onSubmit={handleSubmit(onSubmit)}
+            className="space-y-6"
+          >
           {/* ROW 1: Name & Phone */}
           <div className="gap-4 grid md:grid-cols-2">
             <div className="space-y-2">
@@ -374,8 +453,77 @@ export const RegisterCustomerForm = ({
                 ))}
               </div>
             )}
+            </div>
+          </form>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-8 space-y-8 animate-in fade-in slide-in-from-bottom-4">
+            <div className="text-center space-y-2">
+              <div className="inline-flex p-4 bg-cyan-500/10 rounded-full mb-2">
+                <Sparkles className="w-10 h-10 text-cyan-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white">AI Document Scanner</h3>
+              <p className="text-slate-400 text-sm max-w-sm mx-auto">
+                Use Gemini AI to automatically extract information from ID cards or registration documents.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 w-full max-w-md">
+              <div className="relative group">
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleAiScan}
+                  disabled={isAiProcessing}
+                  className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                />
+                <div className={`flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-2xl transition-all ${
+                  isAiProcessing 
+                    ? "border-cyan-500 bg-cyan-500/5" 
+                    : "border-slate-700 group-hover:border-cyan-500/50 group-hover:bg-slate-800/50"
+                }`}>
+                  {isAiProcessing ? (
+                    <div className="flex flex-col items-center space-y-4">
+                      <div className="relative">
+                        <Loader2 className="w-12 h-12 text-cyan-400 animate-spin" />
+                        <Cpu className="w-6 h-6 text-cyan-400 absolute inset-0 m-auto animate-pulse" />
+                      </div>
+                      <div className="text-center">
+                        <p className="font-bold text-cyan-400">AI is Analyzing...</p>
+                        <p className="text-xs text-slate-500">Extracting data using Gemini 1.5 Pro</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="bg-cyan-500/20 p-4 rounded-full mb-4 group-hover:scale-110 transition-transform">
+                        <Camera className="w-8 h-8 text-cyan-400" />
+                      </div>
+                      <p className="font-bold text-white">Open Camera</p>
+                      <p className="text-xs text-slate-500 mt-1">Capture document to auto-fill</p>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-amber-400 uppercase tracking-wider">Important Note</p>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Please review all autofilled information for accuracy before submitting. AI may occasionally misread handwritten or blurry text.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 flex flex-col items-center">
+              <div className="flex items-center gap-2 text-slate-500 text-xs">
+                <Cpu className="w-3 h-3" />
+                <span>Powered by Gemini 1.5 Pro AI Vision</span>
+              </div>
+            </div>
           </div>
-        </form>
+        )}
       </div>
 
       {/* Footer Actions */}
