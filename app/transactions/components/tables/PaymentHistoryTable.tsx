@@ -4,7 +4,7 @@ import React from "react";
 import { Loader2, AlertCircle, XCircle } from "lucide-react";
 import { usePaymentData } from "../../hooks/usePaymentData"; // New Import
 import { ItemTablePagination } from "@/components/reusables/ItemTablePagination";
-import { DateRangeFilter } from "@/components/reusables/DateRangeFilter";
+import { DateColumnFilter } from "@/app/expenses/components/cashout/components/DateColumnFilter";
 import { HeaderWithFilter } from "@/components/reusables/HeaderWithFilter";
 
 export const PaymentHistoryTable = () => {
@@ -37,13 +37,8 @@ export const PaymentHistoryTable = () => {
     setCurrentPage(1); // Reset to first page
   };
 
-  const handleDateChange = (key: "startDate" | "endDate", value: string) => {
-    setFilters({ ...filters, [key]: value });
-    setCurrentPage(1);
-  };
-
-  const handleClearDates = () => {
-    setFilters({ ...filters, startDate: "", endDate: "" });
+  const handleDateChange = (start: string, end: string) => {
+    setFilters({ ...filters, startDate: start, endDate: end });
     setCurrentPage(1);
   };
 
@@ -83,12 +78,11 @@ export const PaymentHistoryTable = () => {
     <div className="flex flex-col rounded-lg h-full overflow-hidden glass-effect">
       {/* --- Filters Toolbar --- */}
       <div className="flex justify-between items-center bg-slate-800/30 p-4 border-slate-700 border-b">
-        <DateRangeFilter
+        <DateColumnFilter
           startDate={filters.startDate || ""}
           endDate={filters.endDate || ""}
-          onStartDateChange={(val) => handleDateChange("startDate", val)}
-          onEndDateChange={(val) => handleDateChange("endDate", val)}
-          onClear={handleClearDates}
+          onDateChange={handleDateChange}
+          align="start"
         />
         
         {hasActiveFilters && (

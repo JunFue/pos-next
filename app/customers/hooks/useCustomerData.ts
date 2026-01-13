@@ -1,11 +1,27 @@
 import useSWR, { useSWRConfig, mutate } from "swr";
 import { fetchCustomerFeatureData } from "../api/services";
 import { useCustomerStore } from "../store/useCustomerStore";
+import { useState } from "react";
 
-const SWR_KEY = "customer-feature-data";
+const SWR_KEY_PREFIX = "customer-feature-data";
+
+// Helper to format date as YYYY-MM-DD
+const formatDate = (date: Date) => date.toISOString().split("T")[0];
+
+// Get today's date as default
+const getTodayDate = () => formatDate(new Date());
 
 export const useCustomerData = () => {
-  const { data, error, isLoading } = useSWR(SWR_KEY, fetchCustomerFeatureData);
+  // Date filter state - default to today's date
+  const [startDate, setStartDate] = useState<string>(getTodayDate());
+  const [endDate, setEndDate] = useState<string>(getTodayDate());
+
+  // Generate SWR key with date parameters to trigger refetch when dates change
+  const swrKey = `${SWR_KEY_PREFIX}-${startDate}-${endDate}`;
+
+  const { data, error, isLoading } = useSWR(swrKey, () =>
+    fetchCustomerFeatureData(startDate, endDate)
+  );
 
   const { searchTerm, selectedGroupId, selectedCustomerId } = useCustomerStore();
 
@@ -49,6 +65,12 @@ export const useCustomerData = () => {
     ? groups.find(g => g.id === selectedCustomer.group_id)?.name 
     : "Ungrouped";
 
+  // Date change handler
+  const handleDateChange = (start: string, end: string) => {
+    setStartDate(start);
+    setEndDate(end);
+  };
+
   return {
     groups,
     customers: filteredCustomers,
@@ -60,10 +82,15 @@ export const useCustomerData = () => {
     selectedCustomer,
     selectedCustomerGroupName,
     
+    // Date filter state and handlers
+    startDate,
+    endDate,
+    handleDateChange,
+    
     isLoading,
     isError: error,
     selectedGroupId,
-    refreshCustomers: () => mutate(SWR_KEY),
+    refreshCustomers: () => mutate(swrKey),
   };
 };
 
@@ -71,7 +98,9 @@ export const useCustomerData = () => {
 export const useCustomerMutations = () => {
   const { mutate } = useSWRConfig();
 
-  const refreshData = () => mutate(SWR_KEY);
+  const refreshData = () => mutate((key) =>
+    typeof key === 'string' && key.startsWith(SWR_KEY_PREFIX)
+  );
 
   return { refreshData };
 };

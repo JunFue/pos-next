@@ -2,8 +2,28 @@ import { createClient } from "@/utils/supabase/client";
 
 const supabase = createClient();
 
-export const fetchCustomerFeatureData = async () => {
+export const fetchCustomerFeatureData = async (
+  startDate?: string,
+  endDate?: string
+) => {
   const supabase = createClient();
+
+  // Build the guest transactions query with optional date filters
+  let guestQuery = supabase
+    .from("view_guest_transactions")
+    .select("*")
+    .order("transaction_time", { ascending: false });
+
+  // Apply date filters if provided
+  if (startDate) {
+    guestQuery = guestQuery.gte("transaction_time", startDate);
+  }
+  if (endDate) {
+    // Add one day to include the full end date
+    const endDateTime = new Date(endDate);
+    endDateTime.setDate(endDateTime.getDate() + 1);
+    guestQuery = guestQuery.lt("transaction_time", endDateTime.toISOString());
+  }
 
   const [groupsRes, customersRes, guestRes] = await Promise.all([
     supabase.from("customer_groups").select("*").order("name"),
@@ -11,17 +31,13 @@ export const fetchCustomerFeatureData = async () => {
       .from("customers")
       .select("*, group:customer_groups(*)")
       .order("created_at", { ascending: false }),
-    // [NEW] Fetch Guest Transactions
-    supabase
-      .from("view_guest_transactions")
-      .select("*")
-      .order("transaction_time", { ascending: false }),
+    guestQuery,
   ]);
 
   return {
     groups: groupsRes.data || [],
     customers: customersRes.data || [],
-    guestTransactions: guestRes.data || [], // [NEW] Return the data
+    guestTransactions: guestRes.data || [],
   };
 };
 
