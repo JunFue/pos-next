@@ -1,9 +1,4 @@
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Site Under Maintenance",
-  description: "We are currently performing scheduled maintenance. Please check back soon.",
-};
+"use client";
 
 export default function MaintenancePage() {
   return (
