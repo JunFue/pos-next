@@ -1,6 +1,6 @@
 import useSWR from "swr";
 import { useMemo } from "react";
-import { fetchFinancialReport } from "../lib/dashboard.api"; // Switch to this function
+import { fetchFinancialReport } from "../lib/dashboard.api";
 import { CashFlowEntry } from "../lib/types";
 import dayjs from "dayjs";
 

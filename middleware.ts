@@ -2,6 +2,37 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(request: NextRequest) {
+  // ============================================
+  // MAINTENANCE MODE GUARD
+  // ============================================
+  const isMaintenanceMode = process.env.MAINTENANCE_MODE === "true";
+  const isMaintenancePage = request.nextUrl.pathname === "/maintenance";
+  const hasAdminCookie = request.cookies.get("admin")?.value === "true";
+
+  // If maintenance mode is enabled
+  if (isMaintenanceMode) {
+    // Allow access to the maintenance page itself (to avoid redirect loops)
+    if (isMaintenancePage) {
+      return NextResponse.next();
+    }
+
+    // Allow admins with the special cookie to bypass maintenance
+    if (hasAdminCookie) {
+      // Continue to normal middleware flow
+    } else {
+      // Redirect all other traffic to the maintenance page
+      return NextResponse.redirect(new URL("/maintenance", request.url));
+    }
+  } else {
+    // If maintenance mode is OFF, redirect away from maintenance page
+    if (isMaintenancePage) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
+
+  // ============================================
+  // NORMAL MIDDLEWARE FLOW
+  // ============================================
   let response = NextResponse.next({
     request: {
       headers: request.headers,
