@@ -1,11 +1,14 @@
 import { PosFormValues } from "@/components/sales-terminnal/utils/posSchema";
 import { CartItem } from "../../TerminalCart";
 
-// 1. Define the inferred structure of the Server Action response
+// 1. Define the structure of the Server Action response
 interface TransactionActionResponse {
   success: boolean;
   error?: string;
-  data?: unknown; // Optional: in case you return the inserted row later
+  data?: {
+    invoice_no: string;
+    payment_id: string;
+  };
 }
 
 export type TransactionResult = {
@@ -56,15 +59,15 @@ export const handleDone = async (
     const transactionTime = customDate ? customDate.toISOString() : null;
 
     const headerPayload = {
-      invoice_no: data.transactionNo,
+      // invoice_no is NOT sent - backend generates it
+      // transaction_no is NOT sent - backend may handle it
       customer_name: data.customerName,
       amount_rendered: data.payment || 0,
       voucher: data.voucher || 0,
       grand_total: data.grandTotal,
       change: data.change,
-      transaction_no: data.transactionNo,
       cashier_name: cashierId,
-      transaction_time: transactionTime, // <--- [NEW] Include in payload
+      transaction_time: transactionTime,
       customer_id: customerId || null,
     };
 
@@ -115,7 +118,10 @@ export const handleDone = async (
       }
     }
 
-    console.log("✅ [Logic] RPC Success! Transaction Saved.");
+    console.log("✅ [Logic] Transaction Saved Successfully!");
+
+    // Extract invoice_no from backend response
+    const invoiceNo = rpcResult?.data?.invoice_no || "UNKNOWN";
 
     // --- VOUCHER AUTOMATION ---
     if (data.voucher && data.voucher > 0) {
@@ -137,12 +143,12 @@ export const handleDone = async (
           await createExpense({
             transaction_date: customDate
               ? customDate.toISOString().split("T")[0]
-              : new Date().toISOString().split("T")[0], // <--- [NEW] Use custom date for expense too if exists
+              : new Date().toISOString().split("T")[0],
             source: defaultSource.category,
             classification: "Voucher Deduction",
             amount: Number(data.voucher),
-            receipt_no: data.transactionNo,
-            notes: `Auto-deduction: ${data.transactionNo}`,
+            receipt_no: invoiceNo, // Use backend-generated invoice_no
+            notes: `Auto-deduction: ${invoiceNo}`,
           });
         }
       } catch (voucherError) {
@@ -154,8 +160,15 @@ export const handleDone = async (
     }
 
     return {
-      ...headerPayload,
+      invoice_no: invoiceNo,
+      customer_name: headerPayload.customer_name,
+      amount_rendered: headerPayload.amount_rendered,
+      voucher: headerPayload.voucher,
+      grand_total: headerPayload.grand_total,
+      change: headerPayload.change,
+      transaction_no: invoiceNo, // Use invoice_no as transaction_no
       transaction_time: transactionTime || new Date().toISOString(),
+      cashier_name: headerPayload.cashier_name,
     } as TransactionResult;
   } catch (err) {
     console.error("❌ [Logic] Crash in handleDone:", err);

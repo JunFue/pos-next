@@ -15,7 +15,6 @@ import {
   getDefaultFormValues,
   PosFormValues,
   posSchema,
-  generateTransactionNo,
 } from "../../utils/posSchema";
 import { CartItem } from "../TerminalCart";
 import { handleAddToCart, handleClear, handleDone } from "../buttons/handlers";
@@ -81,8 +80,6 @@ export const usePosForm = (): UsePosFormReturn => {
 
   // --- LIVE CLOCK ---
   useEffect(() => {
-    setValue("transactionNo", generateTransactionNo());
-
     const getNow = () =>
       new Date()
         .toLocaleString("en-US", {
@@ -102,7 +99,7 @@ export const usePosForm = (): UsePosFormReturn => {
       clearTimeout(initialTimeout);
       clearInterval(timer);
     };
-  }, [setValue]);
+  }, []);
 
   // --- CALCULATIONS ---
   const cartTotal = useMemo(
