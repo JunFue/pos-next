@@ -10,17 +10,16 @@ import {
   X,
   Loader2,
 } from "lucide-react";
-import { Classification } from "../lib/expenses.api";
+import { Classification } from "../lib/expenses.api"; // Check this path matches your folder structure
 import { useClassifications } from "@/app/expenses/hooks/useClassifications";
 
-// Accept standard input props but override onChange/value to use controlled string API
 interface ClassificationSelectProps
   extends Omit<
     React.InputHTMLAttributes<HTMLInputElement>,
     "onChange" | "value"
   > {
-  value?: string;
-  onChange: (value: string) => void;
+  value?: string; // This will now receive the UUID
+  onChange: (value: string) => void; // We will emit the UUID
   error?: string;
 }
 
@@ -30,7 +29,7 @@ export const ClassificationSelect = forwardRef<
 >(
   (
     {
-      value,
+      value, // The ID (UUID)
       onChange,
       error,
       disabled,
@@ -54,6 +53,9 @@ export const ClassificationSelect = forwardRef<
     // UI state
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState("");
+    
+    // We track if the user is actively typing to avoid overwriting their text with the DB name
+    const isTyping = useRef(false);
 
     // Edit state
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -63,8 +65,39 @@ export const ClassificationSelect = forwardRef<
     // Keyboard navigation
     const [highlightIndex, setHighlightIndex] = useState<number>(-1);
 
-    // Refs
     const containerRef = useRef<HTMLDivElement>(null);
+
+    // --- EFFECT 1: Sync External ID (value) -> Internal Text (search) ---
+    useEffect(() => {
+      // If we have a valid ID selected...
+      if (value) {
+        const match = classifications.find((c) => c.id === value);
+        if (match) {
+          // ...and we are not currently typing, update the display text to match the DB Name
+          setSearch(match.name);
+          isTyping.current = false;
+        }
+      } else if (!value && !isTyping.current) {
+        // If ID is cleared externally (e.g. form reset), clear text
+        setSearch("");
+      }
+    }, [value, classifications]);
+
+    // --- EFFECT 2: Auto-Select ID based on Text (Smart Match) ---
+    useEffect(() => {
+        // If no ID is selected, but we have text (e.g. after creating "New Cat"),
+        // try to find a matching name in the new list and auto-select its ID.
+        if (!value && search.trim()) {
+            const exactMatch = classifications.find(
+                (c) => c.name.toLowerCase() === search.toLowerCase().trim()
+            );
+            if (exactMatch) {
+                onChange(exactMatch.id);
+                isTyping.current = false;
+            }
+        }
+    }, [search, value, classifications, onChange]);
+
 
     useEffect(() => {
       const handleClickOutside = (e: MouseEvent) => {
@@ -77,16 +110,10 @@ export const ClassificationSelect = forwardRef<
           setHighlightIndex(-1);
         }
       };
-
       document.addEventListener("mousedown", handleClickOutside);
       return () =>
         document.removeEventListener("mousedown", handleClickOutside);
     }, []);
-
-    // Keep internal search in sync with external value
-    useEffect(() => {
-      setSearch(value || "");
-    }, [value]);
 
     // Derived list
     const filtered = classifications.filter((c) =>
@@ -96,23 +123,23 @@ export const ClassificationSelect = forwardRef<
       (c) => c.name.toLowerCase() === search.toLowerCase().trim()
     );
 
-    // Selection
-    const handleSelect = (classificationName: string) => {
-      onChange(classificationName);
-      setSearch(classificationName);
+    // Selection Handler
+    const handleSelect = (cls: Classification) => {
+      isTyping.current = false;
+      setSearch(cls.name);
+      onChange(cls.id); // <--- CRITICAL: Sending ID, not Name
       setIsOpen(false);
       setHighlightIndex(-1);
     };
 
-    // Create
+    // Create Handler
     const handleCreate = async () => {
       const trimmed = search.trim();
       if (!trimmed) return;
       try {
         setActionLoading(true);
         await addClassification(trimmed);
-        onChange(trimmed);
-        setSearch(trimmed);
+        // We don't manually set ID here; Effect 2 will detect the new item and auto-select it.
         setIsOpen(false);
         setHighlightIndex(-1);
       } catch {
@@ -122,7 +149,7 @@ export const ClassificationSelect = forwardRef<
       }
     };
 
-    // Edit
+    // Edit Handlers
     const startEdit = (e: React.MouseEvent, cls: Classification) => {
       e.stopPropagation();
       setEditingId(cls.id);
@@ -136,10 +163,7 @@ export const ClassificationSelect = forwardRef<
         setActionLoading(true);
         await editClassification(editingId, editValue);
         setEditingId(null);
-        const original = classifications.find((c) => c.id === editingId)?.name;
-        if (original && value === original) {
-          onChange(editValue);
-        }
+        // The list updates, Effect 1 runs, updates display text automatically.
       } catch {
         alert("Failed to update classification");
       } finally {
@@ -147,17 +171,19 @@ export const ClassificationSelect = forwardRef<
       }
     };
 
-    // Delete
+    // Delete Handler
     const handleDelete = async (e: React.MouseEvent, id: string) => {
       e.stopPropagation();
       if (!confirm("Are you sure? This cannot be undone.")) return;
       try {
         setActionLoading(true);
         await removeClassification(id);
-        const deletedName = classifications.find((c) => c.id === id)?.name;
-        if (deletedName && value === deletedName) {
+        
+        // If we deleted the currently selected item, clear the selection
+        if (value === id) {
           onChange("");
           setSearch("");
+          isTyping.current = false;
         }
       } catch {
         alert("Failed to delete classification");
@@ -174,68 +200,66 @@ export const ClassificationSelect = forwardRef<
             ref={ref}
             type="text"
             name={name}
-            onBlur={onBlur}
-            value={search}
+            value={search} // Controlled by 'search' (Name), not 'value' (ID)
+            onBlur={(e) => {
+                 // On blur, if we have an exact match typed out, enforce selection
+                 const match = classifications.find(c => c.name.toLowerCase() === search.toLowerCase().trim());
+                 if (match && value !== match.id) {
+                     handleSelect(match);
+                 }
+                 if (onBlur) onBlur(e);
+            }}
             onChange={(e) => {
               const next = e.target.value;
+              isTyping.current = true;
               setSearch(next);
-              onChange(next);
+              
+              // When typing, we don't have a valid ID yet, so clear it.
+              // Effect 2 will auto-fill it if a match is found while typing.
+              if (value) onChange(""); 
+              
               if (!isOpen) setIsOpen(true);
               setHighlightIndex(-1);
             }}
             onFocus={() => {
               setIsOpen(true);
-              // If we already have a value, put highlight on it if present
               if (value) {
-                const idx = filtered.findIndex((c) => c.name === value);
-                setHighlightIndex(idx >= 0 ? idx : -1);
+                 // Find index of current ID
+                 const idx = filtered.findIndex((c) => c.id === value);
+                 setHighlightIndex(idx >= 0 ? idx : -1);
               }
             }}
             onKeyDown={(e) => {
-              // Local keyboard navigation
               if (e.key === "ArrowDown") {
                 e.preventDefault();
                 setIsOpen(true);
                 setHighlightIndex((prev) =>
-                  prev < filtered.length - 1
-                    ? prev + 1
-                    : filtered.length > 0
-                    ? 0
-                    : -1
+                  prev < filtered.length - 1 ? prev + 1 : filtered.length > 0 ? 0 : -1
                 );
                 return;
               }
-
               if (e.key === "ArrowUp") {
                 e.preventDefault();
                 setHighlightIndex((prev) =>
-                  prev > 0
-                    ? prev - 1
-                    : filtered.length > 0
-                    ? filtered.length - 1
-                    : -1
+                  prev > 0 ? prev - 1 : filtered.length > 0 ? filtered.length - 1 : -1
                 );
                 return;
               }
-
-              if (
-                e.key === "Enter" &&
-                highlightIndex >= 0 &&
-                filtered[highlightIndex]
-              ) {
+              if (e.key === "Enter") {
                 e.preventDefault();
-                handleSelect(filtered[highlightIndex].name);
+                if (highlightIndex >= 0 && filtered[highlightIndex]) {
+                  handleSelect(filtered[highlightIndex]);
+                } else if (!exactMatch && search.trim()) {
+                    handleCreate(); // Allow Enter to create
+                }
                 return;
               }
-
               if (e.key === "Escape") {
                 e.preventDefault();
                 setIsOpen(false);
                 setHighlightIndex(-1);
                 return;
               }
-
-              // Preserve external handler (e.g., parent navigation)
               if (onKeyDown) onKeyDown(e);
             }}
             disabled={disabled}
@@ -278,7 +302,7 @@ export const ClassificationSelect = forwardRef<
                 }`}
                 onMouseEnter={() => setHighlightIndex(idx)}
                 onMouseLeave={() => setHighlightIndex(-1)}
-                onClick={() => handleSelect(cls.name)}
+                onClick={() => handleSelect(cls)}
               >
                 {editingId === cls.id ? (
                   <div
@@ -290,6 +314,9 @@ export const ClassificationSelect = forwardRef<
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
                       autoFocus
+                      onKeyDown={(e) => {
+                          if(e.key === 'Enter') saveEdit(e as any);
+                      }}
                     />
                     <button
                       onClick={saveEdit}
@@ -310,7 +337,7 @@ export const ClassificationSelect = forwardRef<
                   </div>
                 ) : (
                   <>
-                    <span className={value === cls.name ? "font-bold" : ""}>
+                    <span className={value === cls.id ? "font-bold text-cyan-400" : ""}>
                       {cls.name}
                     </span>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

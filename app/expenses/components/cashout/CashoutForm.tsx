@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { UseFormReturn, Controller } from "react-hook-form";
-import { Loader2, Lock, CalendarClock, AlertCircle } from "lucide-react";
+import { Loader2, Lock, CalendarClock } from "lucide-react";
 import { ExpenseInput } from "../../lib/expenses.api";
 import { ClassificationSelect } from "../../utils/ClassificationSelect";
 
@@ -57,13 +57,13 @@ export const CashoutForm = ({
     formState: { errors },
   } = form;
 
-  // [NEW] 1. Get Permission and Store Data
+  // 1. Get Permission and Store Data
   const { canBackdate, isLoading: isPermsLoading } = useStaffPermissions();
   const { customTransactionDate } = useTransactionStore();
 
   const { onSubmit, handleKeyDown, setRef } = handlers;
 
-  // [NEW] 2. Intelligent Date Handling
+  // 2. Intelligent Date Handling
   useEffect(() => {
     // Wait for permissions to load
     if (isPermsLoading) return;
@@ -107,7 +107,7 @@ export const CashoutForm = ({
           Register New Expense
         </h2>
 
-        {/* [NEW] Session Indicator Badge */}
+        {/* Session Indicator Badge */}
         {canBackdate && customTransactionDate && (
           <div className="flex items-center gap-2 bg-amber-950/40 px-3 py-1.5 border border-amber-500/20 rounded-full text-amber-400 text-xs animate-pulse">
             <CalendarClock className="w-3 h-3" />
@@ -162,6 +162,8 @@ export const CashoutForm = ({
             render={({ field }) => (
               <ClassificationSelect
                 {...field}
+                // Ensure we pass a clean value to the select component
+                value={field.value || ""} 
                 ref={(e: HTMLElement | null) => {
                   field.ref(e);
                   setRef("classification", e);
@@ -255,7 +257,7 @@ export const CashoutForm = ({
               setRef("date", e);
             }}
             onKeyDown={(e) => handleKeyDown(e, refs.submitBtn)}
-            // [NEW] Logic: Disable if user cannot backdate
+            // Logic: Disable if user cannot backdate
             disabled={!canBackdate}
             className={`w-full input-dark ${
               errors.transaction_date ? "border-red-500" : ""

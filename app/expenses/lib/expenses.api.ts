@@ -18,7 +18,9 @@ export type ExpenseBreakdownItem = {
 // Strict type for the raw DB response in the breakdown query
 interface ExpenseBreakdownRow {
   amount: number;
-  classification: string | null;
+  classification_details: {
+    name: string;
+  } | null;
   product_category: {
     category: string;
   } | null;
@@ -29,7 +31,10 @@ interface ExpenseRowDB {
   id: string;
   transaction_date: string;
   source: string | null;
-  classification: string | null;
+  // We now fetch the relation
+  classification_details: {
+    name: string;
+  } | null;
   amount: number;
   receipt_no: string | null;
   notes: string | null;
@@ -43,12 +48,13 @@ export interface ExpenseData {
   id: string;
   transaction_date: string;
   source: string;
-  classification: string;
+  classification: string; // Used for Display (Name)
   amount: number;
   receipt_no: string;
   notes: string;
 }
 
+// NOTE: When submitting, 'classification' will hold the UUID string
 export type ExpenseInput = Omit<ExpenseData, "id">;
 
 export interface Classification {
@@ -66,13 +72,15 @@ export const fetchExpensesBreakdown = async (
 ) => {
   const supabase = await getSupabase();
 
-  // Fetch expenses with their associated source (product_category)
+  // Fetch expenses with their associated source and classification name
   const { data, error } = await supabase
     .from("expenses")
     .select(
       `
       amount,
-      classification,
+      classification_details:classification_id (
+        name
+      ),
       product_category!inner (
         category
       )
@@ -80,8 +88,9 @@ export const fetchExpensesBreakdown = async (
     )
     .gte("transaction_date", startDate)
     .lte("transaction_date", endDate)
-    .not("classification", "is", null)
-    .returns<ExpenseBreakdownRow[]>(); // <--- Strictly typed response
+    // Filter out rows where the FK might be null (if any)
+    .not("classification_id", "is", null)
+    .returns<ExpenseBreakdownRow[]>();
 
   if (error) {
     console.error("Error fetching expense breakdown:", error);
@@ -92,9 +101,9 @@ export const fetchExpensesBreakdown = async (
   const aggregated: Record<string, Record<string, number>> = {};
 
   data?.forEach((item) => {
-    // No "any" needed here anymore; item is ExpenseBreakdownRow
     const source = item.product_category?.category || "Uncategorized";
-    const classification = item.classification || "Other";
+    // Use the name from the joined table
+    const classification = item.classification_details?.name || "Other";
     const amount = Number(item.amount);
 
     if (!aggregated[source]) {
@@ -125,6 +134,9 @@ export const fetchExpenses = async (
       *,
       product_category (
         category
+      ),
+      classification_details:classification_id (
+        name
       )
     `
     )
@@ -143,10 +155,11 @@ export const fetchExpenses = async (
   if (error) throw new Error(error.message);
 
   return (data || []).map(
-    (row: ExpenseRowDB): ExpenseData => ({
+    (row: any): ExpenseData => ({
       id: row.id,
       transaction_date: row.transaction_date,
-      classification: row.classification ?? "",
+      // Map the joined name to the flat object for the UI
+      classification: row.classification_details?.name ?? "Unclassified",
       amount: row.amount,
       receipt_no: row.receipt_no ?? "",
       notes: row.notes ?? "",
@@ -158,10 +171,12 @@ export const fetchExpenses = async (
 // 3. Create Expense (RPC)
 export const createExpense = async (input: ExpenseInput) => {
   const supabase = await getSupabase();
+  
+  // NOTE: input.classification here holds the UUID from the form selection
   const { error } = await supabase.rpc("insert_new_expense", {
     transaction_date_in: input.transaction_date,
     source_in: input.source,
-    classification_in: input.classification,
+    classification_id_in: input.classification, // Maps to the new UUID parameter
     amount_in: input.amount,
     receipt_no_in: input.receipt_no,
     notes_in: input.notes,
