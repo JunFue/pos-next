@@ -177,7 +177,9 @@ export const FormFields = React.memo(
                     {...(field.type === "number" &&
                       (field.id === "payment" ||
                         field.id === "voucher" ||
-                        field.id === "discount") && { step: "0.01" })}
+                        field.id === "discount" ||
+                        field.id === "grandTotal" ||
+                        field.id === "change") && { step: "0.01" })}
                     {...((field.id === "customerName" ||
                       field.id === "quantity" ||
                       field.id === "discount" ||

@@ -114,7 +114,9 @@ export const usePosForm = (): UsePosFormReturn => {
   useEffect(() => {
     setValue("grandTotal", cartTotal, { shouldValidate: false });
     const changeAmount = (payment || 0) + (voucher || 0) - cartTotal;
-    setValue("change", changeAmount, { shouldValidate: false });
+    // Round to 2 decimal places to match money format
+    const roundedChange = Math.round(changeAmount * 100) / 100;
+    setValue("change", roundedChange, { shouldValidate: false });
   }, [cartTotal, payment, voucher, setValue]);
 
   const onAddToCart = () => {
