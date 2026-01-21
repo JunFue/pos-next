@@ -9,10 +9,12 @@ import { useStocks } from "../../hooks/useStocks";
 import { StockData } from "./lib/stocks.api";
 import { StockFormSchema } from "./utils/types";
 import { useViewStore } from "@/components/window-layouts/store/useViewStore";
+import { ErrorMessage } from "@/components/sales-terminnal/components/ErrorMessage";
 
 
 const StockManagementContent = () => {
   const [editingItem, setEditingItem] = useState<StockData | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   // 2. Get Layout State
   const { isSplit } = useViewStore();
@@ -34,10 +36,17 @@ const StockManagementContent = () => {
           onSuccess: () => {
             setEditingItem(null);
           },
+          onError: (err) => {
+            setErrorMessage(err.message);
+          }
         }
       );
     } else {
-      addStockEntry(data);
+      addStockEntry(data, {
+        onError: (err) => {
+          setErrorMessage(err.message);
+        }
+      });
     }
   };
 
@@ -52,6 +61,7 @@ const StockManagementContent = () => {
         ? "flex flex-col gap-6 p-6" 
         : "grid grid-cols-1 xl:grid-cols-[400px_1fr] gap-6 p-6 items-start"
     }>
+      <ErrorMessage message={errorMessage} onClose={() => setErrorMessage(null)} />
       <div className="relative p-4 glass-effect">
         {isProcessing && (
           <div className="z-10 absolute inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm rounded-lg">

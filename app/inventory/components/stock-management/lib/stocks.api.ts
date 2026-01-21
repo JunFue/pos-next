@@ -75,6 +75,19 @@ export const insertStock = async (data: {
   console.log("🚀 [API] Sending Stock Payload:", data);
 
   const supabase = await getSupabase();
+
+  // 1. Check if item exists in 'items' table
+  const { data: existingItem, error: itemError } = await supabase
+    .from("items")
+    .select("id")
+    .eq("item_name", data.itemName)
+    .single();
+
+  if (itemError || !existingItem) {
+    console.error("❌ [API] Item not found:", data.itemName);
+    throw new Error(`Item "${data.itemName}" is not registered. Please register it first.`);
+  }
+
   // We wrap the RPC call in withTimeout to ensure it fails if the network hangs
   const { error } = await withTimeout(
     supabase.rpc("insert_new_stock_item", {

@@ -44,10 +44,6 @@ export default function MainWindow({
   const fullScreenRoutes = ["/maintenance", "/login"];
   const isFullScreenRoute = fullScreenRoutes.some(route => pathname?.startsWith(route));
   
-  if (isFullScreenRoute) {
-    return <>{children}</>;
-  }
-
   const handleToggleClick = () => {
     setMobileView((current) => (current === "left" ? "right" : "left"));
   };
@@ -69,6 +65,10 @@ export default function MainWindow({
 
     return () => clearTimeout(timer);
   }, [viewState, mobileView]);
+
+  if (isFullScreenRoute) {
+    return <>{children}</>;
+  }
 
   let leftWidth = "50%";
   let rightWidth = "50%";
