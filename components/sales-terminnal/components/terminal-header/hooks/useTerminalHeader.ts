@@ -16,6 +16,26 @@ export const useTerminalHeader = (setCustomerId: (id: string | null) => void) =>
 
   // State for Modal
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [storeId, setStoreId] = useState<string | null>(null);
+
+  // Fetch Store ID
+  useEffect(() => {
+    const fetchStoreId = async () => {
+      if (!user?.id) return;
+      const { createClient } = await import("@/utils/supabase/client");
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("users")
+        .select("store_id")
+        .eq("user_id", user.id)
+        .single();
+      
+      if (data && !error) {
+        setStoreId(data.store_id);
+      }
+    };
+    fetchStoreId();
+  }, [user?.id]);
 
   // Watch values
   const currentBarcode = watch("barcode");
@@ -71,5 +91,6 @@ export const useTerminalHeader = (setCustomerId: (id: string | null) => void) =>
     isBackdating,
     customTransactionDate,
     setCustomTransactionDate,
+    storeId, // <--- Return storeId
   };
 };

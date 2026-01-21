@@ -74,7 +74,6 @@ export const handleDone = async (
       voucher: data.voucher || 0,
       grand_total: data.grandTotal,
       change: data.change,
-      cashier_name: cashierId,
       transaction_time: transactionTime,
       customer_id: customerId || null,
     };
@@ -103,7 +102,7 @@ export const handleDone = async (
         // 3. Pass the type to the generic function
         rpcResult = await withTimeout<TransactionActionResponse>(
           processTransaction(headerPayload, itemsPayload),
-          20000,
+          60000,
           "Transaction Save"
         );
 
@@ -176,7 +175,7 @@ export const handleDone = async (
       change: headerPayload.change,
       transaction_no: invoiceNo, // Use invoice_no as transaction_no
       transaction_time: transactionTime || new Date().toISOString(),
-      cashier_name: headerPayload.cashier_name,
+      cashier_name: cashierId,
     } as TransactionResult;
   } catch (err) {
     console.error("❌ [Logic] Crash in handleDone:", err);

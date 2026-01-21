@@ -77,8 +77,12 @@ const SalesTerminal = () => {
     methods.setValue("grandTotal", cartTotal);
     methods.setValue("change", change);
 
-    // Trigger submission
-    methods.handleSubmit(onDoneSubmit)();
+    // Clear "Add Item" fields to prevent validation errors blocking submission
+    methods.setValue("quantity", null);
+    methods.setValue("barcode", "");
+
+    // Trigger submission using the helper that handles errors
+    triggerDoneSubmit();
     setIsPaymentPopupOpen(false);
   };
 
