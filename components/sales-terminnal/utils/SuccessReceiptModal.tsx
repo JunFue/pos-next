@@ -14,7 +14,7 @@ const SuccessReceiptModal: React.FC<SuccessReceiptModalProps> = ({
   if (!data) return null;
 
   return (
-    <div className="z-50 fixed inset-0 flex justify-center items-center bg-black/70 backdrop-blur-sm animate-in duration-200 fade-in">
+    <div className="z-70 fixed inset-0 flex justify-center items-center bg-black/70 backdrop-blur-sm animate-in duration-200 fade-in">
       <div className="relative flex flex-col bg-black shadow-[0_0_20px_rgba(6,182,212,0.5)] p-6 border-2 border-retro-cyan rounded-lg w-full max-w-md font-retro text-retro-cyan">
         {/* Header */}
         <div className="flex flex-col items-center mb-6">

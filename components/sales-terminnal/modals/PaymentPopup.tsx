@@ -55,7 +55,7 @@ export const PaymentPopup: React.FC<PaymentPopupProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="z-50 fixed inset-0 flex justify-center items-center bg-black/70 backdrop-blur-sm">
+    <div className="z-70 fixed inset-0 flex justify-center items-center bg-black/70 backdrop-blur-sm">
       <div className="bg-slate-900 border border-slate-700 shadow-2xl rounded-2xl w-full max-w-md overflow-hidden">
         {/* Header */}
         <div className="bg-slate-800/50 p-4 border-b border-slate-700">
