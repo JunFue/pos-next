@@ -17,16 +17,22 @@ export const ShortcutsGuide = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
-  const shortcuts = [
-    { key: "Esc", label: "Clear Terminal / Cancel", icon: "⎋" },
-    { key: "Alt + H", label: "Home / POS", icon: "⌘H" },
-    { key: "Alt + D", label: "Dashboard", icon: "⌘D" },
-    { key: "Alt + T", label: "Transactions History", icon: "⌘T" },
-    { key: "Alt + I", label: "Inventory Management", icon: "⌘I" },
-    { key: "Alt + C", label: "Customer Database", icon: "⌘C" },
-    { key: "Alt + E", label: "Expenses", icon: "⌘E" },
-    { key: "Alt + R", label: "Reports", icon: "⌘R" },
-    { key: "Alt + S", label: "Settings", icon: "⌘S" },
+  const navigationShortcuts = [
+    { key: "Esc", label: "Clear Terminal / Cancel" },
+    { key: "Alt + H", label: "Home / POS" },
+    { key: "Alt + D", label: "Dashboard" },
+    { key: "Alt + T", label: "Transactions History" },
+    { key: "Alt + I", label: "Inventory Management" },
+    { key: "Alt + C", label: "Customer Database" },
+    { key: "Alt + E", label: "Expenses" },
+    { key: "Alt + R", label: "Reports" },
+    { key: "Alt + S", label: "Settings" },
+  ];
+
+  const terminalShortcuts = [
+    { key: "Spacebar", label: "Add Item to Cart", alt: "Enter on Discount field" },
+    { key: "Alt + Enter", label: "Finish Payment", alt: "Enter on Voucher field" },
+    { key: "Alt + F1", label: "Search Customer" },
   ];
 
   return (
@@ -42,16 +48,16 @@ export const ShortcutsGuide = () => {
 
       {/* Modal Overlay */}
       {isOpen && (
-        <div className="z-50 fixed inset-0 flex justify-center items-center bg-black/60 backdrop-blur-sm p-4 animate-in duration-200 fade-in">
-          <div className="relative bg-slate-900/90 shadow-2xl border border-slate-700 rounded-2xl w-full max-w-2xl overflow-hidden glass-effect">
+        <div className="z-60 fixed inset-0 flex justify-center items-center bg-black/60 backdrop-blur-sm p-4 animate-in duration-200 fade-in">
+          <div className="relative bg-slate-900/90 shadow-2xl border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90%] overflow-hidden glass-effect flex flex-col">
             {/* Modal Header */}
-            <div className="flex justify-between items-center bg-slate-800/30 px-6 py-4 border-slate-700/50 border-b">
+            <div className="flex justify-between items-center bg-slate-800/30 px-6 py-4 border-slate-700/50 border-b shrink-0">
               <div className="flex items-center gap-3">
                 <div className="bg-cyan-500/10 p-2 rounded-lg">
                   <Command className="w-5 h-5 text-cyan-400" />
                 </div>
                 <div>
-                  <h3 className="font-[family-name:var(--font-lexend)] font-bold text-white text-lg tracking-wide">
+                  <h3 className="font-(family-name:--font-lexend) font-bold text-white text-lg tracking-wide">
                     Keyboard Shortcuts
                   </h3>
                   <p className="text-slate-400 text-xs">
@@ -67,28 +73,62 @@ export const ShortcutsGuide = () => {
               </button>
             </div>
 
-            {/* Shortcuts Grid */}
-            <div className="gap-4 grid grid-cols-1 md:grid-cols-2 p-6">
-              {shortcuts.map((shortcut, index) => (
-                <div
-                  key={index}
-                  className="flex justify-between items-center bg-slate-950/40 p-3 border border-slate-800 hover:border-slate-700 rounded-xl transition-colors"
-                >
-                  <span className="font-[family-name:var(--font-lexend)] font-medium text-slate-300 text-sm">
-                    {shortcut.label}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    {/* Visual Keycap Style */}
-                    <kbd className="hidden sm:inline-flex items-center gap-1 bg-slate-800 shadow-[0px_2px_0px_0px_rgba(255,255,255,0.1)] px-2 border border-slate-700 rounded h-7 font-mono font-medium text-[10px] text-slate-300">
-                      {shortcut.key}
-                    </kbd>
-                  </div>
+            {/* Content - Scrollable */}
+            <div className="p-6 space-y-6 overflow-y-auto flex-1">
+              {/* Terminal Actions */}
+              <div>
+                <h4 className="mb-3 font-semibold text-cyan-400 text-sm uppercase tracking-wider">
+                  Terminal Actions
+                </h4>
+                <div className="gap-3 grid grid-cols-1">
+                  {terminalShortcuts.map((shortcut, index) => (
+                    <div
+                      key={index}
+                      className="flex justify-between items-center bg-cyan-950/30 p-3 border border-cyan-800/30 rounded-xl"
+                    >
+                      <div>
+                        <span className="font-medium text-slate-200 text-sm">
+                          {shortcut.label}
+                        </span>
+                        {shortcut.alt && (
+                          <p className="text-slate-500 text-xs mt-0.5">
+                            or {shortcut.alt}
+                          </p>
+                        )}
+                      </div>
+                      <kbd className="bg-slate-800 shadow-[0px_2px_0px_0px_rgba(255,255,255,0.1)] px-3 py-1 border border-slate-700 rounded font-mono font-medium text-[11px] text-cyan-300">
+                        {shortcut.key}
+                      </kbd>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+
+              {/* Navigation */}
+              <div>
+                <h4 className="mb-3 font-semibold text-slate-400 text-sm uppercase tracking-wider">
+                  Navigation
+                </h4>
+                <div className="gap-3 grid grid-cols-1 md:grid-cols-2">
+                  {navigationShortcuts.map((shortcut, index) => (
+                    <div
+                      key={index}
+                      className="flex justify-between items-center bg-slate-950/40 p-3 border border-slate-800 hover:border-slate-700 rounded-xl transition-colors"
+                    >
+                      <span className="font-medium text-slate-300 text-sm">
+                        {shortcut.label}
+                      </span>
+                      <kbd className="bg-slate-800 shadow-[0px_2px_0px_0px_rgba(255,255,255,0.1)] px-2 border border-slate-700 rounded h-7 font-mono font-medium text-[10px] text-slate-300 flex items-center">
+                        {shortcut.key}
+                      </kbd>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Footer */}
-            <div className="bg-slate-950/30 px-6 py-3 border-slate-800 border-t text-center">
+            <div className="bg-slate-950/30 px-6 py-3 border-slate-800 border-t text-center shrink-0">
               <p className="text-slate-500 text-xs">
                 Press <span className="font-bold text-cyan-400">Esc</span> to
                 close this window
