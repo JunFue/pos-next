@@ -101,6 +101,45 @@ export const usePosForm = (): UsePosFormReturn => {
     };
   }, []);
 
+  // --- GLOBAL KEYBOARD SHORTCUTS ---
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Alt + Enter: Trigger payment submission
+      if (e.altKey && e.key === "Enter") {
+        e.preventDefault();
+        console.log("🎹 [Shortcut] Alt+Enter detected - triggering payment submission");
+        handleSubmit(onDoneSubmit)();
+        return;
+      }
+
+      // Spacebar: Add to cart (only when on barcode/quantity/discount fields)
+      if (e.code === "Space") {
+        const activeElement = document.activeElement as HTMLInputElement;
+        const fieldName = activeElement?.getAttribute("name");
+        
+        // Only trigger on specific POS form fields
+        if (fieldName === "barcode" || fieldName === "quantity" || fieldName === "discount") {
+          e.preventDefault();
+          console.log("🎹 [Shortcut] Spacebar detected - triggering add to cart");
+          handleAddToCart({
+            getValues,
+            setValue,
+            resetField,
+            allItems,
+            cartItems,
+            setCartItems,
+            onError: (message) => setErrorMessage(message),
+            inventoryData,
+          });
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allItems, cartItems, inventoryData, handleSubmit]);
+
   // --- CALCULATIONS ---
   const cartTotal = useMemo(
     () => cartItems.reduce((sum, item) => sum + item.total, 0),

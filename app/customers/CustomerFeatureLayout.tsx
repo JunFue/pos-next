@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { SWRConfig } from "swr";
 import Link from "next/link";
-import { ArrowBigLeft, Menu } from "lucide-react";
+import { ArrowBigLeft, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 // Components
 import { CustomerSidebar } from "./components/CustomerSidebar";
@@ -29,6 +29,7 @@ interface Props {
 
 export default function CustomerFeatureLayout({ initialData }: Props) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   return (
     <SWRConfig value={{ fallback: { "customer-feature-data": initialData } }}>
@@ -36,13 +37,28 @@ export default function CustomerFeatureLayout({ initialData }: Props) {
         {/* Top Nav (Fixed) */}
         <div className="px-6 py-3 border-gray-700 border-b shrink-0">
           <div className="flex justify-between items-center">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 text-slate-400 hover:text-white text-sm transition-colors"
-            >
-              <ArrowBigLeft size={20} />
-              Back to Dashboard
-            </Link>
+            <div className="flex items-center gap-4">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 text-slate-400 hover:text-white text-sm transition-colors"
+              >
+                <ArrowBigLeft size={20} />
+                Back to Dashboard
+              </Link>
+              {/* Desktop Collapse Toggle */}
+              <button
+                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                className="hidden lg:flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg text-gray-400 hover:text-white text-sm transition"
+                title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+              >
+                {isSidebarCollapsed ? (
+                  <PanelLeftOpen size={16} />
+                ) : (
+                  <PanelLeftClose size={16} />
+                )}
+                <span className="text-xs">{isSidebarCollapsed ? "Show Groups" : "Hide Groups"}</span>
+              </button>
+            </div>
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsSidebarOpen(true)}
@@ -55,7 +71,9 @@ export default function CustomerFeatureLayout({ initialData }: Props) {
         </div>
 
         {/* Content Grid */}
-        <div className="flex-1 grid lg:grid-cols-[280px_1fr] grid-cols-1 overflow-hidden relative">
+        <div className={`flex-1 grid grid-cols-1 overflow-hidden relative transition-all duration-300 ${
+          isSidebarCollapsed ? 'lg:grid-cols-1' : 'lg:grid-cols-[280px_1fr]'
+        }`}>
           {/* Sidebar Overlay for Mobile */}
           {isSidebarOpen && (
             <div
@@ -70,8 +88,9 @@ export default function CustomerFeatureLayout({ initialData }: Props) {
               bg-gray-800 border-gray-700 border-r h-full overflow-hidden
               lg:relative lg:translate-x-0
               fixed inset-y-0 left-0 z-50 w-[280px]
-              transition-transform duration-300 ease-in-out
+              transition-all duration-300 ease-in-out
               ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+              ${isSidebarCollapsed ? 'lg:hidden' : 'lg:block'}
             `}
           >
             <CustomerSidebar 
@@ -88,7 +107,6 @@ export default function CustomerFeatureLayout({ initialData }: Props) {
             </div>
 
             {/* Dynamic Content (Scrollable Container) */}
-            {/* Removed p-6 here so scrollbars hit the edge of the screen */}
             <div className="flex-1 bg-gray-900 min-h-0 overflow-hidden">
               <ContentSwitcher />
             </div>

@@ -137,7 +137,7 @@ export const CustomerSearchModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="z-[60] fixed inset-0 flex justify-center items-start bg-black/60 backdrop-blur-sm pt-20 animate-in duration-200 fade-in">
+    <div className="z-60 fixed inset-0 flex justify-center items-start bg-black/60 backdrop-blur-sm pt-20 animate-in duration-200 fade-in">
       <div className="bg-slate-900 shadow-2xl border border-slate-700 rounded-xl w-full max-w-lg overflow-hidden glass-effect">
         {/* Header */}
         <div className="flex items-center gap-3 p-4 border-slate-700/50 border-b">

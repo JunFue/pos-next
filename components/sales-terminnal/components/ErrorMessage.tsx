@@ -23,10 +23,10 @@ export const ErrorMessage = ({ message, onClose }: ErrorMessageProps) => {
   if (!message) return null;
 
   return (
-    <div className="top-4 left-1/2 z-50 fixed -translate-x-1/2 animate-slide-down">
+    <div className="top-4 left-1/2 z-60 fixed -translate-x-1/2 animate-slide-down">
       <div className="flex items-center gap-3 shadow-2xl bg-red-950/95 backdrop-blur-sm px-6 py-4 border border-red-500/50 rounded-lg max-w-md">
         {/* Error Icon */}
-        <div className="flex-shrink-0">
+        <div className="shrink-0">
           <svg
             className="w-6 h-6 text-red-400"
             fill="none"
