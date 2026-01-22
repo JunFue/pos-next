@@ -131,42 +131,6 @@ export const handleDone = async (
     // Extract invoice_no from backend response
     const invoiceNo = rpcResult?.data?.invoice_no || "UNKNOWN";
 
-    // --- VOUCHER AUTOMATION ---
-    if (data.voucher && data.voucher > 0) {
-      try {
-        console.log("🎫 [Logic] Processing Voucher Deduction...");
-        const { fetchCategories } = await import(
-          "@/app/inventory/components/item-registration/lib/categories.api"
-        );
-        const { createExpense } = await import(
-          "@/app/expenses/lib/expenses.api"
-        );
-
-        const categories = await fetchCategories();
-        const defaultSource = categories.find(
-          (c) => c.is_default_voucher_source
-        );
-
-        if (defaultSource) {
-          await createExpense({
-            transaction_date: customDate
-              ? customDate.toISOString().split("T")[0]
-              : new Date().toISOString().split("T")[0],
-            source: defaultSource.category,
-            classification: "Voucher Deduction",
-            amount: Number(data.voucher),
-            receipt_no: invoiceNo, // Use backend-generated invoice_no
-            notes: `Auto-deduction: ${invoiceNo}`,
-          });
-        }
-      } catch (voucherError) {
-        console.error(
-          "❌ [Logic] Voucher expense failed (non-fatal):",
-          voucherError
-        );
-      }
-    }
-
     return {
       invoice_no: invoiceNo,
       customer_name: headerPayload.customer_name,
