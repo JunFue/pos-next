@@ -66,7 +66,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="relative bg-[#0B1120] p-6 min-h-screen text-white">
+    <div className="relative bg-[#0B1120] p-6 min-h-screen text-white font-lexend">
       {/* --- LOGOUT OVERLAY --- */}
       {isLoggingOut && (
         <div className="z-60 fixed inset-0 flex flex-col justify-center items-center bg-black/60 backdrop-blur-md transition-all duration-300">

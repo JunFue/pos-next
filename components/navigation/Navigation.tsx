@@ -127,7 +127,7 @@ const Navigation = React.memo(() => {
   ];
 
   return (
-    <nav className="gap-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 mb-8">
+    <nav className="gap-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 mb-8 font-lexend">
       {nav.map((item) => (
         // Added 'group' to handle hover states for children
         <div key={item.id} className="group relative">

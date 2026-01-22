@@ -21,6 +21,7 @@ input, textarea {
   --color-primary-dark: var(--color-primary-dark);
   --color-text-primary: var(--color-text-primary);
   --color-text-secondary: var(--color-text-secondary);
+  --font-lexend: var(--font-lexend);
 }
 
 :root {
