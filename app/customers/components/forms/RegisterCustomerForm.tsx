@@ -7,8 +7,8 @@ import {
   useCustomerData,
   useCustomerMutations,
 } from "../../hooks/useCustomerData";
-import { createCustomer } from "../../api/services";
-import { CustomerFormValues, customerSchema } from "../../lib/types";
+import { createCustomer, updateCustomer } from "../../api/services";
+import { Customer, CustomerFormValues, customerSchema } from "../../lib/types";
 
 // Sub-components
 import { ViewSwitcher } from "./register-customer/ViewSwitcher";
@@ -20,11 +20,13 @@ import { FormFooter } from "./register-customer/FormFooter";
 interface RegisterCustomerFormProps {
   onSuccess: () => void;
   onCancel: () => void;
+  initialData?: Customer;
 }
 
 export const RegisterCustomerForm = ({
   onSuccess,
   onCancel,
+  initialData,
 }: RegisterCustomerFormProps) => {
   const { groups } = useCustomerData();
   const { refreshData } = useCustomerMutations();
@@ -44,16 +46,16 @@ export const RegisterCustomerForm = ({
   } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
     defaultValues: {
-      full_name: "",
-      phone_number: "",
-      email: "",
-      address: "",
-      remarks: "",
-      group_id: "",
-      birthdate: "",
-      date_of_registration: new Date().toISOString().split("T")[0],
-      civil_status: "" as any,
-      gender: "" as any,
+      full_name: initialData?.full_name || "",
+      phone_number: initialData?.phone_number || "",
+      email: initialData?.email || "",
+      address: initialData?.address || "",
+      remarks: initialData?.remarks || "",
+      group_id: initialData?.group_id || "",
+      birthdate: initialData?.birthdate || "",
+      date_of_registration: initialData?.date_of_registration || new Date().toISOString().split("T")[0],
+      civil_status: (initialData?.civil_status as any) || "",
+      gender: (initialData?.gender as any) || "",
     },
   });
 
@@ -160,25 +162,41 @@ export const RegisterCustomerForm = ({
   const onSubmit: SubmitHandler<CustomerFormValues> = async (data) => {
     setLoading(true);
     try {
-      const formData = new FormData();
+      if (initialData) {
+        // Update existing customer
+        const payload = {
+          ...data,
+          group_id: data.group_id === "" ? null : data.group_id,
+          phone_number: data.phone_number === "" ? null : data.phone_number,
+          email: data.email === "" ? null : data.email,
+          address: data.address === "" ? null : data.address,
+          remarks: data.remarks === "" ? null : data.remarks,
+          birthdate: data.birthdate === "" ? null : data.birthdate,
+        };
+        await updateCustomer(initialData.id, payload);
+      } else {
+        // Create new customer
+        const formData = new FormData();
 
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== null && value !== undefined && value !== "") {
-          formData.append(key, value as string);
-        }
-      });
+        Object.entries(data).forEach(([key, value]) => {
+          if (value !== null && value !== undefined && value !== "") {
+            formData.append(key, value as string);
+          }
+        });
 
-      compressedFiles.forEach((file) => {
-        formData.append("documents", file);
-      });
+        compressedFiles.forEach((file) => {
+          formData.append("documents", file);
+        });
 
-      await createCustomer(formData);
+        await createCustomer(formData);
+      }
+
       await refreshData();
       reset();
       setCompressedFiles([]);
       onSuccess();
     } catch (error) {
-      console.error("Registration failed:", error);
+      console.error(initialData ? "Update failed:" : "Registration failed:", error);
     } finally {
       setLoading(false);
     }
