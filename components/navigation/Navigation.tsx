@@ -100,7 +100,7 @@ const Navigation = React.memo(({ variant = "grid" }: NavigationProps) => {
       id: "google-workspace",
       text: "Workspace",
       Icon: Grid,
-      href: "#", // External links handled differently if needed, but for now # or direct
+      href: "/workspace",
       shortcuts: [
         { label: "Gmail", href: "https://mail.google.com" },
         { label: "Drive", href: "https://drive.google.com" },
