@@ -75,7 +75,7 @@ const SalesTerminal = () => {
     // Set values in the form
     methods.setValue("payment", payment);
     methods.setValue("voucher", voucher);
-    methods.setValue("grandTotal", cartTotal);
+    methods.setValue("grandTotal", cartTotal - voucher);
     methods.setValue("change", change);
 
     // Clear "Add Item" fields to prevent validation errors blocking submission

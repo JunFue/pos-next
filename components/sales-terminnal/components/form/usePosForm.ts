@@ -154,7 +154,7 @@ export const usePosForm = (): UsePosFormReturn => {
   });
 
   useEffect(() => {
-    setValue("grandTotal", cartTotal, { shouldValidate: false });
+    setValue("grandTotal", cartTotal - (voucher || 0), { shouldValidate: false });
     const changeAmount = (payment || 0) + (voucher || 0) - cartTotal;
     // Round to 2 decimal places to match money format
     const roundedChange = Math.round(changeAmount * 100) / 100;

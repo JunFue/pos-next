@@ -103,11 +103,7 @@ export const PaymentPopup: React.FC<PaymentPopupProps> = ({
 
           {/* Summary */}
           <div className="bg-slate-800/50 p-4 rounded-lg">
-            <div className="flex justify-between items-center mb-2 text-sm">
-              <span className="text-slate-400">Total Payment</span>
-              <span className="font-medium text-white">₱{totalPayment.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            </div>
-            <div className="flex justify-between items-center border-slate-700 pt-2 border-t">
+            <div className="flex justify-between items-center">
               <span className="font-bold text-slate-300">Change</span>
               <span className={`text-2xl font-bold ${change < 0 ? "text-red-400" : "text-cyan-400"}`}>
                 ₱{change.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
