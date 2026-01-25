@@ -1,5 +1,8 @@
+"use server";
+
 import { PosFormValues } from "@/components/sales-terminnal/utils/posSchema";
 import { CartItem } from "../../TerminalCart";
+import { processTransaction } from "@/app/actions/transactions";
 
 // 1. Define the structure of the Server Action response
 interface TransactionActionResponse {
@@ -39,8 +42,6 @@ const withTimeout = <T>(
   ]) as Promise<T>;
 };
 
-let isTransactionInProgress = false;
-
 export const handleDone = async (
   data: PosFormValues,
   cartItems: CartItem[],
@@ -48,13 +49,7 @@ export const handleDone = async (
   customDate: Date | null, // <--- [NEW] Accept the custom date
   customerId: string | null
 ): Promise<TransactionResult> => {
-  if (isTransactionInProgress) {
-    console.warn("⚠️ [Logic] Transaction already in progress. Ignoring double submission.");
-    return null;
-  }
-  
-  isTransactionInProgress = true;
-  console.log("--- 🛠 [Logic] handleDone started ---");
+  console.log("--- 🛠 [Server Action] handleDone started ---");
 
   try {
     if (!cashierId) {
@@ -92,8 +87,6 @@ export const handleDone = async (
       "3️⃣ [Logic] Sending RPC request to Supabase (via Server Action)..."
     );
 
-    const { processTransaction } = await import("@/app/actions/transactions");
-
     // 2. Replace 'any' with the specific interface
     let rpcResult: TransactionActionResponse | null = null;
 
@@ -126,6 +119,10 @@ export const handleDone = async (
       }
     }
 
+    if (!rpcResult) {
+       throw new Error("Transaction failed: No result from RPC");
+    }
+
     console.log("✅ [Logic] Transaction Saved Successfully!");
 
     // Extract invoice_no from backend response
@@ -145,7 +142,5 @@ export const handleDone = async (
   } catch (err) {
     console.error("❌ [Logic] Crash in handleDone:", err);
     throw err;
-  } finally {
-    isTransactionInProgress = false;
   }
 };
