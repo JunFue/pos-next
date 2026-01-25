@@ -21,6 +21,10 @@ export function useDashboardMetrics(
   } = useQuery({
     queryKey: ["dashboard-financial-report", date],
     queryFn: () => fetchFinancialReport(date, date),
+    staleTime: 0, // Always check for updates
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   const metrics = useMemo(() => {

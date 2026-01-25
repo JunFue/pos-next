@@ -22,8 +22,11 @@ export const useFinancialReport = (
   const { data, error, isLoading, isFetching, refetch } = useQuery({
     queryKey,
     queryFn: () => fetchFinancialReport(dateRange.start, dateRange.end),
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
     placeholderData: keepPreviousData,
+    staleTime: 0, // Always check for updates
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
+    refetchOnMount: "always",
   });
 
   const updateDate = (key: 'start' | 'end', value: string) => {
