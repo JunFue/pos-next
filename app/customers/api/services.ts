@@ -30,7 +30,7 @@ export const fetchCustomerFeatureData = async (
     supabase
       .from("customers")
       .select("*, group:customer_groups(*)")
-      .order("created_at", { ascending: false }),
+      .order("full_name", { ascending: true }),
     guestQuery,
   ]);
 
@@ -50,7 +50,7 @@ export const fetchDashboardData = async () => {
   const { data: customers } = await supabase
     .from("customers")
     .select("*, group:customer_groups(*)")
-    .order("created_at", { ascending: false });
+    .order("full_name", { ascending: true });
 
   return { groups: groups || [], customers: customers || [] };
 };
