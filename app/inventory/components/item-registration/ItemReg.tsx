@@ -3,14 +3,16 @@
 "use client";
 
 import React, { useState } from "react";
-import { ItemForm } from "./item-form/ItemForm";
+import { PackagePlus } from "lucide-react";
 import { Item } from "./utils/itemTypes";
 import { StatusDisplay } from "@/utils/StatusDisplay";
 import { ItemTable } from "./item-table/ItemTable";
 import { useItems } from "../../hooks/useItems"; // Import the hook
+import { RegistrationModal } from "./RegistrationModal";
 
 const ItemReg = () => {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Consume the context
   const {
@@ -30,11 +32,20 @@ const ItemReg = () => {
       if (itemToUpdate?.id) {
         editItem(
           { ...formData, id: itemToUpdate.id },
-          { onSuccess: () => setEditingIndex(null) } // Close form on success
+          { 
+            onSuccess: () => {
+              setEditingIndex(null);
+              setIsModalOpen(false);
+            } 
+          }
         );
       }
     } else {
-      addItem(formData);
+      addItem(formData, {
+        onSuccess: () => {
+          setIsModalOpen(false);
+        }
+      });
     }
   };
 
@@ -46,14 +57,29 @@ const ItemReg = () => {
     ) {
       removeItem(itemToDelete.id, {
         onSuccess: () => {
-          if (editingIndex === index) setEditingIndex(null);
+          if (editingIndex === index) {
+            setEditingIndex(null);
+            setIsModalOpen(false);
+          }
         },
       });
     }
   };
 
-  const handleEdit = (index: number) => setEditingIndex(index);
-  const handleCancelEdit = () => setEditingIndex(null);
+  const handleEdit = (index: number) => {
+    setEditingIndex(index);
+    setIsModalOpen(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingIndex(null);
+    setIsModalOpen(false);
+  };
+
+  const handleOpenRegistration = () => {
+    setEditingIndex(null);
+    setIsModalOpen(true);
+  };
 
   // Handle inline edit save from the table
   const handleSaveInlineEdit = (updatedItem: Item) => {
@@ -65,14 +91,17 @@ const ItemReg = () => {
   const itemToEdit = editingIndex !== null ? items[editingIndex] : undefined;
 
   return (
-    <div className="space-y-8 p-6">
-      {/* 🟢 Form Wrapper with glass-effect */}
-      <div className="p-4 glass-effect">
-        <ItemForm
-          onFormSubmit={handleFormSubmit}
-          itemToEdit={itemToEdit}
-          onCancelEdit={handleCancelEdit}
-        />
+    <div className="space-y-6 p-6 h-full flex flex-col">
+      {/* Header & Actions */}
+      <div className="flex justify-between items-center">
+        <h1 className="font-bold text-2xl text-white">Item Registration</h1>
+        <button
+          onClick={handleOpenRegistration}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg font-medium text-white transition-colors shadow-lg shadow-blue-900/20"
+        >
+          <PackagePlus className="w-5 h-5" />
+          Register New Item
+        </button>
       </div>
 
       {/* Status Section */}
@@ -87,7 +116,7 @@ const ItemReg = () => {
 
       {/* Table Section */}
       {!isLoading && items.length > 0 && (
-        <div className="p-6 glass-effect">
+        <div className="flex-1 bg-slate-900/50 p-6 border border-slate-800 rounded-xl overflow-hidden glass-effect">
           <ItemTable 
             data={items} 
             onEdit={handleEdit} 
@@ -99,8 +128,25 @@ const ItemReg = () => {
 
       {/* Empty State */}
       {!isLoading && items.length === 0 && (
-        <p className="text-gray-500 text-center">No items found.</p>
+        <div className="flex flex-col justify-center items-center gap-4 py-20 text-gray-500">
+          <p>No items found.</p>
+          <button
+            onClick={handleOpenRegistration}
+            className="text-blue-400 hover:text-blue-300 underline"
+          >
+            Register your first item
+          </button>
+        </div>
       )}
+
+      {/* Registration Modal */}
+      <RegistrationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onFormSubmit={handleFormSubmit}
+        itemToEdit={itemToEdit}
+        onCancelEdit={handleCancelEdit}
+      />
     </div>
   );
 };
