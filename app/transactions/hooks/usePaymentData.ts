@@ -3,7 +3,7 @@ import { usePaymentHistory } from './useTransactionQueries';
 
 export function usePaymentData() {
   const { currentPage, rowsPerPage, filters, setCurrentPage, setRowsPerPage, setFilters } = usePaymentStore();
-  const { data, isLoading, error, mutate } = usePaymentHistory(currentPage, rowsPerPage, filters);
+  const { data, isLoading, error, refetch } = usePaymentHistory(currentPage, rowsPerPage, filters);
 
   return {
     payments: data?.data || [],
@@ -17,6 +17,6 @@ export function usePaymentData() {
     setCurrentPage,
     setRowsPerPage,
     setFilters,
-    refresh: mutate,
+    refresh: refetch,
   };
 }
