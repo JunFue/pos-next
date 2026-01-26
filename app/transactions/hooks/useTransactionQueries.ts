@@ -1,4 +1,4 @@
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useInfiniteQuery, keepPreviousData } from "@tanstack/react-query";
 import { TransactionItem, PaymentRecord } from "../types";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -10,17 +10,16 @@ export interface TransactionFilters {
 
 // --- 1. Hook for Line Items History ---
 export const useTransactionHistory = (
-  page: number,
   pageSize: number,
   filters: TransactionFilters = {}
 ) => {
   const { isAuthenticated } = useAuthStore();
 
-  return useQuery({
-    queryKey: ["transaction-items", page, pageSize, filters],
-    queryFn: async () => {
+  return useInfiniteQuery({
+    queryKey: ["transaction-items", pageSize, filters],
+    queryFn: async ({ pageParam = 1 }) => {
       const { getTransactionHistory } = await import("@/app/actions/transactions");
-      const result = await getTransactionHistory(page, pageSize, filters);
+      const result = await getTransactionHistory(pageParam as number, pageSize, filters);
 
       if (!result.success) {
         throw new Error(result.error);
@@ -44,8 +43,11 @@ export const useTransactionHistory = (
       return {
         data: formattedData,
         count: result.count || 0,
+        nextPage: (result.data as any[]).length === pageSize ? (pageParam as number) + 1 : undefined
       };
     },
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+    initialPageParam: 1,
     enabled: isAuthenticated,
     placeholderData: keepPreviousData,
   });
@@ -53,17 +55,16 @@ export const useTransactionHistory = (
 
 // --- 2. Hook for Payment/Header History ---
 export const usePaymentHistory = (
-  page: number = 1,
   pageSize: number = 50,
   filters: TransactionFilters = {}
 ) => {
   const { isAuthenticated } = useAuthStore();
 
-  return useQuery({
-    queryKey: ["payments", page, pageSize, filters],
-    queryFn: async () => {
+  return useInfiniteQuery({
+    queryKey: ["payments", pageSize, filters],
+    queryFn: async ({ pageParam = 1 }) => {
       const { getPaymentHistory } = await import("@/app/actions/transactions");
-      const result = await getPaymentHistory(page, pageSize, filters);
+      const result = await getPaymentHistory(pageParam as number, pageSize, filters);
 
       if (!result.success) {
         throw new Error(result.error);
@@ -82,8 +83,11 @@ export const usePaymentHistory = (
       return {
         data: formattedData,
         count: result.count || 0,
+        nextPage: (result.data as any[]).length === pageSize ? (pageParam as number) + 1 : undefined
       };
     },
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+    initialPageParam: 1,
     enabled: isAuthenticated,
     placeholderData: keepPreviousData,
   });

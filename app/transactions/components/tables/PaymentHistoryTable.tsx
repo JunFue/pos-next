@@ -1,9 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import { Loader2, AlertCircle, XCircle } from "lucide-react";
-import { usePaymentData } from "../../hooks/usePaymentData"; // New Import
-import { ItemTablePagination } from "@/components/reusables/ItemTablePagination";
+import { usePaymentData } from "../../hooks/usePaymentData";
 import { DateColumnFilter } from "@/app/expenses/components/cashout/components/DateColumnFilter";
 import { HeaderWithFilter } from "@/components/reusables/HeaderWithFilter";
 
@@ -15,41 +14,52 @@ export const PaymentHistoryTable = () => {
     isLoading,
     isError,
     error,
-    currentPage,
-    rowsPerPage,
     filters,
-    setCurrentPage,
-    setRowsPerPage,
     setFilters,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
   } = usePaymentData();
 
-  const totalPages = Math.ceil(totalRows / rowsPerPage);
+  const observerTarget = useRef<HTMLDivElement>(null);
 
-  // 2. Handlers (Now update the Context state)
-  const handlePageChange = (newPage: number) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      setCurrentPage(newPage);
-    }
-  };
+  const handleObserver = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      const [target] = entries;
+      if (target.isIntersecting && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    },
+    [fetchNextPage, hasNextPage, isFetchingNextPage]
+  );
 
-  const handleRowsPerPageChange = (newSize: number) => {
-    setRowsPerPage(newSize);
-    setCurrentPage(1); // Reset to first page
-  };
+  useEffect(() => {
+    const element = observerTarget.current;
+    if (!element) return;
+
+    const observer = new IntersectionObserver(handleObserver, {
+      root: null,
+      rootMargin: "20px",
+      threshold: 0,
+    });
+
+    observer.observe(element);
+
+    return () => {
+      if (element) observer.unobserve(element);
+    };
+  }, [handleObserver]);
 
   const handleDateChange = (start: string, end: string) => {
     setFilters({ ...filters, startDate: start, endDate: end });
-    setCurrentPage(1);
   };
 
   const handleApplyFilter = (key: string, value: string) => {
     setFilters({ ...filters, [key]: value });
-    setCurrentPage(1);
   };
 
   const handleClearAllFilters = () => {
     setFilters({ startDate: "", endDate: "" });
-    setCurrentPage(1);
   };
 
   const hasActiveFilters = Object.keys(filters).some(
@@ -95,9 +105,9 @@ export const PaymentHistoryTable = () => {
         )}
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto flex-1 overflow-y-auto">
         <table className="w-full text-slate-300 text-sm text-left">
-          <thead className="bg-slate-800/50 text-slate-400 text-xs uppercase">
+          <thead className="sticky top-0 z-10 bg-slate-900/90 backdrop-blur-sm text-slate-400 text-xs uppercase shadow-sm">
             <tr>
               <th className="px-6 py-3 rounded-tl-lg">
                 <HeaderWithFilter
@@ -166,21 +176,19 @@ export const PaymentHistoryTable = () => {
             )}
           </tbody>
         </table>
+        
+        {/* Sentinel for Infinite Scroll */}
+        <div ref={observerTarget} className="h-4 w-full" />
+        
+        {isFetchingNextPage && (
+          <div className="flex justify-center p-4">
+            <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
+          </div>
+        )}
       </div>
 
-      {/* --- Pagination Component --- */}
-      <div className="mt-auto">
-        <ItemTablePagination
-          startRow={(currentPage - 1) * rowsPerPage}
-          endRow={Math.min(currentPage * rowsPerPage, totalRows)}
-          totalRows={totalRows}
-          rowsPerPage={rowsPerPage}
-          paginationOptions={[10, 20, 50, 100]}
-          onRowsPerPageChange={handleRowsPerPageChange}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-        />
+      <div className="p-2 text-xs text-slate-500 text-center border-t border-slate-700/50">
+        Showing {payments.length} of {totalRows} records
       </div>
     </div>
   );
