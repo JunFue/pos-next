@@ -70,10 +70,10 @@ export const FormFields = React.memo<FormFieldsProps>(
 
     return (
       <div className="flex flex-col justify-center p-2 w-full">
-        {/* Changed from grid to flex row for single line layout */}
-        <div className="flex items-end gap-4 w-full text-white">
+        {/* Changed from grid to flex row for single line layout - stacks on mobile */}
+        <div className="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-4 w-full text-white">
           {fields.map((field) => (
-            <div key={field.id} className={`${field.id === "customerName" ? "w-[30%]" : field.id === "barcode" ? "w-[40%]" : "w-[30%]"} flex flex-col gap-1`}>
+            <div key={field.id} className={`w-full ${field.id === "customerName" ? "sm:w-[30%]" : field.id === "barcode" ? "sm:w-[40%]" : "sm:w-[30%]"} flex flex-col gap-1`}>
               <label
                 htmlFor={field.id}
                 title={field.title}

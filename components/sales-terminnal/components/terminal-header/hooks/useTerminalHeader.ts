@@ -60,8 +60,8 @@ export const useTerminalHeader = (setCustomerId: (id: string | null) => void) =>
   };
 
   // Clear Customer
-  const handleClearCustomer = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleClearCustomer = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setValue("customerName", "");
     setCustomerId(null);
   };

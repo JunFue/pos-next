@@ -15,6 +15,9 @@ import { useTerminalShortcuts } from "./hooks/useTerminalShortcuts"; // Adjust p
 import { PaymentPopup } from "./modals/PaymentPopup";
 import { useState, useEffect } from "react";
 import ActionPanel from "./components/ActionPanel";
+import MobileFormFields from "./components/MobileFormFields";
+import MobileActionPanel from "./components/MobileActionPanel";
+import MobileCartPanel from "./components/MobileCartPanel";
 
 const SalesTerminal = () => {
   const {
@@ -89,10 +92,10 @@ const SalesTerminal = () => {
   };
 
   return (
-    <div className="relative flex flex-row h-full overflow-hidden">
+    <div className="relative flex flex-col lg:flex-row h-full overflow-hidden">
       <FormProvider {...methods}>
         {/* LEFT PANEL: Transaction Details */}
-        <div className="flex flex-col flex-1 p-4 h-full min-w-0">
+        <div className="flex flex-col flex-1 p-2 sm:p-4 h-full min-w-0">
             <TerminalHeader 
               setCustomerId={setCustomerId} 
               grandTotal={cartItems.reduce((sum, item) => sum + item.total, 0)}
@@ -104,28 +107,59 @@ const SalesTerminal = () => {
               className={`flex flex-col gap-4 w-full h-full overflow-hidden`}
             >
               <div className="relative flex flex-col w-full shrink-0">
-                <FormFields
-                  onAddToCartClick={onAddToCart}
-                  onDoneSubmitTrigger={triggerDoneSubmit}
-                  setActiveField={setActiveField}
-                />
+                {/* Desktop Form Fields */}
+                <div className="hidden sm:block">
+                  <FormFields
+                    onAddToCartClick={onAddToCart}
+                    onDoneSubmitTrigger={triggerDoneSubmit}
+                    setActiveField={setActiveField}
+                  />
+                </div>
+                {/* Mobile Form Fields */}
+                <div className="block sm:hidden">
+                  <MobileFormFields
+                    onAddToCartClick={onAddToCart}
+                    setActiveField={setActiveField}
+                  />
+                </div>
               </div>
               <div className="border border-slate-800 bg-slate-900/30 rounded-2xl w-full grow overflow-hidden min-h-0">
-                <TerminalCart
-                  rows={cartItems}
-                  onRemoveItem={onRemoveItem}
-                  onUpdateItem={onUpdateItem}
-                />
+                {/* Desktop Cart */}
+                <div className="hidden sm:block h-full">
+                  <TerminalCart
+                    rows={cartItems}
+                    onRemoveItem={onRemoveItem}
+                    onUpdateItem={onUpdateItem}
+                  />
+                </div>
+                {/* Mobile Action Panel (QuickPick + Charge + Numpad) */}
+                <div className="block sm:hidden h-full">
+                  <MobileActionPanel
+                    onAddToCart={onAddToCart}
+                    onCharge={() => setIsPaymentPopupOpen(true)}
+                    activeField={activeField}
+                  />
+                </div>
               </div>
             </form>
         </div>
 
         {/* RIGHT PANEL: Action Panel */}
-        <ActionPanel 
-          onAddToCart={onAddToCart}
-          onClearAll={onClear}
-          onCharge={() => setIsPaymentPopupOpen(true)}
-          activeField={activeField}
+        {/* RIGHT PANEL: Action Panel - Desktop Only */}
+        <div className="hidden lg:block h-full">
+          <ActionPanel 
+            onAddToCart={onAddToCart}
+            onClearAll={onClear}
+            onCharge={() => setIsPaymentPopupOpen(true)}
+            activeField={activeField}
+          />
+        </div>
+
+        {/* Mobile Cart Panel Overlay */}
+        <MobileCartPanel
+          cartItems={cartItems}
+          grandTotal={cartTotal}
+          onRemoveItem={onRemoveItem}
         />
       </FormProvider>
 

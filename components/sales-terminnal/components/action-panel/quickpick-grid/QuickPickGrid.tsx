@@ -43,14 +43,14 @@ export const QuickPickGrid = ({ onSelect }: QuickPickGridProps) => {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 sm:gap-2">
             {quickPickItems.map((btn) => (
               <button
                 key={btn.id}
                 onClick={() => btn.item && onSelect(btn.item)}
                 className={`
                   ${btn.color} border shadow-lg backdrop-blur-sm
-                  rounded-lg p-1 text-[10px] font-bold leading-tight h-16
+                  rounded-lg p-1 text-[10px] font-bold leading-tight h-12 sm:h-16
                   hover:brightness-110 active:scale-95 transition-all
                   flex items-center justify-center text-center break-words
                   relative overflow-hidden

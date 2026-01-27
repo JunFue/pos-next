@@ -48,7 +48,7 @@ export const Numpad = ({ onKeyPress, onClear }: NumpadProps) => {
               onClick={() => item.key === "⌫" ? onClear() : onKeyPress(item.key)}
               className={`
                 ${item.key === "⌫" ? "bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30" : "bg-slate-800 hover:bg-slate-700 text-white border-slate-700"}
-                font-bold text-xl rounded-lg shadow-md border active:bg-slate-600 transition-colors flex flex-col items-center justify-center
+                font-bold text-lg sm:text-xl rounded-lg shadow-md border active:bg-slate-600 transition-colors flex flex-col items-center justify-center min-h-[44px]
               `}
             >
               <span>{item.key}</span>
@@ -64,7 +64,7 @@ export const Numpad = ({ onKeyPress, onClear }: NumpadProps) => {
               onClick={() => key === "⌫" ? onClear() : onKeyPress(key)}
               className={`
                 ${key === "⌫" ? "bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30" : "bg-slate-800 hover:bg-slate-700 text-white border-slate-700"}
-                font-bold text-xl rounded-lg shadow-md border active:bg-slate-600 transition-colors flex items-center justify-center
+                font-bold text-lg sm:text-xl rounded-lg shadow-md border active:bg-slate-600 transition-colors flex items-center justify-center min-h-[44px]
               `}
             >
               {key}

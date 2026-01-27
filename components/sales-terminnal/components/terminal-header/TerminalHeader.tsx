@@ -7,6 +7,7 @@ import { CustomerSelector } from "./components/CustomerSelector";
 import { HeaderToolbar } from "./components/HeaderToolbar";
 import { TimeDisplay } from "./components/TimeDisplay";
 import { ProductDisplay } from "./components/ProductDisplay";
+import { MobileCustomerInput } from "./components/MobileCustomerInput";
 
 type TerminalHeaderProps = {
 
@@ -49,10 +50,10 @@ export const TerminalHeader = ({
       />
 
       <div
-        className={`glass-effect flex flex-row items-stretch mb-4 rounded-xl w-full min-h-[260px] text-white shadow-xl transition-all duration-300 border ${borderColor} overflow-hidden bg-slate-900/40`}
+        className={`glass-effect flex flex-col sm:flex-row items-stretch mb-2 sm:mb-4 rounded-xl w-full min-h-[180px] sm:min-h-[260px] text-white shadow-xl transition-all duration-300 border ${borderColor} overflow-hidden bg-slate-900/40`}
       >
-        {/* LEFT SECTION: Cashier, Customer, Tools */}
-        <div className="flex flex-col justify-between p-5 w-[35%] border-r border-slate-700/50">
+        {/* LEFT SECTION: Cashier, Customer, Tools - Hidden on mobile except Customer */}
+        <div className="hidden sm:flex flex-col justify-between p-5 w-[35%] border-r border-slate-700/50">
           <div className="space-y-4">
              <CashierInfo user={user} statusColor={statusColor} />
              <CustomerSelector
@@ -69,43 +70,80 @@ export const TerminalHeader = ({
         </div>
 
         {/* RIGHT SECTION: Total, Time, Product Status */}
-        {/* RIGHT SECTION: Total, Time, Product Status */}
-        <div className="relative flex-1 p-6">
-          {/* Top Right: Time */}
-          <div className="absolute top-6 right-6 z-20">
-            <div className="bg-slate-800/50 px-4 py-2 rounded-lg border border-slate-700/50 backdrop-blur-sm shadow-lg">
-              <TimeDisplay
+        <div className="relative flex-1 p-3 sm:p-6 min-h-[120px] sm:min-h-0">
 
-                isBackdating={isBackdating}
-                customTransactionDate={customTransactionDate}
-                setCustomTransactionDate={setCustomTransactionDate}
-              />
+          {/* Mobile layout: flex column */}
+          <div className="flex flex-col sm:hidden gap-2 h-full">
+            {/* Customer Input - Top Right */}
+            <div className="flex justify-end mb-1 w-full">
+               <MobileCustomerInput 
+                  customerName={customerName || ""}
+                  isCustomerSelected={!!isCustomerSelected}
+                  onSearchOpen={() => setIsSearchOpen(true)}
+                  onClearCustomer={handleClearCustomer}
+               />
+            </div>
+            
+            {/* Product Info & Grand Total */}
+            <div className="flex items-center justify-between gap-2 flex-1">
+              {/* Product Info - Mobile - Left */}
+              <div className="flex-1 min-w-0">
+                <ProductDisplay
+                  currentProduct={currentProduct}
+                  isBackdating={isBackdating}
+                />
+              </div>
+              {/* Grand Total - Mobile - Right */}
+              <div className="flex flex-col items-end shrink-0">
+                <span className="text-slate-400 text-[10px] uppercase tracking-widest">
+                  Grand Total
+                </span>
+                <span className="font-bold text-2xl text-emerald-400 tracking-tighter">
+                  ₱{grandTotal.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Center Left: Product Display */}
-          <div className="absolute inset-0 flex items-center justify-start pl-6 z-10 pointer-events-none">
-            <div className="pointer-events-auto">
-              <ProductDisplay
-                currentProduct={currentProduct}
-                isBackdating={isBackdating}
-              />
+          {/* Desktop layout: absolute positioning */}
+          <div className="hidden sm:block">
+            {/* Top Right: Time */}
+            <div className="absolute top-6 right-6 z-20">
+              <div className="bg-slate-800/50 px-4 py-2 rounded-lg border border-slate-700/50 backdrop-blur-sm shadow-lg">
+                <TimeDisplay
+                  isBackdating={isBackdating}
+                  customTransactionDate={customTransactionDate}
+                  setCustomTransactionDate={setCustomTransactionDate}
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Bottom Right: Grand Total */}
-          <div className="absolute bottom-6 right-6 z-20">
-            <div className="flex flex-col items-end">
-              <span className="text-slate-400 text-xs uppercase tracking-widest mb-1">
-                Grand Total
-              </span>
-              <span className="font-bold text-5xl text-emerald-400 tracking-tighter drop-shadow-[0_0_15px_rgba(52,211,153,0.3)]">
-                ₱
-                {grandTotal.toLocaleString("en-US", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </span>
+            {/* Center Left: Product Display */}
+            <div className="absolute inset-0 flex items-center justify-start pl-6 z-10 pointer-events-none">
+              <div className="pointer-events-auto">
+                <ProductDisplay
+                  currentProduct={currentProduct}
+                  isBackdating={isBackdating}
+                />
+              </div>
+            </div>
+
+            {/* Bottom Right: Grand Total */}
+            <div className="absolute bottom-6 right-6 z-20">
+              <div className="flex flex-col items-end">
+                <span className="text-slate-400 text-xs uppercase tracking-widest mb-1">
+                  Grand Total
+                </span>
+                <span className="font-bold text-5xl text-emerald-400 tracking-tighter drop-shadow-[0_0_15px_rgba(52,211,153,0.3)]">
+                  ₱{grandTotal.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              </div>
             </div>
           </div>
         </div>

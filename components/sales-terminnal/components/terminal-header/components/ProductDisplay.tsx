@@ -17,7 +17,7 @@ export const ProductDisplay = ({
         {/* Item Display */}
         <div className="flex flex-col justify-center items-start space-y-1 mt-0 text-left">
           <h1
-            className={`text-2xl md:text-4xl font-bold tracking-tight font-lexend drop-shadow-lg transition-colors line-clamp-2 max-w-[90%] ${
+            className={`text-lg md:text-4xl font-bold tracking-tight font-lexend drop-shadow-lg transition-colors line-clamp-2 max-w-[90%] ${
               isBackdating ? "text-amber-100" : "text-cyan-50"
             }`}
           >

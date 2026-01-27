@@ -55,32 +55,32 @@ export const ActionButtons = ({
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Primary Actions Grid */}
-      <div className="grid grid-cols-5 gap-2">
+      {/* Primary Actions Grid - 3 cols on mobile, 5 on larger */}
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 sm:gap-2">
         <button
           onClick={onAdd}
-          className="col-span-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold py-3 rounded-lg transition-colors text-xs flex flex-col items-center justify-center gap-1"
+          className="col-span-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold py-2 sm:py-3 rounded-lg transition-colors text-xs flex flex-col items-center justify-center gap-1"
         >
           <Plus className="w-4 h-4" />
           ADD
         </button>
         <button
           onClick={onDiscount}
-          className="col-span-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold py-3 rounded-lg transition-colors text-xs flex flex-col items-center justify-center gap-1"
+          className="col-span-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold py-2 sm:py-3 rounded-lg transition-colors text-xs flex flex-col items-center justify-center gap-1"
         >
           <Tag className="w-4 h-4" />
           DISC
         </button>
         <button
           onClick={onVoucher}
-          className="col-span-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold py-3 rounded-lg transition-colors text-xs flex flex-col items-center justify-center gap-1"
+          className="col-span-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold py-2 sm:py-3 rounded-lg transition-colors text-xs flex flex-col items-center justify-center gap-1"
         >
           <Ticket className="w-4 h-4" />
           VOUCH
         </button>
         <button
           onClick={onOpenDrawer}
-          className="col-span-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold py-3 rounded-lg transition-colors text-xs flex flex-col items-center justify-center gap-1"
+          className="col-span-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold py-2 sm:py-3 rounded-lg transition-colors text-xs flex flex-col items-center justify-center gap-1"
         >
           <Archive className="w-4 h-4" />
           DRAWER
@@ -91,7 +91,7 @@ export const ActionButtons = ({
           onMouseLeave={() => timerRef.current && clearTimeout(timerRef.current)}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          className="col-span-1 bg-red-900/20 hover:bg-red-900/30 border border-red-900/30 text-red-400 font-bold py-3 rounded-lg transition-colors text-xs flex flex-col items-center justify-center gap-1 active:scale-95"
+          className="col-span-1 bg-red-900/20 hover:bg-red-900/30 border border-red-900/30 text-red-400 font-bold py-2 sm:py-3 rounded-lg transition-colors text-xs flex flex-col items-center justify-center gap-1 active:scale-95"
           title="Short press: Clear Input | Long press: Clear All"
         >
           <Eraser className="w-4 h-4" />
@@ -100,7 +100,7 @@ export const ActionButtons = ({
       </div>
 
       {/* Charge and Qty Control */}
-      <div className="grid grid-cols-4 gap-2 h-16">
+      <div className="grid grid-cols-4 gap-1 sm:gap-2 h-12 sm:h-16">
         <button
           onClick={onDecreaseQty}
           className="col-span-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 font-bold rounded-lg transition-colors flex items-center justify-center"
