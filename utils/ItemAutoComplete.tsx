@@ -15,6 +15,7 @@ export interface ItemAutocompleteProps {
   id?: string;
   // 1. FIX: Add onKeyDown to the interface
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
 }
 
 const ItemAutocomplete = forwardRef<HTMLInputElement, ItemAutocompleteProps>(
@@ -29,6 +30,7 @@ const ItemAutocomplete = forwardRef<HTMLInputElement, ItemAutocompleteProps>(
       onItemSelect,
       id,
       onKeyDown, // 2. FIX: Destructure onKeyDown from props
+      onFocus,
     },
     ref
   ) => {
@@ -123,7 +125,8 @@ const ItemAutocomplete = forwardRef<HTMLInputElement, ItemAutocompleteProps>(
             onBlur();
             setTimeout(() => setIsOpen(false), 200);
           }}
-          onFocus={() => {
+          onFocus={(e) => {
+            if (onFocus) onFocus(e);
             if (value && suggestions.length > 0) setIsOpen(true);
           }}
           onKeyDown={handleInternalKeyDown} // Use our wrapper function

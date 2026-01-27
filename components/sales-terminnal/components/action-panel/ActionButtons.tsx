@@ -1,5 +1,5 @@
-import React from "react";
-import { Plus, Minus, CreditCard, Tag, Ticket, Archive } from "lucide-react";
+import React, { useRef } from "react";
+import { Plus, Minus, CreditCard, Tag, Ticket, Archive, Eraser } from "lucide-react";
 
 interface ActionButtonsProps {
   onAdd: () => void;
@@ -9,6 +9,8 @@ interface ActionButtonsProps {
   onCharge: () => void;
   onIncreaseQty: () => void;
   onDecreaseQty: () => void;
+  onClearInput: () => void;
+  onClearAll: () => void;
 }
 
 export const ActionButtons = ({
@@ -19,11 +21,42 @@ export const ActionButtons = ({
   onCharge,
   onIncreaseQty,
   onDecreaseQty,
+  onClearInput,
+  onClearAll,
 }: ActionButtonsProps) => {
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLongPress = useRef(false);
+
+  const handleMouseDown = () => {
+    isLongPress.current = false;
+    timerRef.current = setTimeout(() => {
+      isLongPress.current = true;
+      onClearAll();
+    }, 800); // 800ms for long press
+  };
+
+  const handleMouseUp = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    if (!isLongPress.current) {
+      onClearInput();
+    }
+  };
+
+  const handleTouchStart = () => {
+    handleMouseDown();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault(); // Prevent mouse events firing after touch
+    handleMouseUp();
+  };
+
   return (
     <div className="flex flex-col gap-2">
       {/* Primary Actions Grid */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-5 gap-2">
         <button
           onClick={onAdd}
           className="col-span-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold py-3 rounded-lg transition-colors text-xs flex flex-col items-center justify-center gap-1"
@@ -51,6 +84,18 @@ export const ActionButtons = ({
         >
           <Archive className="w-4 h-4" />
           DRAWER
+        </button>
+        <button
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={() => timerRef.current && clearTimeout(timerRef.current)}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          className="col-span-1 bg-red-900/20 hover:bg-red-900/30 border border-red-900/30 text-red-400 font-bold py-3 rounded-lg transition-colors text-xs flex flex-col items-center justify-center gap-1 active:scale-95"
+          title="Short press: Clear Input | Long press: Clear All"
+        >
+          <Eraser className="w-4 h-4" />
+          CLEAR
         </button>
       </div>
 

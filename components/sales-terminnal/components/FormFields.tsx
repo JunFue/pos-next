@@ -8,10 +8,11 @@ import ItemAutocomplete from "../../../utils/ItemAutoComplete";
 type FormFieldsProps = {
   onAddToCartClick: () => void; // Back to sync
   onDoneSubmitTrigger: () => void;
+  setActiveField?: (field: "barcode" | "quantity" | null) => void;
 };
 
-export const FormFields = React.memo(
-  ({ onAddToCartClick, onDoneSubmitTrigger }: FormFieldsProps) => {
+export const FormFields = React.memo<FormFieldsProps>(
+  ({ onAddToCartClick, onDoneSubmitTrigger, setActiveField }) => {
     const { register, control, setValue, setFocus } =
       useFormContext<PosFormValues>();
 
@@ -97,7 +98,11 @@ export const FormFields = React.memo(
                           ref={ref}
                           value={value ? String(value) : ""}
                           onChange={onChange}
-                          onBlur={onBlur}
+                          onBlur={() => {
+                            onBlur();
+                            // Optional: setActiveField?.(null); // Don't clear immediately to allow numpad to work
+                          }}
+                          onFocus={() => setActiveField?.("barcode")}
                           error={error?.message}
                           onItemSelect={(item) => {
                             setValue("barcode", item.sku, {
@@ -119,6 +124,11 @@ export const FormFields = React.memo(
                       ...(field.type === "number" && { valueAsNumber: true }),
                     })}
                     readOnly={field.readOnly}
+                    onFocus={() => {
+                        if (field.id === "quantity") setActiveField?.("quantity");
+                        else if (field.id === "barcode") setActiveField?.("barcode");
+                        else setActiveField?.(null);
+                    }}
                     className={`w-full h-10 sm:h-12 text-sm sm:text-base input-dark px-3 rounded-lg border-slate-700 focus:border-cyan-500 transition-colors ${
                       field.hideSpinners ? noSpinnerClass : ""
                     }`}
