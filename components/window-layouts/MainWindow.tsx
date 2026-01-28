@@ -67,7 +67,7 @@ export default function MainWindow({
   const isMobile = useMediaQuery("(max-width: 1024px)");
 
   // Bypass split-screen layout for specific routes (maintenance, login, etc.)
-  const fullScreenRoutes = ["/maintenance", "/login"];
+  const fullScreenRoutes = ["/maintenance", "/login", "/onboarding"];
   const isFullScreenRoute = fullScreenRoutes.some(route => pathname?.startsWith(route));
   
   // Auth Handlers

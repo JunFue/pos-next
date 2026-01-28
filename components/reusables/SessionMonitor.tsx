@@ -22,7 +22,7 @@ export default function SessionMonitor() {
             // We can't refresh from client side without createClient. 
             // If session is dead, we might need to redirect or let the next server action fail and redirect.
             // For now, we just log it. The next action will handle the redirect.
-            window.location.reload(); // Simplest recovery: reload to trigger middleware/server checks
+            // window.location.reload(); // DISABLED: Causing form data loss on tab switch
           } 
 
         } catch (err: any) {

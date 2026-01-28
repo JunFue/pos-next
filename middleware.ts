@@ -73,7 +73,8 @@ export async function middleware(request: NextRequest) {
   // Define public routes that don't require authentication
   const isLoginPage = request.nextUrl.pathname.startsWith("/login");
   const isApiRoute = request.nextUrl.pathname.startsWith("/api");
-  const isPublicRoute = isLoginPage || isApiRoute || isMaintenancePage;
+  const isAuthRoute = request.nextUrl.pathname.startsWith("/auth");
+  const isPublicRoute = isLoginPage || isApiRoute || isMaintenancePage || isAuthRoute;
 
   // If user is not logged in and trying to access a protected route
   if (!user && !isPublicRoute) {
@@ -90,18 +91,25 @@ export async function middleware(request: NextRequest) {
   // ============================================
   if (user) {
     // Check if user belongs to a store
-    const { data: member } = await supabase
-      .from("members")
+    const { data: userData } = await supabase
+      .from("users")
       .select("store_id")
       .eq("user_id", user.id)
       .single();
 
-    if (member?.store_id) {
+    const isOnboardingPage = request.nextUrl.pathname.startsWith("/onboarding");
+
+    if (!userData?.store_id) {
+      // If user has no store, redirect to onboarding
+      if (!isOnboardingPage && !isApiRoute) {
+        return NextResponse.redirect(new URL("/onboarding", request.url));
+      }
+    } else {
       // Check subscription status for that store
       const { data: sub } = await supabase
         .from("store_subscriptions")
         .select("status, end_date")
-        .eq("store_id", member.store_id)
+        .eq("store_id", userData.store_id)
         .single();
 
       const now = new Date();
@@ -113,7 +121,7 @@ export async function middleware(request: NextRequest) {
       // Define paths to exempt (so they don't get stuck in a redirect loop)
       const isSubscriptionPage =
         request.nextUrl.pathname.startsWith("/settings") ||
-        request.nextUrl.pathname.startsWith("/subscribe-required"); // Assuming settings is where subscription is
+        request.nextUrl.pathname.startsWith("/subscribe-required");
 
       // If inactive and NOT on the subscription page, redirect them
       if (!isActive && !isSubscriptionPage && !isApiRoute) {
@@ -122,6 +130,7 @@ export async function middleware(request: NextRequest) {
       }
     }
   }
+
 
   return response;
 }
