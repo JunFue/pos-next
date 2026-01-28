@@ -97,7 +97,10 @@ export default function ActionPanel({
             onCharge={onCharge}
             onIncreaseQty={handleIncreaseQty}
             onDecreaseQty={handleDecreaseQty}
-            onClearInput={() => reset({ barcode: "", quantity: null })}
+            onClearInput={() => {
+              setValue("barcode", "");
+              setValue("quantity", null);
+            }}
             onClearAll={onClearAll}
          />
       </div>

@@ -15,6 +15,22 @@ export const FormFields = React.memo<FormFieldsProps>(
   ({ onAddToCartClick, onDoneSubmitTrigger, setActiveField }) => {
     const { register, control, setValue, setFocus } =
       useFormContext<PosFormValues>();
+    
+    // Direct refs for inputs to ensure reliable focus
+    const barcodeInputRef = React.useRef<HTMLInputElement>(null);
+    const quantityInputRef = React.useRef<HTMLInputElement>(null);
+
+    const focusBarcode = () => {
+      setTimeout(() => {
+        barcodeInputRef.current?.focus();
+      }, 0);
+    };
+
+    const focusQuantity = () => {
+      setTimeout(() => {
+        quantityInputRef.current?.focus();
+      }, 0);
+    };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key !== "Enter") return;
@@ -22,21 +38,21 @@ export const FormFields = React.memo<FormFieldsProps>(
       const target = e.target as HTMLInputElement;
       const fieldId = target.id as keyof PosFormValues;
 
-      // 1. Always prevent default to stop page reloads or double submissions
+      // Always prevent default to stop page reloads or double submissions
       if (fieldId !== "voucher") {
         e.preventDefault();
       }
 
       switch (fieldId) {
         case "customerName":
-          setFocus("barcode");
+          focusBarcode();
           break;
         case "barcode":
-          setFocus("quantity");
+          focusQuantity();
           break;
         case "quantity":
           onAddToCartClick();
-          setFocus("barcode");
+          focusBarcode();
           break;
         default:
           break;
@@ -88,14 +104,14 @@ export const FormFields = React.memo<FormFieldsProps>(
                     control={control}
                     name="barcode"
                     render={({
-                      field: { onChange, value, onBlur, ref },
+                      field: { onChange, value, onBlur },
                       fieldState: { error },
                     }) => (
                       <div className="w-full">
                         <ItemAutocomplete
                           id="barcode"
                           onKeyDown={handleKeyDown}
-                          ref={ref}
+                          ref={barcodeInputRef}
                           value={value ? String(value) : ""}
                           onChange={onChange}
                           onBlur={() => {
@@ -108,11 +124,39 @@ export const FormFields = React.memo<FormFieldsProps>(
                             setValue("barcode", item.sku, {
                               shouldValidate: true,
                             });
-                            setFocus("quantity");
+                            focusQuantity();
                           }}
                           className="px-3 w-full h-10 sm:h-12 text-sm sm:text-base input-dark rounded-lg border-slate-700 focus:border-cyan-500 transition-colors"
                         />
                       </div>
+                    )}
+                  />
+                ) : field.id === "quantity" ? (
+                  <Controller
+                    control={control}
+                    name="quantity"
+                    render={({
+                      field: { onChange, value, onBlur },
+                    }) => (
+                      <input
+                        ref={quantityInputRef}
+                        type="number"
+                        id="quantity"
+                        value={value === null || value === undefined ? "" : value}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "") {
+                            onChange(null);
+                          } else {
+                            const num = parseInt(val, 10);
+                            onChange(isNaN(num) ? null : num);
+                          }
+                        }}
+                        onBlur={onBlur}
+                        onFocus={() => setActiveField?.("quantity")}
+                        onKeyDown={handleKeyDown}
+                        className={`w-full h-10 sm:h-12 text-sm sm:text-base input-dark px-3 rounded-lg border-slate-700 focus:border-cyan-500 transition-colors ${noSpinnerClass}`}
+                      />
                     )}
                   />
                 ) : (
@@ -120,29 +164,16 @@ export const FormFields = React.memo<FormFieldsProps>(
                     type={field.type}
                     id={field.id}
                     autoComplete={field.noAutoComplete ? "off" : undefined}
-                    {...register(field.id, {
-                      ...(field.type === "number" && { valueAsNumber: true }),
-                    })}
+                    {...register(field.id)}
                     readOnly={field.readOnly}
                     onFocus={() => {
-                        if (field.id === "quantity") setActiveField?.("quantity");
-                        else if (field.id === "barcode") setActiveField?.("barcode");
+                        if (field.id === "barcode") setActiveField?.("barcode");
                         else setActiveField?.(null);
                     }}
                     className={`w-full h-10 sm:h-12 text-sm sm:text-base input-dark px-3 rounded-lg border-slate-700 focus:border-cyan-500 transition-colors ${
                       field.hideSpinners ? noSpinnerClass : ""
                     }`}
-                    {...(field.type === "number" &&
-                      (field.id === "payment" ||
-                        field.id === "voucher" ||
-                        field.id === "discount" ||
-                        field.id === "grandTotal" ||
-                        field.id === "change") && { step: "0.01" })}
-                    {...((field.id === "customerName" ||
-                      field.id === "quantity" ||
-                      field.id === "discount" ||
-                      field.id === "payment" ||
-                      field.id === "voucher") && {
+                    {...((field.id === "customerName") && {
                       onKeyDown: handleKeyDown,
                     })}
                   />

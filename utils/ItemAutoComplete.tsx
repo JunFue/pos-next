@@ -53,7 +53,8 @@ const ItemAutocomplete = forwardRef<HTMLInputElement, ItemAutocompleteProps>(
       setIsOpen(false);
       setActiveIndex(-1);
       if (onItemSelect) {
-        onItemSelect(item);
+        // Use setTimeout to ensure focus change happens after React state updates
+        setTimeout(() => onItemSelect(item), 0);
       }
     };
 
