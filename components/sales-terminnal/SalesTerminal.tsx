@@ -15,9 +15,9 @@ import { useTerminalShortcuts } from "./hooks/useTerminalShortcuts"; // Adjust p
 import { PaymentPopup } from "./modals/PaymentPopup";
 import { useState, useEffect } from "react";
 import ActionPanel from "./components/ActionPanel";
-import MobileFormFields from "./components/MobileFormFields";
-import MobileActionPanel from "./components/MobileActionPanel";
-import MobileCartPanel from "./components/MobileCartPanel";
+import MobileFormFields from "./components/mobile-view/MobileFormFields";
+import MobileActionPanel from "./components/mobile-view/MobileActionPanel";
+import MobileCartPanel from "./components/mobile-view/MobileCartPanel";
 
 const SalesTerminal = () => {
   const {
@@ -160,6 +160,7 @@ const SalesTerminal = () => {
           cartItems={cartItems}
           grandTotal={cartTotal}
           onRemoveItem={onRemoveItem}
+          onCharge={() => setIsPaymentPopupOpen(true)}
         />
       </FormProvider>
 

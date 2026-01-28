@@ -66,6 +66,13 @@ export const useTerminalHeader = (setCustomerId: (id: string | null) => void) =>
     setCustomerId(null);
   };
 
+  const handleCustomerNameChange = (name: string) => {
+    setValue("customerName", name);
+    if (name === "") {
+        setCustomerId(null);
+    }
+  };
+
   const currentProduct = useMemo(() => {
     if (!currentBarcode) return { name: "ITEM NAME", price: "₱0.00", stock: 0 };
     const item = allItems.find((item) => item.sku === currentBarcode);
@@ -92,5 +99,6 @@ export const useTerminalHeader = (setCustomerId: (id: string | null) => void) =>
     customTransactionDate,
     setCustomTransactionDate,
     storeId, // <--- Return storeId
+    handleCustomerNameChange,
   };
 };

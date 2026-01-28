@@ -15,16 +15,16 @@ export const ProductDisplay = ({
     <>
       <div className="flex flex-col items-start justify-center h-full">
         {/* Item Display */}
-        <div className="flex flex-col justify-center items-start space-y-1 mt-0 text-left">
+        <div className="flex flex-col justify-center items-start mt-0 text-left">
           <h1
-            className={`text-lg md:text-4xl font-bold tracking-tight font-lexend drop-shadow-lg transition-colors line-clamp-2 max-w-[90%] ${
+            className={`text-1xl md:text-4xl font-bold tracking-tight font-lexend drop-shadow-lg transition-colors line-clamp-2 max-w-full ${
               isBackdating ? "text-amber-100" : "text-cyan-50"
             }`}
           >
             {currentProduct.name}
           </h1>
           <p
-            className={`text-3xl md:text-4xl font-lexend font-black tracking-tighter transition-colors ${
+            className={`text-2xl md:text-4xl font-lexend font-black tracking-tighter transition-colors ${
               isBackdating ? "text-amber-300" : "text-cyan-300"
             }`}
           >

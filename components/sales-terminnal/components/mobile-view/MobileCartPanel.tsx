@@ -3,18 +3,20 @@
 
 import React, { useState } from "react";
 import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
-import { CartItem } from "./TerminalCart";
+import { CartItem } from "../TerminalCart";
 
 interface MobileCartPanelProps {
   cartItems: CartItem[];
   grandTotal: number;
   onRemoveItem: (sku: string) => void;
+  onCharge: () => void;
 }
 
 export const MobileCartPanel = ({
   cartItems,
   grandTotal,
   onRemoveItem,
+  onCharge,
 }: MobileCartPanelProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -100,6 +102,18 @@ export const MobileCartPanel = ({
               ))}
             </div>
           )}
+        </div>
+
+        {/* Charge Button Footer */}
+        <div className="p-4 border-t border-slate-800 bg-slate-900/50">
+          <button
+            type="button"
+            onClick={onCharge}
+            disabled={cartItems.length === 0}
+            className="w-full h-12 bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-500 text-black font-bold text-lg rounded-xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+          >
+            CHARGE
+          </button>
         </div>
       </div>
 

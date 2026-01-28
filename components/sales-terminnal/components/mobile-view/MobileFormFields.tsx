@@ -1,9 +1,9 @@
 // Mobile Form Fields - Barcode and Quantity on same row with +/- buttons
 import React from "react";
 import { useFormContext, Controller } from "react-hook-form";
-import { PosFormValues } from "../utils/posSchema";
-import ItemAutocomplete from "../../../utils/ItemAutoComplete";
-import { Plus, Minus } from "lucide-react";
+import { PosFormValues } from "../../utils/posSchema";
+import ItemAutocomplete from "../../../../utils/ItemAutoComplete";
+import { Plus, Minus, ScanBarcode } from "lucide-react";
 
 type MobileFormFieldsProps = {
   onAddToCartClick: () => void;
@@ -57,30 +57,39 @@ export const MobileFormFields = React.memo<MobileFormFieldsProps>(
           >
             Barcode / Item:
           </label>
-          <Controller
-            control={control}
-            name="barcode"
-            render={({
-              field: { onChange, value, onBlur, ref },
-              fieldState: { error },
-            }) => (
-              <ItemAutocomplete
-                id="barcode"
-                onKeyDown={handleKeyDown}
-                ref={ref}
-                value={value ? String(value) : ""}
-                onChange={onChange}
-                onBlur={onBlur}
-                onFocus={() => setActiveField?.("barcode")}
-                error={error?.message}
-                onItemSelect={(item) => {
-                  setValue("barcode", item.sku, { shouldValidate: true });
-                  setFocus("quantity");
-                }}
-                className="px-3 w-full h-10 text-sm input-dark rounded-lg border-slate-700 focus:border-cyan-500 transition-colors"
+          <div className="relative flex items-center">
+             <Controller
+                control={control}
+                name="barcode"
+                render={({
+                  field: { onChange, value, onBlur, ref },
+                  fieldState: { error },
+                }) => (
+                  <ItemAutocomplete
+                    id="barcode"
+                    onKeyDown={handleKeyDown}
+                    ref={ref}
+                    value={value ? String(value) : ""}
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    onFocus={() => setActiveField?.("barcode")}
+                    error={error?.message}
+                    onItemSelect={(item) => {
+                      setValue("barcode", item.sku, { shouldValidate: true });
+                      setFocus("quantity");
+                    }}
+                    className="pl-3 pr-10 w-full h-10 text-sm input-dark rounded-lg border-slate-700 focus:border-cyan-500 transition-colors"
+                  />
+                )}
               />
-            )}
-          />
+              <button
+                type="button"
+                className="absolute right-2 p-1 text-slate-400 hover:text-cyan-400 transition-colors"
+                // Placeholder for future functionality
+              >
+                <ScanBarcode className="w-4 h-4" />
+              </button>
+          </div>
         </div>
 
         {/* Quantity Section - Compact with +/- */}
