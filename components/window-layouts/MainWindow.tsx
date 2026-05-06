@@ -36,7 +36,7 @@ export function MainWindow({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { viewState } = useViewStore();
+  const { viewState, isTabletMode } = useViewStore();
 
   // Auth State
   const { user, signOut } = useAuthStore();
@@ -74,7 +74,7 @@ export function MainWindow({
 
   // --- DESKTOP LAYOUT ---
   return (
-    <div className="flex bg-background h-screen overflow-hidden text-foreground font-lexend lg:pl-20">
+    <div className={`flex bg-background h-screen overflow-hidden text-foreground font-lexend ${isTabletMode ? "" : "lg:pl-20"}`}>
       {/* Sidebar */}
       <Navigation variant="sidebar" />
 

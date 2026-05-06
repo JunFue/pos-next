@@ -16,6 +16,7 @@ import { PaymentPopup } from "./modals/PaymentPopup";
 import { FreeItemModal } from "./modals/FreeItemModal";
 import { useState, useEffect } from "react";
 import { ActionPanel } from "./components/ActionPanel";
+import { useViewStore } from "@/components/window-layouts/store/useViewStore"; // [NEW]
 
 const DesktopSalesTerminal = () => {
   const {
@@ -45,6 +46,7 @@ const DesktopSalesTerminal = () => {
   const [isFreeModalOpen, setIsFreeModalOpen] = useState(false);
   const [activeField, setActiveField] = useState<"barcode" | "quantity" | null>("barcode");
   const [isActionPanelOpen, setIsActionPanelOpen] = useState(true); // Default to open on desktop
+  const { isTabletMode, setIsTabletMode } = useViewStore(); // [NEW] Tablet Mode state
   const [isAnimating, setIsAnimating] = useState(false); // [NEW] Animation state
 
   // Calculate cart total
@@ -164,9 +166,11 @@ const DesktopSalesTerminal = () => {
         {/* RIGHT PANEL: Action Panel */}
         <div className={`
           h-full transition-all duration-300 ease-in-out
-          ${isActionPanelOpen ? "w-[450px]" : "w-0 overflow-hidden"}
+          ${isActionPanelOpen ? (isTabletMode ? "w-[650px] xl:w-[700px]" : "w-[450px]") : "w-0 overflow-hidden"}
         `}>
           <ActionPanel 
+            isTabletMode={isTabletMode}
+            onToggleTabletMode={() => setIsTabletMode(!isTabletMode)}
             onAddToCart={onAddToCart}
             onClearAll={onClear}
             onCharge={() => {

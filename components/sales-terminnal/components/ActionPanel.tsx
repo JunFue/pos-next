@@ -3,7 +3,6 @@ import { useFormContext } from "react-hook-form";
 import { QuickPickGrid } from "./action-panel/quickpick-grid/QuickPickGrid";
 import { ActionButtons } from "./action-panel/ActionButtons";
 import { Numpad } from "./action-panel/Numpad";
-import { CustomerIntelligence } from "./action-panel/CustomerIntelligence";
 import { PosFormValues } from "../utils/posSchema";
 import { ChevronUp, ChevronDown, CircleX, FanIcon } from "lucide-react";
 
@@ -18,6 +17,9 @@ interface ActionPanelProps {
   onToggleFreeMode?: () => void;
   isOpen: boolean;
   onToggle: () => void;
+  // [NEW] Tablet Mode
+  isTabletMode?: boolean;
+  onToggleTabletMode?: () => void;
 }
 
 export function ActionPanel({
@@ -30,6 +32,8 @@ export function ActionPanel({
   onToggleFreeMode,
   isOpen,
   onToggle,
+  isTabletMode,
+  onToggleTabletMode,
 }: ActionPanelProps) {
   const { setValue, getValues } = useFormContext<PosFormValues>();
 
@@ -43,13 +47,26 @@ export function ActionPanel({
     console.log("Numpad:", key);
     if (!activeField) return;
 
+    if (key === " ") key = " "; // Normal space
+
+    if (key === "Enter") {
+      onAddToCart();
+      return;
+    }
+
     const currentValue = getValues(activeField);
-    const newValue = currentValue ? String(currentValue) + key : key;
+    
+    let newValue: string | number = "";
+    if (key === "Backspace") {
+      newValue = currentValue ? String(currentValue).slice(0, -1) : "";
+    } else {
+      newValue = currentValue ? String(currentValue) + key : key;
+    }
 
     if (activeField === "quantity") {
       setValue(activeField, Number(newValue), { shouldValidate: true });
     } else {
-      setValue(activeField, newValue, { shouldValidate: true });
+      setValue(activeField, String(newValue), { shouldValidate: true });
     }
   };
 
@@ -102,22 +119,36 @@ export function ActionPanel({
       {/* Action Panel Container */}
       <div className={`
         flex flex-col bg-card border-l border-border transition-all duration-300 ease-in-out
-        w-full lg:w-[450px] shrink-0
+        w-full shrink-0
+        ${isTabletMode ? "lg:w-[650px] xl:w-[700px]" : "lg:w-[450px]"}
         lg:relative lg:h-full
         fixed bottom-12 left-0 right-0 z-30 lg:bottom-auto lg:z-auto
         ${isOpen ? 'translate-y-0 opacity-100' : 'translate-y-full lg:translate-x-full lg:translate-y-0 lg:opacity-0 lg:pointer-events-none'}
         max-h-[70vh] lg:max-h-none overflow-y-auto lg:overflow-hidden
-        shadow-sm p-4
+        shadow-sm p-3
       `}>
-        <div className={`flex items-center justify-between mb-2 ${!isOpen ? 'lg:hidden' : ''}`}>
+        <div className={`flex items-center justify-between mb-1 ${!isOpen ? 'lg:hidden' : ''}`}>
           <h2 className="text-foreground font-lexend font-medium text-base sm:text-lg">Action Panel</h2>
-          <button 
-            type="button"
-            onClick={onToggle}
-            className="hidden lg:block p-2 hover:bg-muted rounded-full text-muted-foreground transition-all duration-300 hover:rotate-90"
-          >
-            <CircleX className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onToggleTabletMode}
+              className={`hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium border transition-colors ${
+                isTabletMode 
+                  ? "bg-primary text-primary-foreground border-primary" 
+                  : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
+              }`}
+            >
+              Tablet Mode
+            </button>
+            <button 
+              type="button"
+              onClick={onToggle}
+              className="hidden lg:block p-2 hover:bg-muted rounded-full text-muted-foreground transition-all duration-300 hover:rotate-90"
+            >
+              <CircleX className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
       {/* 1. Quick Pick Grid - scrollable area */}
@@ -126,7 +157,7 @@ export function ActionPanel({
       </div>
 
       {/* 2. Action Buttons */}
-      <div className={`shrink-0 mt-3 ${!isOpen ? 'lg:hidden' : ''}`}>
+      <div className={`shrink-0 mt-2 ${!isOpen ? 'lg:hidden' : ''}`}>
          <ActionButtons 
             onAdd={onAddToCart}
             onDiscount={() => console.log("Discount")}
@@ -147,17 +178,9 @@ export function ActionPanel({
          />
       </div>
 
-      {/* 3. Numpad & Customer Intelligence */}
-      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 shrink-0 mt-3 ${!isOpen ? 'lg:hidden' : ''}`}>
-         {/* Numpad */}
-         <div className="flex flex-col h-[200px] sm:h-[220px]">
-            <Numpad onKeyPress={handleNumpadPress} onClear={handleClearInput} />
-         </div>
-
-         {/* Customer Intelligence - Hidden on mobile to save space */}
-         <div className="hidden sm:flex flex-col h-full justify-end">
-            <CustomerIntelligence />
-         </div>
+      {/* 3. Numpad */}
+      <div className={`flex flex-col shrink-0 mt-2 ${!isOpen ? 'lg:hidden' : ''} ${isTabletMode ? 'min-h-[260px]' : 'h-[200px] sm:h-[220px]'}`}>
+         <Numpad onKeyPress={handleNumpadPress} onClear={handleClearInput} isTabletMode={isTabletMode} />
       </div>
     </div>
     </>

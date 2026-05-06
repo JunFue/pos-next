@@ -3,13 +3,16 @@ import { create } from 'zustand';
 interface ViewState {
   viewState: number;
   isSplit: boolean;
+  isTabletMode: boolean;
   setViewState: (viewState: number | ((prev: number) => number)) => void;
   setIsSplit: (isSplit: boolean | ((prev: boolean) => boolean)) => void;
+  setIsTabletMode: (isTabletMode: boolean | ((prev: boolean) => boolean)) => void;
 }
 
 export const useViewStore = create<ViewState>((set) => ({
   viewState: 1,
   isSplit: true,
+  isTabletMode: false,
   setViewState: (viewState) =>
     set((state) => ({
       viewState: typeof viewState === 'function' ? viewState(state.viewState) : viewState,
@@ -17,5 +20,9 @@ export const useViewStore = create<ViewState>((set) => ({
   setIsSplit: (isSplit) =>
     set((state) => ({
       isSplit: typeof isSplit === 'function' ? isSplit(state.isSplit) : isSplit,
+    })),
+  setIsTabletMode: (isTabletMode) =>
+    set((state) => ({
+      isTabletMode: typeof isTabletMode === 'function' ? isTabletMode(state.isTabletMode) : isTabletMode,
     })),
 }));

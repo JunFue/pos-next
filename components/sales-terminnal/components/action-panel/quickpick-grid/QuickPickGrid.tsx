@@ -17,8 +17,7 @@ export const QuickPickGrid = ({ onSelect }: QuickPickGridProps) => {
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
-      <div className="flex justify-between items-center mb-2">
-        <label className="text-xs text-muted-foreground font-bold">Quick Pick</label>
+      <div className="flex justify-end items-center mb-2">
         <button
           type="button"
           onClick={() => setIsEditorOpen(true)}

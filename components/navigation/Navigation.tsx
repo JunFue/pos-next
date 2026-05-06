@@ -41,7 +41,7 @@ const Navigation = React.memo(({ variant = "grid" }: NavigationProps) => {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { setViewState } = useViewStore();
+  const { setViewState, isTabletMode } = useViewStore();
 
   const sidebarTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const itemTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -274,7 +274,7 @@ const Navigation = React.memo(({ variant = "grid" }: NavigationProps) => {
       <button 
         onClick={() => setIsMobileMenuOpen(true)}
         className={`
-          fixed top-4 left-6 z-40 p-2 bg-background border border-border rounded-md shadow-sm lg:hidden
+          fixed top-4 left-6 z-40 p-2 bg-background border border-border rounded-md shadow-sm ${isTabletMode ? "block" : "lg:hidden"}
           transition-opacity duration-300 ${isMobileMenuOpen ? "opacity-0 pointer-events-none" : "opacity-100"}
         `}
       >
@@ -284,7 +284,7 @@ const Navigation = React.memo(({ variant = "grid" }: NavigationProps) => {
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (
         <div 
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 lg:hidden"
+          className={`fixed inset-0 bg-background/80 backdrop-blur-sm z-50 ${isTabletMode ? "" : "lg:hidden"}`}
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
@@ -294,26 +294,28 @@ const Navigation = React.memo(({ variant = "grid" }: NavigationProps) => {
         onMouseLeave={handleSidebarLeave}
         className={`
           fixed left-0 top-0 z-[60] h-full bg-background border-r border-border transition-all duration-300 ease-in-out shadow-xl flex flex-col
-          ${isMobileMenuOpen ? "translate-x-0 w-64" : "-translate-x-full lg:translate-x-0"}
-          ${!isMobileMenuOpen ? (isCollapsed ? "lg:w-20" : "lg:w-64") : ""}
+          ${isMobileMenuOpen ? "translate-x-0 w-64" : (isTabletMode ? "-translate-x-full" : "-translate-x-full lg:translate-x-0")}
+          ${!isMobileMenuOpen ? (isTabletMode ? "" : (isCollapsed ? "lg:w-20" : "lg:w-64")) : ""}
         `}
       >
         {/* Toggle Button - Optional/Hidden in hover mode (Desktop only) */}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="top-4 -right-3 z-50 absolute bg-background border border-border shadow-md p-1 rounded-full text-muted-foreground hover:text-foreground transition-colors hidden lg:block"
-        >
-          {isCollapsed ? (
-            <ChevronRight className="w-4 h-4" />
-          ) : (
-            <ChevronLeft className="w-4 h-4" />
-          )}
-        </button>
+        {!isTabletMode && (
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="top-4 -right-3 z-50 absolute bg-background border border-border shadow-md p-1 rounded-full text-muted-foreground hover:text-foreground transition-colors hidden lg:block"
+          >
+            {isCollapsed ? (
+              <ChevronRight className="w-4 h-4" />
+            ) : (
+              <ChevronLeft className="w-4 h-4" />
+            )}
+          </button>
+        )}
 
         {/* Mobile Close Button */}
         <button
           onClick={() => setIsMobileMenuOpen(false)}
-          className="lg:hidden absolute top-4 right-4 z-[70] p-2 bg-background border border-border shadow-md rounded-full text-muted-foreground hover:text-foreground transition-colors"
+          className={`absolute top-4 right-4 z-[70] p-2 bg-background border border-border shadow-md rounded-full text-muted-foreground hover:text-foreground transition-colors ${isTabletMode ? "block" : "lg:hidden"}`}
         >
           <X className="w-4 h-4" />
         </button>
