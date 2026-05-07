@@ -158,7 +158,7 @@ export const FormFields = React.memo<FormFieldsProps>(
                           formRef(e);
                           (quantityInputRef as any).current = e;
                         }}
-                        type="number"
+                        type={isTabletMode ? "text" : "number"}
                         id="quantity"
                         value={value === null || value === undefined ? "" : value}
                         onChange={(e) => {

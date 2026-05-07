@@ -51,6 +51,7 @@ export function ActionPanel({
 
     if (key === "Enter") {
       onAddToCart();
+      setActiveField("barcode");
       return;
     }
 
