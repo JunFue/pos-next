@@ -10,10 +10,11 @@ type FormFieldsProps = {
   onDoneSubmitTrigger: () => void;
   setActiveField?: (field: "barcode" | "quantity" | null) => void;
   activeField?: "barcode" | "quantity" | null;
+  isTabletMode?: boolean;
 };
 
 export const FormFields = React.memo<FormFieldsProps>(
-  ({ onAddToCartClick, onDoneSubmitTrigger, setActiveField, activeField }) => {
+  ({ onAddToCartClick, onDoneSubmitTrigger, setActiveField, activeField, isTabletMode }) => {
     const { register, control, setValue, setFocus } =
       useFormContext<PosFormValues>();
     
@@ -140,6 +141,7 @@ export const FormFields = React.memo<FormFieldsProps>(
                             setActiveField?.("quantity");
                           }}
                           className="px-3 w-full h-10 sm:h-12 text-sm sm:text-base bg-background text-foreground rounded-lg border border-input focus:border-primary transition-colors focus:outline-none"
+                          inputMode={isTabletMode ? "none" : undefined}
                         />
                       </div>
                     )}
@@ -171,6 +173,7 @@ export const FormFields = React.memo<FormFieldsProps>(
                         onBlur={onBlur}
                         onFocus={() => setActiveField?.("quantity")}
                         onKeyDown={handleKeyDown}
+                        inputMode={isTabletMode ? "none" : undefined}
                         className={`w-full h-10 sm:h-12 text-sm sm:text-base bg-background text-foreground px-3 rounded-lg border border-input focus:border-primary transition-colors focus:outline-none ${noSpinnerClass}`}
                       />
                     )}

@@ -26,12 +26,59 @@ const T9_KEYS = [
 const QWERTY_ROWS = [
   ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
   ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
-  ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
-  ["Z", "X", "C", "V", "B", "N", "M"]
+  ["A", "S", "D", "F", "G", "H", "J", "K", "L", ";"],
+  ["Z", "X", "C", "V", "B", "N", "M", ".", "/"]
 ];
+
+const SYMBOL_MAP: Record<string, string> = {
+  "1": "!", "2": "@", "3": "#", "4": "$", "5": "%",
+  "6": "^", "7": "&", "8": "*", "9": "(", "0": ")",
+  ";": ":", ".": ","
+};
 
 export const Numpad = ({ onKeyPress, onClear, isTabletMode }: NumpadProps) => {
   const [showKeyboard, setShowKeyboard] = useState(false);
+  const [isShift, setIsShift] = useState(false);
+  const [isCaps, setIsCaps] = useState(false);
+  
+  const longPressTimer = React.useRef<NodeJS.Timeout | null>(null);
+  const isLongPressActive = React.useRef(false);
+
+  const handleKeyStart = (key: string) => {
+    isLongPressActive.current = false;
+    if (SYMBOL_MAP[key] && !isShift) {
+      longPressTimer.current = setTimeout(() => {
+        isLongPressActive.current = true;
+        onKeyPress(SYMBOL_MAP[key]);
+      }, 500);
+    }
+  };
+
+  const handleKeyEnd = (key: string) => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    
+    if (isLongPressActive.current) return;
+
+    // Handle character input
+    let charToType = key;
+    const isLetter = /^[a-zA-Z]$/.test(key);
+    const isSpecial = SYMBOL_MAP[key] !== undefined;
+
+    if (isSpecial && isShift) {
+        charToType = SYMBOL_MAP[key] || key;
+    } else if (isLetter) {
+        const shouldUpper = isShift !== isCaps; // XOR logic
+        charToType = shouldUpper ? key.toUpperCase() : key.toLowerCase();
+    }
+
+    onKeyPress(charToType);
+    
+    // Auto-reset shift
+    if (isShift) setIsShift(false);
+  };
 
   return (
     <div className="flex flex-col gap-2 h-full">
@@ -43,6 +90,7 @@ export const Numpad = ({ onKeyPress, onClear, isTabletMode }: NumpadProps) => {
           <button
             type="button"
             onClick={() => setShowKeyboard(!showKeyboard)}
+            onMouseDown={(e) => e.preventDefault()}
             className="p-1 rounded bg-muted border border-border text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
             title={showKeyboard ? "Show Numpad" : "Show T9 Keypad"}
           >
@@ -52,19 +100,90 @@ export const Numpad = ({ onKeyPress, onClear, isTabletMode }: NumpadProps) => {
       )}
 
       {isTabletMode ? (
-        <div className="flex flex-col gap-1.5 flex-1 justify-center max-w-full">
+        <div className="flex flex-col gap-1.5 flex-1 justify-center max-w-full select-none">
           {QWERTY_ROWS.map((row, rowIndex) => (
-            <div key={rowIndex} className={`flex justify-center gap-1 sm:gap-1.5 ${rowIndex === 2 ? "px-4" : rowIndex === 3 ? "px-6" : ""}`}>
-              {row.map((key) => (
+            <div key={rowIndex} className="flex justify-center gap-1 sm:gap-1.5">
+              {/* Add CapsLock on Row 2 (A-L row) */}
+              {rowIndex === 2 && (
                 <button
                   type="button"
-                  key={key}
-                  onClick={() => onKeyPress(key)}
-                  className="flex-1 max-w-12 min-w-8 min-h-[40px] sm:min-h-[48px] bg-muted hover:bg-muted/80 text-foreground border-border font-bold text-sm sm:text-base rounded shadow-sm border active:scale-95 flex items-center justify-center transition-all"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setIsCaps(!isCaps)}
+                  className={`
+                    w-12 sm:w-16 min-h-[44px] sm:min-h-[52px] rounded shadow-sm border font-bold text-[10px] sm:text-xs transition-all flex items-center justify-center
+                    ${isCaps ? "bg-primary text-primary-foreground border-primary" : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"}
+                  `}
                 >
-                  {key}
+                  CAPS
                 </button>
-              ))}
+              )}
+
+              {/* Add Shift on Row 3 (Z-M row) */}
+              {rowIndex === 3 && (
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setIsShift(!isShift)}
+                  className={`
+                    w-12 sm:w-16 min-h-[44px] sm:min-h-[52px] rounded shadow-sm border font-bold text-[10px] sm:text-xs transition-all flex items-center justify-center
+                    ${isShift ? "bg-primary text-primary-foreground border-primary" : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"}
+                  `}
+                >
+                  SHIFT
+                </button>
+              )}
+
+              {row.map((key) => {
+                const isRow0 = rowIndex === 0;
+                const symbol = SYMBOL_MAP[key];
+                const isLetter = /^[a-zA-Z]$/.test(key);
+                
+                // Determine what to display on the key
+                let displayKey = key;
+                if (isLetter) {
+                    displayKey = (isShift !== isCaps) ? key.toUpperCase() : key.toLowerCase();
+                } else if (isShift && symbol) {
+                    displayKey = symbol;
+                }
+
+                return (
+                  <button
+                    type="button"
+                    key={key}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      handleKeyStart(key);
+                    }}
+                    onMouseUp={(e) => {
+                      e.preventDefault();
+                      handleKeyEnd(key);
+                    }}
+                    onMouseLeave={() => {
+                        if (longPressTimer.current) {
+                            clearTimeout(longPressTimer.current);
+                        }
+                    }}
+                    onTouchStart={(e) => handleKeyStart(key)}
+                    onTouchEnd={(e) => {
+                        e.preventDefault();
+                        handleKeyEnd(key);
+                    }}
+                    className={`
+                      relative flex-1 max-w-12 min-w-8 min-h-[44px] sm:min-h-[52px] 
+                      bg-muted hover:bg-muted/80 text-foreground border-border 
+                      font-bold text-sm sm:text-base rounded shadow-sm border 
+                      active:scale-95 flex items-center justify-center transition-all
+                    `}
+                  >
+                    <span className={symbol && !isShift ? "mt-1.5" : ""}>{displayKey}</span>
+                    {symbol && !isShift && (
+                      <span className="absolute top-0.5 right-1 text-[8px] sm:text-[10px] text-muted-foreground/60 font-normal leading-none">
+                        {symbol}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           ))}
           {/* Action Row */}
@@ -72,28 +191,38 @@ export const Numpad = ({ onKeyPress, onClear, isTabletMode }: NumpadProps) => {
             <button
               type="button"
               onClick={onClear}
-              className="flex-[0.5] min-w-12 min-h-[40px] sm:min-h-[48px] bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold text-xs sm:text-sm rounded shadow-sm border border-red-500/30 active:scale-95 transition-all flex items-center justify-center"
+              onMouseDown={(e) => e.preventDefault()}
+              className="flex-[0.5] min-w-12 min-h-[44px] sm:min-h-[52px] bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold text-xs sm:text-sm rounded shadow-sm border border-red-500/30 active:scale-95 transition-all flex items-center justify-center"
             >
               Clear
             </button>
             <button
               type="button"
-              onClick={() => onKeyPress(" ")}
-              className="flex-2 min-h-[40px] sm:min-h-[48px] bg-muted hover:bg-muted/80 text-foreground border-border font-bold text-base sm:text-lg rounded shadow-sm border active:scale-95 transition-all flex items-center justify-center"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onKeyPress(" ");
+              }}
+              className="flex-2 min-h-[44px] sm:min-h-[52px] bg-muted hover:bg-muted/80 text-foreground border-border font-bold text-base sm:text-lg rounded shadow-sm border active:scale-95 transition-all flex items-center justify-center"
             >
               Space
             </button>
             <button
               type="button"
-              onClick={() => onKeyPress("Backspace")}
-              className="flex-[0.5] min-w-12 min-h-[40px] sm:min-h-[48px] bg-muted hover:bg-muted/80 text-foreground border-border font-bold text-base sm:text-xl rounded shadow-sm border active:scale-95 transition-all flex items-center justify-center"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onKeyPress("Backspace");
+              }}
+              className="flex-[0.5] min-w-12 min-h-[44px] sm:min-h-[52px] bg-muted hover:bg-muted/80 text-foreground border-border font-bold text-base sm:text-xl rounded shadow-sm border active:scale-95 transition-all flex items-center justify-center"
             >
               ⌫
             </button>
             <button
               type="button"
-              onClick={() => onKeyPress("Enter")}
-              className="flex-1 min-w-16 min-h-[40px] sm:min-h-[48px] bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm sm:text-base rounded shadow-sm border border-primary/20 active:scale-95 transition-all flex items-center justify-center"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onKeyPress("Enter");
+              }}
+              className="flex-1 min-w-16 min-h-[44px] sm:min-h-[52px] bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm sm:text-base rounded shadow-sm border border-primary/20 active:scale-95 transition-all flex items-center justify-center"
             >
               Enter
             </button>
@@ -106,6 +235,7 @@ export const Numpad = ({ onKeyPress, onClear, isTabletMode }: NumpadProps) => {
               type="button"
               key={item.key}
               onClick={() => item.key === "⌫" ? onClear() : onKeyPress(item.key)}
+              onMouseDown={(e) => e.preventDefault()}
               className={`
                 ${item.key === "⌫" ? "bg-red-500/10 hover:bg-red-500/20 text-red-500 border-red-500/30" : "bg-muted hover:bg-muted/80 text-foreground border-border"}
                 font-bold text-lg sm:text-xl rounded-lg shadow-sm border active:scale-95 transition-all flex flex-col items-center justify-center min-h-[44px]
@@ -123,6 +253,7 @@ export const Numpad = ({ onKeyPress, onClear, isTabletMode }: NumpadProps) => {
               type="button"
               key={key}
               onClick={() => key === "⌫" ? onClear() : onKeyPress(key)}
+              onMouseDown={(e) => e.preventDefault()}
               className={`
                 ${key === "⌫" ? "bg-red-500/10 hover:bg-red-500/20 text-red-500 border-red-500/30" : "bg-muted hover:bg-muted/80 text-foreground border-border"}
                 font-bold text-lg sm:text-xl rounded-lg shadow-sm border active:scale-95 transition-all flex items-center justify-center min-h-[44px]

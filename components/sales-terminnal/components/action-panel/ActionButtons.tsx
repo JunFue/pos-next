@@ -32,7 +32,8 @@ export const ActionButtons = ({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isLongPress = useRef(false);
 
-  const handleMouseDown = () => {
+  const handleMouseDown = (e?: React.MouseEvent | React.TouchEvent) => {
+    e?.preventDefault(); // [NEW] Prevent focus loss
     isLongPress.current = false;
     timerRef.current = setTimeout(() => {
       isLongPress.current = true;
@@ -65,6 +66,7 @@ export const ActionButtons = ({
         <button
           type="button"
           onClick={onAdd}
+          onMouseDown={(e) => e.preventDefault()}
           className="col-span-1 bg-muted hover:bg-muted/80 border border-border text-muted-foreground font-bold py-2 sm:py-3 rounded-lg transition-colors text-xs flex flex-col items-center justify-center gap-1"
         >
           <ShoppingCart className="w-4 h-4" />
@@ -73,6 +75,7 @@ export const ActionButtons = ({
         <button
           type="button"
           onClick={onDiscount}
+          onMouseDown={(e) => e.preventDefault()}
           className="col-span-1 bg-muted hover:bg-muted/80 border border-border text-muted-foreground font-bold py-2 sm:py-3 rounded-lg transition-colors text-xs flex flex-col items-center justify-center gap-1"
         >
           <Tag className="w-4 h-4" />
@@ -81,6 +84,7 @@ export const ActionButtons = ({
         <button
           type="button"
           onClick={onVoucher}
+          onMouseDown={(e) => e.preventDefault()}
           className="col-span-1 bg-muted hover:bg-muted/80 border border-border text-muted-foreground font-bold py-2 sm:py-3 rounded-lg transition-colors text-xs flex flex-col items-center justify-center gap-1"
         >
           <Ticket className="w-4 h-4" />
@@ -89,6 +93,7 @@ export const ActionButtons = ({
         <button
           type="button"
           onClick={onToggleFreeMode}
+          onMouseDown={(e) => e.preventDefault()}
           className={`col-span-1 border font-bold py-2 sm:py-3 rounded-lg transition-colors text-xs flex flex-col items-center justify-center gap-1
              ${isFreeMode 
                ? "bg-purple-600 border-purple-500 text-white animate-pulse" 
@@ -118,6 +123,7 @@ export const ActionButtons = ({
         <button
           type="button"
           onClick={onDecreaseQty}
+          onMouseDown={(e) => e.preventDefault()}
           className="col-span-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 font-bold rounded-lg transition-colors flex items-center justify-center"
         >
           <Minus className="w-6 h-6" />
@@ -126,6 +132,7 @@ export const ActionButtons = ({
         <button
           type="button"
           onClick={onCharge}
+          onMouseDown={(e) => e.preventDefault()}
           className="col-span-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xl rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all active:scale-[0.98] flex items-center justify-center gap-2"
         >
           <CreditCard className="w-5 h-5" />
@@ -135,6 +142,7 @@ export const ActionButtons = ({
         <button
           type="button"
           onClick={onIncreaseQty}
+          onMouseDown={(e) => e.preventDefault()}
           className="col-span-1 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold rounded-lg transition-colors flex items-center justify-center"
         >
           <Plus className="w-6 h-6" />

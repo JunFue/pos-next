@@ -17,6 +17,7 @@ type TerminalHeaderProps = {
   onDoneSubmitTrigger: () => void;
   setActiveField: (field: "barcode" | "quantity" | null) => void;
   activeField: "barcode" | "quantity" | null;
+  isTabletMode?: boolean;
 };
 export const TerminalHeader = ({
   setCustomerId,
@@ -25,6 +26,7 @@ export const TerminalHeader = ({
   onDoneSubmitTrigger,
   setActiveField,
   activeField,
+  isTabletMode,
 }: TerminalHeaderProps) => {
   const {
     user,
@@ -124,6 +126,7 @@ export const TerminalHeader = ({
             onDoneSubmitTrigger={onDoneSubmitTrigger}
             setActiveField={setActiveField}
             activeField={activeField}
+            isTabletMode={isTabletMode}
           />
         </div>
       </div>

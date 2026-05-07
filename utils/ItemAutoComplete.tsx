@@ -16,6 +16,7 @@ export interface ItemAutocompleteProps {
   // 1. FIX: Add onKeyDown to the interface
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
 }
 
 const ItemAutocomplete = forwardRef<HTMLInputElement, ItemAutocompleteProps>(
@@ -31,6 +32,7 @@ const ItemAutocomplete = forwardRef<HTMLInputElement, ItemAutocompleteProps>(
       id,
       onKeyDown, // 2. FIX: Destructure onKeyDown from props
       onFocus,
+      inputMode,
     },
     ref
   ) => {
@@ -99,6 +101,18 @@ const ItemAutocomplete = forwardRef<HTMLInputElement, ItemAutocompleteProps>(
       }
     };
 
+    const innerRef = useRef<HTMLInputElement>(null);
+
+    // Sync forwarded ref with local ref
+    useEffect(() => {
+      if (!ref) return;
+      if (typeof ref === "function") {
+        ref(innerRef.current);
+      } else {
+        (ref as any).current = innerRef.current;
+      }
+    }, [ref]);
+
     useEffect(() => {
       if (activeIndex >= 0 && listRef.current) {
         const activeItem = listRef.current.children[
@@ -111,10 +125,17 @@ const ItemAutocomplete = forwardRef<HTMLInputElement, ItemAutocompleteProps>(
       }
     }, [activeIndex]);
 
+    // Open dropdown when value changes programmatically (e.g. via virtual keyboard)
+    useEffect(() => {
+      if (value && document.activeElement === innerRef.current && suggestions.length > 0) {
+        setIsOpen(true);
+      }
+    }, [value, suggestions.length]);
+
     return (
       <div className="relative">
         <input
-          ref={ref}
+          ref={innerRef}
           id={id || "itemName"}
           type="text"
           value={value}
@@ -133,6 +154,7 @@ const ItemAutocomplete = forwardRef<HTMLInputElement, ItemAutocompleteProps>(
           }}
           onKeyDown={handleInternalKeyDown} // Use our wrapper function
           disabled={disabled}
+          inputMode={inputMode}
           className={`${className} ${
             disabled ? "opacity-50 cursor-not-allowed text-slate-500" : ""
           } ${error ? "border-red-500" : ""}`}

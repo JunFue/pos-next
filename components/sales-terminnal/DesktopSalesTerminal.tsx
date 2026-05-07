@@ -132,6 +132,7 @@ const DesktopSalesTerminal = () => {
               {/* Left Column Wrapper: Header + Inputs */}
               <div className={`flex flex-col ${!isActionPanelOpen ? 'h-full' : ''}`}>
                   <TerminalHeader 
+                    isTabletMode={isTabletMode}
                     setCustomerId={setCustomerId} 
                     grandTotal={cartItems.reduce((sum, item) => sum + (item.total || 0), 0)}
                     onAddToCartClick={onAddToCart}
