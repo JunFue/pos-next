@@ -10,13 +10,13 @@ import { TerminalCart } from "./components/terminal-cart/TerminalCart";
 import { usePosForm } from "./components/form/usePosForm";
 import { SuccessReceiptModal } from "./utils/SuccessReceiptModal";
 import { ErrorMessage } from "./components/ErrorMessage";
-// 1. Import the new hook
-import { useTerminalShortcuts } from "./hooks/useTerminalShortcuts"; // Adjust path as needed
+import { useTerminalShortcuts } from "./hooks/useTerminalShortcuts";
 import { PaymentPopup } from "./modals/PaymentPopup";
 import { FreeItemModal } from "./modals/FreeItemModal";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ActionPanel } from "./components/ActionPanel";
-import { useViewStore } from "@/components/window-layouts/store/useViewStore"; // [NEW]
+import { useViewStore } from "@/components/window-layouts/store/useViewStore";
+import { FanIcon } from "lucide-react";
 
 const DesktopSalesTerminal = () => {
   const {
@@ -39,42 +39,37 @@ const DesktopSalesTerminal = () => {
     toggleFreeMode,
   } = usePosForm();
 
-
-
   /* State */
   const [isPaymentPopupOpen, setIsPaymentPopupOpen] = useState(false);
   const [isFreeModalOpen, setIsFreeModalOpen] = useState(false);
   const [activeField, setActiveField] = useState<"barcode" | "quantity" | null>("barcode");
-  const [isActionPanelOpen, setIsActionPanelOpen] = useState(true); // Default to open on desktop
-  const { isTabletMode, setIsTabletMode } = useViewStore(); // [NEW] Tablet Mode state
-  const [isAnimating, setIsAnimating] = useState(false); // [NEW] Animation state
+  const [isAnimating, setIsAnimating] = useState(false); // [RESTORED] Animation state
+  
+  // POS Layout Mode — 'desktop' (collapsed) or 'tablet' (action panel visible)
+  const { posMode, cyclePosMode } = useViewStore();
+  const isTabletMode = posMode === "tablet";
 
   // Calculate cart total
   const cartTotal = cartItems.reduce((sum, item) => sum + item.total, 0);
 
-  // Toggle Action Panel with Loading Animation
-  const handleToggleActionPanel = () => {
+  // Toggle Layout Mode with Loading Animation
+  const handleToggleLayout = () => {
     setIsAnimating(true);
-    // Determine the next state
-    const nextState = !isActionPanelOpen;
-    setIsActionPanelOpen(nextState);
+    cyclePosMode();
     
-    // Wait for animation to finish before showing content
+    // Wait for layout calculation to finish before showing content
     setTimeout(() => {
       setIsAnimating(false);
-    }, 350); // Slightly longer than 300ms transition to be safe
+    }, 350); // Matches the css transition
   };
-  
+
   // 2. Call the hook and pass the triggers
   useTerminalShortcuts({ 
     onClear, 
     onCharge: () => setIsPaymentPopupOpen(true),
-    onToggleFreeMode: () => setIsFreeModalOpen(true), // [NEW]
+    onToggleFreeMode: () => setIsFreeModalOpen(true),
     hasItems: cartItems.length > 0
   });
-
-
-
 
   const handlePaymentComplete = (payment: number, voucher: number) => {
     const totalPayment = payment + voucher;
@@ -126,11 +121,11 @@ const DesktopSalesTerminal = () => {
               onSubmit={methods.handleSubmit(onDoneSubmit)}
               className={`
                 w-full min-h-full gap-4
-                ${!isActionPanelOpen ? 'grid grid-cols-2 grid-rows-[1fr]' : 'flex flex-col'}
+                ${!isTabletMode ? 'grid grid-cols-2 grid-rows-[1fr]' : 'flex flex-col'}
               `}
             >
               {/* Left Column Wrapper: Header + Inputs */}
-              <div className={`flex flex-col ${!isActionPanelOpen ? 'h-full' : ''}`}>
+              <div className={`flex flex-col ${!isTabletMode ? 'h-full' : ''}`}>
                   <TerminalHeader 
                     isTabletMode={isTabletMode}
                     setCustomerId={setCustomerId} 
@@ -141,8 +136,8 @@ const DesktopSalesTerminal = () => {
                     activeField={activeField}
                   />
 
-                  {/* Inline Shortcuts Guide - Appears when side panel is closed to fill space */}
-                  {!isActionPanelOpen && (
+                  {/* Inline Shortcuts Guide - Appears when in desktop mode to fill space */}
+                  {!isTabletMode && (
                     <div className="mt-1">
                        <ShortcutsGuide isInline />
                     </div>
@@ -164,29 +159,43 @@ const DesktopSalesTerminal = () => {
             )}
         </div>
 
-        {/* RIGHT PANEL: Action Panel */}
+        {/* RIGHT PANEL: Action Panel — only visible in tablet mode */}
         <div className={`
           h-full transition-all duration-300 ease-in-out
-          ${isActionPanelOpen ? (isTabletMode ? "w-[650px] xl:w-[700px]" : "w-[450px]") : "w-0 overflow-hidden"}
+          ${isTabletMode ? "w-[650px] xl:w-[700px]" : "w-0 overflow-hidden"}
         `}>
-          <ActionPanel 
-            isTabletMode={isTabletMode}
-            onToggleTabletMode={() => setIsTabletMode(!isTabletMode)}
-            onAddToCart={onAddToCart}
-            onClearAll={onClear}
-            onCharge={() => {
-              if (cartItems.length > 0) {
-                setIsPaymentPopupOpen(true);
-              }
-            }}
-            activeField={activeField}
-            setActiveField={setActiveField}
-            isFreeMode={false} // No longer toggle state, just modal action
-            onToggleFreeMode={() => setIsFreeModalOpen(true)}
-            isOpen={isActionPanelOpen}
-            onToggle={handleToggleActionPanel}
-          />
+          {isTabletMode && (
+            <ActionPanel 
+              onAddToCart={onAddToCart}
+              onClearAll={onClear}
+              onCharge={() => {
+                if (cartItems.length > 0) {
+                  setIsPaymentPopupOpen(true);
+                }
+              }}
+              activeField={activeField}
+              setActiveField={setActiveField}
+              isFreeMode={false}
+              onToggleFreeMode={() => setIsFreeModalOpen(true)}
+            />
+          )}
         </div>
+
+        {/* POS Layout Mode Switcher FAB */}
+        <button
+          type="button"
+          onClick={handleToggleLayout}
+          className={`
+            hidden lg:flex fixed right-6 bottom-24 z-50
+            bg-primary text-primary-foreground shadow-[0_0_20px_rgba(var(--color-primary),0.4)] 
+            p-2 rounded-full border-4 border-background transition-all duration-500 ease-in-out
+            hover:scale-110 hover:shadow-[0_0_30px_rgba(var(--color-primary),0.6)] active:scale-95
+            ${isTabletMode ? "rotate-180" : "rotate-0"}
+          `}
+          title={isTabletMode ? "Switch to Desktop Mode" : "Switch to Tablet Mode"}
+        >
+          <FanIcon className="w-5 h-5 animate-[spin_8s_linear_infinite]" />
+        </button>
       </FormProvider>
 
       {successData && (

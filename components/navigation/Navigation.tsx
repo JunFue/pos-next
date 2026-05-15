@@ -41,7 +41,8 @@ const Navigation = React.memo(({ variant = "grid" }: NavigationProps) => {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { setViewState, isTabletMode } = useViewStore();
+  const { setViewState, posMode } = useViewStore();
+  const isTabletMode = posMode === 'tablet';
 
   const sidebarTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const itemTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -59,6 +60,7 @@ const Navigation = React.memo(({ variant = "grid" }: NavigationProps) => {
   };
 
   const handleItemEnter = (id: string) => {
+    if (isTabletMode) return;
     if (itemTimeoutRef.current) clearTimeout(itemTimeoutRef.current);
     
     // If no item is currently hovered, open immediately
@@ -76,6 +78,7 @@ const Navigation = React.memo(({ variant = "grid" }: NavigationProps) => {
   };
 
   const handleItemLeave = () => {
+    if (isTabletMode) return;
     if (itemTimeoutRef.current) clearTimeout(itemTimeoutRef.current);
     itemTimeoutRef.current = setTimeout(() => {
       setHoveredItemId(null);
@@ -380,7 +383,14 @@ const Navigation = React.memo(({ variant = "grid" }: NavigationProps) => {
             >
               <Link
                 href={item.href}
-                onClick={() => setIsMobileMenuOpen(false)}
+                onClick={(e) => {
+                  if (isTabletMode && isExpandable) {
+                    e.preventDefault();
+                    setHoveredItemId(hoveredItemId === item.id ? null : item.id);
+                  } else {
+                    setIsMobileMenuOpen(false);
+                  }
+                }}
                 className={`
                   flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200
                   ${

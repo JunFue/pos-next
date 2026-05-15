@@ -36,7 +36,8 @@ export function MainWindow({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { viewState, isTabletMode } = useViewStore();
+  const { viewState, posMode } = useViewStore();
+  const isTabletMode = posMode === 'tablet';
 
   // Auth State
   const { user, signOut } = useAuthStore();
