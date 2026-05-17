@@ -115,6 +115,15 @@ const DesktopSalesTerminal = () => {
                     <p className="text-muted-foreground animate-pulse font-medium">Adjusting Layout...</p>
                   </div>
                </div>
+            ) : isTabletMode && isFreeModalOpen ? (
+                <div className="h-full w-full">
+                  <FreeItemModal
+                    isOpen={isFreeModalOpen}
+                    onClose={() => setIsFreeModalOpen(false)}
+                    onSelect={handleFreeItemSelect}
+                    isTabletMode={true}
+                  />
+                </div>
             ) : (
             <form
               id="sales-form"
@@ -209,11 +218,14 @@ const DesktopSalesTerminal = () => {
         onConfirm={handlePaymentComplete}
       />
 
-      <FreeItemModal
-        isOpen={isFreeModalOpen}
-        onClose={() => setIsFreeModalOpen(false)}
-        onSelect={handleFreeItemSelect}
-      />
+      {!isTabletMode && (
+        <FreeItemModal
+          isOpen={isFreeModalOpen}
+          onClose={() => setIsFreeModalOpen(false)}
+          onSelect={handleFreeItemSelect}
+          isTabletMode={false}
+        />
+      )}
 
       <ErrorMessage message={errorMessage} onClose={clearErrorMessage} />
     </div>

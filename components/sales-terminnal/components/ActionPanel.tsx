@@ -34,7 +34,13 @@ export function ActionPanel({
   };
 
   const handleNumpadPress = (key: string) => {
-    console.log("Numpad:", key);
+    // Attempt global dispatch first
+    const event = new CustomEvent("virtual-keypress", { detail: { key }, cancelable: true });
+    if (!window.dispatchEvent(event)) {
+      // Handled by an isolated component (like FreeItemModal)
+      return;
+    }
+
     if (!activeField) return;
 
     if (key === " ") key = " "; // Normal space
@@ -62,6 +68,11 @@ export function ActionPanel({
   };
 
   const handleClearInput = () => {
+    const event = new CustomEvent("virtual-keyclear", { cancelable: true });
+    if (!window.dispatchEvent(event)) {
+      return;
+    }
+
     if (activeField) {
         setValue(activeField, activeField === "quantity" ? 0 : "");
     }
