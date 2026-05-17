@@ -103,7 +103,6 @@ export const handleAddToCart = ({
   console.log(`✅ Stock check passed: ${itemDetails.itemName} - Requested: ${totalQuantity}, Available: ${stockInfo.current_stock}`);
 
   // 4. Calculate Costs
-  // Logic: (Qty * Price) - Discount
   // [NEW] If Free Mode, price is 0
   const unitPrice = isFreeMode ? 0 : (itemDetails.sellingPrice ?? itemDetails.salesPrice ?? 0);
   const total = quantity * unitPrice - discountValue;
@@ -141,7 +140,9 @@ export const handleAddToCart = ({
       sku: barcode,
       itemName: itemDetails.itemName,
       unitPrice: unitPrice,
-      discount: discountValue, // Request 1: Ensure discount is passed
+      discountType: 'flat',           // Default — can be changed via DiscountModal later
+      discountValue: discountValue,
+      discount: discountValue,        // Computed flat amount
       quantity: quantity,
       total: total,
     };

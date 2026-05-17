@@ -9,8 +9,10 @@ interface ActionPanelProps {
   onAddToCart: () => void;
   onClearAll: () => void;
   onCharge: () => void;
-  activeField: "barcode" | "quantity" | null;
-  setActiveField: (field: "barcode" | "quantity" | null) => void;
+  onDiscount: () => void;
+  onVoucher: () => void;
+  activeField: "customerName" | "barcode" | "quantity" | "freeSearch" | "freeQty" | null;
+  setActiveField: (field: "customerName" | "barcode" | "quantity" | "freeSearch" | "freeQty" | null) => void;
   // [NEW] Free Mode
   isFreeMode?: boolean;
   onToggleFreeMode?: () => void;
@@ -20,6 +22,8 @@ export function ActionPanel({
   onAddToCart,
   onClearAll,
   onCharge,
+  onDiscount,
+  onVoucher,
   activeField,
   setActiveField,
   isFreeMode,
@@ -51,7 +55,7 @@ export function ActionPanel({
       return;
     }
 
-    const currentValue = getValues(activeField);
+    const currentValue = getValues(activeField as any);
     
     let newValue: string | number = "";
     if (key === "Backspace") {
@@ -61,9 +65,9 @@ export function ActionPanel({
     }
 
     if (activeField === "quantity") {
-      setValue(activeField, Number(newValue), { shouldValidate: true });
+      setValue(activeField as any, Number(newValue), { shouldValidate: true });
     } else {
-      setValue(activeField, String(newValue), { shouldValidate: true });
+      setValue(activeField as any, String(newValue), { shouldValidate: true });
     }
   };
 
@@ -74,7 +78,7 @@ export function ActionPanel({
     }
 
     if (activeField) {
-        setValue(activeField, activeField === "quantity" ? 0 : "");
+        setValue(activeField as any, activeField === "quantity" ? 0 : "");
     }
   };
 
@@ -105,8 +109,8 @@ export function ActionPanel({
       <div className="shrink-0 mt-2">
          <ActionButtons 
             onAdd={onAddToCart}
-            onDiscount={() => console.log("Discount")}
-            onVoucher={() => console.log("Voucher")}
+            onDiscount={onDiscount}
+            onVoucher={onVoucher}
             onOpenDrawer={() => console.log("Open Drawer")} 
             onCharge={onCharge}
             onIncreaseQty={handleIncreaseQty}

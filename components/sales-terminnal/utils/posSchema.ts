@@ -13,12 +13,20 @@ export const posSchema = z.object({
   // Use nullable instead of optional so it's always part of the type
   customerName: z.string().nullable(),
   transactionNo: z.string().optional(),
-  voucher: pesoFormat.nullable(),
+  voucher: pesoFormat.nullable(), // LEGACY — kept for backward compat
   barcode: z.string(),
   grandTotal: pesoFormat,
   quantity: z.number().int().min(0).nullable(),
   discount: pesoFormat.nullable(),
   change: pesoFormat,
+  // Order-level discount
+  orderDiscountType: z.enum(['flat', 'percent']).nullable(),
+  orderDiscountValue: pesoFormat.nullable(),
+  orderDiscountAmount: pesoFormat.nullable(), // Computed flat deduction
+  // Voucher (new system)
+  voucherCode: z.string().nullable(),
+  voucherAmount: pesoFormat.nullable(), // Computed redemption amount
+  voucherId: z.string().nullable(),     // UUID of the voucher record
 });
 
 export type PosFormValues = z.infer<typeof posSchema>;
@@ -34,4 +42,12 @@ export const getDefaultFormValues = (): PosFormValues => ({
   quantity: null,
   discount: null,
   change: 0,
+  // Order-level discount
+  orderDiscountType: null,
+  orderDiscountValue: null,
+  orderDiscountAmount: null,
+  // Voucher
+  voucherCode: null,
+  voucherAmount: null,
+  voucherId: null,
 });

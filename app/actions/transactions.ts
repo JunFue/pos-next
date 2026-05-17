@@ -8,21 +8,26 @@ import { revalidatePath } from "next/cache";
 export interface TransactionHeader {
   customer_name: string | null;
   amount_rendered: number;
-  voucher: number;
+  voucher: number; // Legacy
   grand_total: number;
   change: number;
-  // cashier_name is removed from here because the DB gets it from auth.uid()
-  // transaction_no is removed because the DB generates the invoice_no
-  transaction_time?: string | null; // Optional - for backdating
-  customer_id?: string | null; // Optional - for customer association
+  transaction_time?: string | null;
+  customer_id?: string | null;
+  // New Discount/Voucher fields
+  order_discount_type?: 'flat' | 'percent' | null;
+  order_discount_value?: number | null;
+  order_discount_amount?: number | null;
+  voucher_id?: string | null;
+  voucher_code?: string | null;
 }
 
 export interface TransactionItem {
   sku: string;
   item_name: string;
-  sales_price?: number; // Optional input, DB looks it up
+  sales_price?: number;
   total_price: number;
-  discount: number;
+  discount: number; // Legacy flat
+  discount_type?: 'flat' | 'percent' | null;
   quantity: number;
 }
 

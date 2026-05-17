@@ -103,21 +103,47 @@ export const usePosForm = (): UsePosFormReturn => {
   } = methods;
 
   // --- CALCULATIONS ---
+  // Step 1: Item subtotal (after per-item discounts)
   const cartTotal = useMemo(
     () => cartItems.reduce((sum, item) => sum + item.total, 0),
     [cartItems]
   );
-  const [payment, voucher] = useWatch({
+
+  const [payment, voucher, orderDiscountType, orderDiscountValue, voucherAmount] = useWatch({
     control,
-    name: ["payment", "voucher"],
+    name: ["payment", "voucher", "orderDiscountType", "orderDiscountValue", "voucherAmount"],
   });
 
   useEffect(() => {
-    setValue("grandTotal", cartTotal - (voucher || 0), { shouldValidate: false });
-    const changeAmount = (payment || 0) + (voucher || 0) - cartTotal;
+    // Step 2: Order-level discount
+    let orderDiscountAmount = 0;
+    if (orderDiscountType && orderDiscountValue) {
+      if (orderDiscountType === 'percent') {
+        orderDiscountAmount = Math.round(cartTotal * (orderDiscountValue / 100) * 100) / 100;
+      } else {
+        orderDiscountAmount = orderDiscountValue;
+      }
+      // Clamp: order discount cannot exceed subtotal
+      orderDiscountAmount = Math.min(orderDiscountAmount, cartTotal);
+    }
+    setValue("orderDiscountAmount", orderDiscountAmount, { shouldValidate: false });
+
+    // Step 3: Grand total = subtotal - order discount
+    const grandTotal = Math.max(cartTotal - orderDiscountAmount, 0);
+    setValue("grandTotal", grandTotal, { shouldValidate: false });
+
+    // Step 4: Voucher reduces amount due, NOT grand total
+    const effectiveVoucher = voucherAmount || 0;
+    const amountDue = Math.max(grandTotal - effectiveVoucher, 0);
+
+    // Step 5: Change = cash - amount due
+    // Legacy: also account for old `voucher` field for backward compat
+    const legacyVoucher = voucher || 0;
+    const totalPaid = (payment || 0) + legacyVoucher;
+    const changeAmount = totalPaid - amountDue;
     const roundedChange = Math.round(changeAmount * 100) / 100;
     setValue("change", roundedChange, { shouldValidate: false });
-  }, [cartTotal, payment, voucher, setValue]);
+  }, [cartTotal, payment, voucher, orderDiscountType, orderDiscountValue, voucherAmount, setValue]);
 
   /* Update onAddToCart to accept override */
   const onAddToCart = useCallback((overrideFreeMode?: boolean) => {
@@ -151,13 +177,22 @@ export const usePosForm = (): UsePosFormReturn => {
       prevCart.map((item) => {
         if (item.id === id) {
           const newItem = { ...item, ...updates };
+          // Recompute flat discount if discount type/value changed
           if (
+            updates.discountType !== undefined ||
+            updates.discountValue !== undefined ||
             updates.unitPrice !== undefined ||
-            updates.quantity !== undefined ||
-            updates.discount !== undefined
+            updates.quantity !== undefined
           ) {
-            newItem.total =
-              (newItem.unitPrice ?? 0) * (newItem.quantity ?? 0) - (newItem.discount || 0);
+            const lineSubtotal = (newItem.unitPrice ?? 0) * (newItem.quantity ?? 0);
+            if (newItem.discountType === 'percent') {
+              newItem.discount = Math.round(lineSubtotal * ((newItem.discountValue || 0) / 100) * 100) / 100;
+            } else {
+              newItem.discount = newItem.discountValue || 0;
+            }
+            // Clamp: discount cannot exceed line subtotal
+            newItem.discount = Math.min(newItem.discount, lineSubtotal);
+            newItem.total = lineSubtotal - newItem.discount;
           }
           return newItem;
         }
@@ -358,7 +393,7 @@ export const usePosForm = (): UsePosFormReturn => {
 
   const triggerDoneSubmit = () => {
     handleSubmit(onDoneSubmit, (errors) => {
-      console.error("Validation Errors:", errors);
+      console.error("Validation Errors:", JSON.parse(JSON.stringify(errors)));
       setErrorMessage("Please check all fields. Some values are invalid.");
     })();
   };

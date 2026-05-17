@@ -19,12 +19,16 @@ export type TransactionResult = {
   customer_name: string | null;
   amount_rendered: number;
   voucher: number;
+  voucher_code?: string | null;
+  voucher_amount?: number;
+  order_discount_amount?: number;
   grand_total: number;
   change: number;
   transaction_no: string;
   transaction_time: string;
   cashier_name: string;
   isOffline?: boolean;
+  payment_id?: string;
 } | null;
 
 const withTimeout = <T>(
@@ -60,11 +64,17 @@ export const handleDone = async (
     const headerPayload = {
       customer_name: data.customerName,
       amount_rendered: data.payment || 0,
-      voucher: data.voucher || 0,
+      voucher: data.voucher || 0, // Legacy
       grand_total: data.grandTotal,
       change: data.change,
       transaction_time: transactionTime,
-      customer_id: customerId || null,
+      customer_id: customerId,
+      // New fields
+      order_discount_type: data.orderDiscountType,
+      order_discount_value: data.orderDiscountValue,
+      order_discount_amount: data.orderDiscountAmount,
+      voucher_id: data.voucherId,
+      voucher_code: data.voucherCode,
       cashier_name: cashierId,
     };
 
@@ -73,7 +83,8 @@ export const handleDone = async (
       item_name: item.itemName,
       sales_price: item.unitPrice,
       total_price: item.total,
-      discount: item.discount || 0,
+      discount: item.discount, // Legacy flat amount
+      discount_type: item.discountType, // New typed discount
       quantity: item.quantity,
     }));
 
@@ -132,17 +143,29 @@ export const handleDone = async (
     }
 
     const invoiceNo = rpcResult?.data?.invoice_no || "UNKNOWN";
+    const paymentId = rpcResult?.data?.payment_id;
+
+    // Call redeem voucher if present and successful
+    if (paymentId && headerPayload.voucher_id && data.voucherAmount && data.voucherAmount > 0) {
+      // Lazy-import to avoid circular dependencies and keep server actions separated
+      const { redeemVoucher } = await import("@/app/actions/vouchers");
+      await redeemVoucher(headerPayload.voucher_id, paymentId, data.voucherAmount);
+    }
 
     return {
       invoice_no: invoiceNo,
       customer_name: headerPayload.customer_name,
       amount_rendered: headerPayload.amount_rendered,
-      voucher: headerPayload.voucher,
+      voucher: headerPayload.voucher, // Legacy display
+      voucher_code: headerPayload.voucher_code,
+      voucher_amount: data.voucherAmount || 0,
+      order_discount_amount: headerPayload.order_discount_amount || 0,
       grand_total: headerPayload.grand_total,
       change: headerPayload.change,
       transaction_no: invoiceNo,
       transaction_time: transactionTime || new Date().toISOString(),
       cashier_name: headerPayload.cashier_name,
+      payment_id: paymentId,
     } as TransactionResult;
   } catch (err) {
     console.error("❌ [handleDone] Error:", err);

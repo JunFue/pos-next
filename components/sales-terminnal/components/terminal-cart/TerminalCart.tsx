@@ -19,6 +19,7 @@ export const TerminalCart = ({
   rows,
   onRemoveItem,
   onUpdateItem,
+  onItemDiscountClick,
 }: TerminalCartProps) => {
   const { isPriceEditingEnabled } = useSettingsStore();
   const { can_edit_price } = usePermissions();
@@ -108,7 +109,24 @@ export const TerminalCart = ({
       }),
       columnHelper.accessor("discount", {
         header: () => <div className="text-right">Disc</div>,
-        cell: ({ getValue }) => <div className="text-right">{(getValue() || 0).toFixed(2)}</div>,
+        cell: ({ row, getValue }) => {
+          const item = row.original;
+          const discValue = getValue() || 0;
+          const label = item.discountType === 'percent'
+            ? `${item.discountValue}%`
+            : discValue > 0 ? discValue.toFixed(2) : '0.00';
+          return (
+            <div
+              className={`text-right cursor-pointer rounded px-1 -mx-1 transition-colors ${
+                discValue > 0 ? 'text-red-500 font-semibold hover:bg-red-500/10' : 'text-muted-foreground hover:bg-muted/50'
+              }`}
+              onClick={() => onItemDiscountClick?.(item)}
+              title="Click to edit discount"
+            >
+              {label}
+            </div>
+          );
+        },
         size: 60,
         minSize: 40,
       }),

@@ -13,10 +13,12 @@ import { ErrorMessage } from "./components/ErrorMessage";
 import { useTerminalShortcuts } from "./hooks/useTerminalShortcuts";
 import { PaymentPopup } from "./modals/PaymentPopup";
 import { FreeItemModal } from "./modals/FreeItemModal";
+import { DiscountModal } from "./modals/DiscountModal";
 import { useState } from "react";
 import { ActionPanel } from "./components/ActionPanel";
 import { useViewStore } from "@/components/window-layouts/store/useViewStore";
 import { FanIcon } from "lucide-react";
+import { CartItem, DiscountType } from "./components/terminal-cart/types";
 
 const DesktopSalesTerminal = () => {
   const {
@@ -42,10 +44,14 @@ const DesktopSalesTerminal = () => {
   /* State */
   const [isPaymentPopupOpen, setIsPaymentPopupOpen] = useState(false);
   const [isFreeModalOpen, setIsFreeModalOpen] = useState(false);
-  const [activeField, setActiveField] = useState<"barcode" | "quantity" | null>("barcode");
-  const [isAnimating, setIsAnimating] = useState(false); // [RESTORED] Animation state
+  const [activeField, setActiveField] = useState<"customerName" | "barcode" | "quantity" | "freeSearch" | "freeQty" | null>("barcode");
+  const [isAnimating, setIsAnimating] = useState(false);
+  // Discount Modal State
+  const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
+  const [discountModalMode, setDiscountModalMode] = useState<'item' | 'transaction'>('transaction');
+  const [discountTargetItem, setDiscountTargetItem] = useState<CartItem | null>(null);
   
-  // POS Layout Mode — 'desktop' (collapsed) or 'tablet' (action panel visible)
+  // POS Layout Mode
   const { posMode, cyclePosMode } = useViewStore();
   const isTabletMode = posMode === "tablet";
 
@@ -71,15 +77,37 @@ const DesktopSalesTerminal = () => {
     hasItems: cartItems.length > 0
   });
 
-  const handlePaymentComplete = (payment: number, voucher: number) => {
-    const totalPayment = payment + voucher;
-    const change = totalPayment - cartTotal;
+  const handlePaymentComplete = (
+    payment: number,
+    voucherAmount: number,
+    voucherData?: { id: string; code: string; amount: number } | null
+  ) => {
+    // legacy voucher field for backward compat, though the true form logic is handled via usePosForm
+    methods.setValue("voucher", voucherAmount);
+    methods.setValue("voucherAmount", voucherAmount);
+    
+    if (voucherData) {
+      methods.setValue("voucherCode", voucherData.code);
+      if (voucherData.id) {
+        methods.setValue("voucherId", voucherData.id);
+      } else {
+        methods.setValue("voucherId", null);
+      }
+    } else {
+      methods.setValue("voucherCode", null);
+      methods.setValue("voucherId", null);
+    }
 
-    // Set values in the form
+    // Set payment value synchronously
     methods.setValue("payment", payment);
-    methods.setValue("voucher", voucher);
-    methods.setValue("grandTotal", cartTotal - voucher);
-    methods.setValue("change", change);
+
+    // IMPORTANT: change is normally updated by usePosForm's useEffect, but since
+    // triggerDoneSubmit validates synchronously, change might still be negative 
+    // resulting in a validation failure. We force the updated value here.
+    const currentGrandTotal = methods.getValues("grandTotal") || 0;
+    const amountDue = Math.max(currentGrandTotal - voucherAmount, 0);
+    const newChangeAmount = Math.round((payment - amountDue) * 100) / 100;
+    methods.setValue("change", newChangeAmount);
 
     // Clear "Add Item" fields to prevent validation errors blocking submission
     methods.setValue("quantity", null);
@@ -93,11 +121,36 @@ const DesktopSalesTerminal = () => {
   const handleFreeItemSelect = (item: any, qty: number) => {
      methods.setValue("barcode", item.sku);
      methods.setValue("quantity", qty);
-     // Force Free Mode for this addition
      onAddToCart(true);
      setIsFreeModalOpen(false);
-     // Jump focus back to barcode after submission
      setActiveField("barcode");
+  };
+
+  // --- Discount Handlers ---
+  const handleOpenTransactionDiscount = () => {
+    setDiscountModalMode('transaction');
+    setDiscountTargetItem(null);
+    setIsDiscountModalOpen(true);
+  };
+
+  const handleOpenItemDiscount = (item: CartItem) => {
+    setDiscountModalMode('item');
+    setDiscountTargetItem(item);
+    setIsDiscountModalOpen(true);
+  };
+
+  const handleApplyItemDiscount = (itemId: string, discountType: DiscountType, discountValue: number) => {
+    onUpdateItem(itemId, { discountType, discountValue });
+  };
+
+  const handleApplyTransactionDiscount = (discountType: DiscountType, discountValue: number) => {
+    if (discountValue <= 0) {
+      methods.setValue("orderDiscountType", null);
+      methods.setValue("orderDiscountValue", null);
+    } else {
+      methods.setValue("orderDiscountType", discountType);
+      methods.setValue("orderDiscountValue", discountValue);
+    }
   };
 
   return (
@@ -122,6 +175,21 @@ const DesktopSalesTerminal = () => {
                     onClose={() => setIsFreeModalOpen(false)}
                     onSelect={handleFreeItemSelect}
                     isTabletMode={true}
+                  />
+                </div>
+            ) : isTabletMode && isDiscountModalOpen ? (
+                <div className="h-full w-full">
+                  <DiscountModal
+                    isOpen={isDiscountModalOpen}
+                    onClose={() => setIsDiscountModalOpen(false)}
+                    mode={discountModalMode}
+                    targetItem={discountTargetItem}
+                    onApplyItemDiscount={handleApplyItemDiscount}
+                    subtotal={cartTotal}
+                    onApplyTransactionDiscount={handleApplyTransactionDiscount}
+                    isTabletMode={true}
+                    currentDiscountType={discountModalMode === 'item' ? discountTargetItem?.discountType : (methods.getValues('orderDiscountType') as any)}
+                    currentDiscountValue={discountModalMode === 'item' ? discountTargetItem?.discountValue : methods.getValues('orderDiscountValue')}
                   />
                 </div>
             ) : (
@@ -157,10 +225,11 @@ const DesktopSalesTerminal = () => {
               <div className="border border-border bg-card rounded-2xl w-full flex-1 overflow-hidden min-h-[400px] shadow-sm">
                 {/* Desktop Cart */}
                 <div className="h-full">
-                  <TerminalCart
+                <TerminalCart
                     rows={cartItems}
                     onRemoveItem={onRemoveItem}
                     onUpdateItem={onUpdateItem}
+                    onItemDiscountClick={handleOpenItemDiscount}
                   />
                 </div>
               </div>
@@ -178,6 +247,12 @@ const DesktopSalesTerminal = () => {
               onAddToCart={onAddToCart}
               onClearAll={onClear}
               onCharge={() => {
+                if (cartItems.length > 0) {
+                  setIsPaymentPopupOpen(true);
+                }
+              }}
+              onDiscount={handleOpenTransactionDiscount}
+              onVoucher={() => {
                 if (cartItems.length > 0) {
                   setIsPaymentPopupOpen(true);
                 }
@@ -214,7 +289,9 @@ const DesktopSalesTerminal = () => {
       <PaymentPopup
         isOpen={isPaymentPopupOpen}
         onClose={() => setIsPaymentPopupOpen(false)}
-        totalAmount={cartTotal}
+        subtotal={cartTotal}
+        orderDiscountAmount={methods.getValues('orderDiscountAmount') || 0}
+        totalAmount={methods.getValues('grandTotal') || cartTotal}
         onConfirm={handlePaymentComplete}
       />
 
@@ -228,6 +305,22 @@ const DesktopSalesTerminal = () => {
       )}
 
       <ErrorMessage message={errorMessage} onClose={clearErrorMessage} />
+
+      {/* Discount Modal — inline for tablet, popup for desktop */}
+      {isTabletMode && isDiscountModalOpen ? null : (
+        <DiscountModal
+          isOpen={isDiscountModalOpen}
+          onClose={() => setIsDiscountModalOpen(false)}
+          mode={discountModalMode}
+          targetItem={discountTargetItem}
+          onApplyItemDiscount={handleApplyItemDiscount}
+          subtotal={cartTotal}
+          onApplyTransactionDiscount={handleApplyTransactionDiscount}
+          isTabletMode={false}
+          currentDiscountType={discountModalMode === 'item' ? discountTargetItem?.discountType : (methods.getValues('orderDiscountType') as any)}
+          currentDiscountValue={discountModalMode === 'item' ? discountTargetItem?.discountValue : methods.getValues('orderDiscountValue')}
+        />
+      )}
     </div>
   );
 };
