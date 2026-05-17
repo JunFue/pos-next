@@ -15,8 +15,8 @@ type TerminalHeaderProps = {
   // Form Interaction Props
   onAddToCartClick: () => void;
   onDoneSubmitTrigger: () => void;
-  setActiveField: (field: "barcode" | "quantity" | null) => void;
-  activeField: "barcode" | "quantity" | null;
+  setActiveField: (field: "customerName" | "barcode" | "quantity" | "freeSearch" | "freeQty" | null) => void;
+  activeField: "customerName" | "barcode" | "quantity" | "freeSearch" | "freeQty" | null;
   isTabletMode?: boolean;
 };
 export const TerminalHeader = ({

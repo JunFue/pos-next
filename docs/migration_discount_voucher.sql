@@ -94,6 +94,7 @@ DECLARE
   v_transaction_time timestamp with time zone;
   v_cashier_name text;
   v_store_id uuid;
+  v_category_id uuid;
 BEGIN
   -- 1. Extract values or fall back to defaults
   v_customer_id := (header->>'customer_id')::uuid;
@@ -170,8 +171,11 @@ BEGIN
       RAISE EXCEPTION 'SKU and item_name are required';
     END IF;
 
-    -- Optional: Look up category_id based on SKU and store_id if needed.
-    -- Assuming a simple insert for brevity.
+    -- Look up category_id based on SKU and store_id
+    SELECT category_id INTO v_category_id
+    FROM public.items
+    WHERE sku = item->>'sku' AND store_id = v_store_id
+    LIMIT 1;
 
     INSERT INTO public.transactions (
       sku, 
@@ -185,6 +189,7 @@ BEGIN
       payment_id, 
       cashier, 
       store_id,
+      category_id,
       -- [NEW FIELD]
       discount_type
     ) VALUES (
@@ -199,6 +204,7 @@ BEGIN
       new_payment_id,
       v_cashier_name::uuid,
       v_store_id,
+      v_category_id,
       -- [NEW FIELD]
       COALESCE(item->>'discount_type', 'flat')
     );

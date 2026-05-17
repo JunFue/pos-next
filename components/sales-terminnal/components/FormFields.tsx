@@ -8,8 +8,8 @@ import ItemAutocomplete from "../../../utils/ItemAutoComplete";
 type FormFieldsProps = {
   onAddToCartClick: () => void; // Back to sync
   onDoneSubmitTrigger: () => void;
-  setActiveField?: (field: "barcode" | "quantity" | null) => void;
-  activeField?: "barcode" | "quantity" | null;
+  setActiveField?: (field: "customerName" | "barcode" | "quantity" | "freeSearch" | "freeQty" | null) => void;
+  activeField?: "customerName" | "barcode" | "quantity" | "freeSearch" | "freeQty" | null;
   isTabletMode?: boolean;
 };
 
