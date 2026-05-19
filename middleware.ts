@@ -121,118 +121,130 @@ export default async function proxy(request: NextRequest) {
   }
 
   // ============================================
-  // ACCOUNT STATUS GUARD
+  // ACCOUNT STATUS & PROFILE & SUBSCRIPTION GUARD
   // ============================================
+  // Uses JWT custom claims if present (from custom_access_token hook).
+  // Falls back to DB queries if the hook hasn't been enabled yet.
   if (user && !isApiRoute && !isLikelyOffline) {
-    const { data: statusData, error: statusError } = await supabase.rpc(
-      "check_account_status"
-    );
-
-    if (!statusError && statusData) {
-      const status = (statusData as any).status;
-      const currentPath = request.nextUrl.pathname;
-
-      // 1. User Deleted/Deactivated
-      if (status === "user_deleted") {
-        if (!currentPath.startsWith("/reactivate")) {
-           // Clear session cookies to force them out of valid auth state if needed,
-           // but here we redirect to a public reactivate page or similar.
-           return NextResponse.redirect(new URL("/reactivate", request.url));
-        }
-      } 
-      // 2. Store Delayed/No Store -> Redirect to Settings
-      else if (
-        (status === "store_deleted" || status === "no_store")
-      ) {
-         // Allow access to settings to fix the issue
-         if (!currentPath.startsWith("/settings") && !currentPath.startsWith("/login")) {
-            const redirectUrl = new URL("/settings", request.url);
-            if (status === "store_deleted") {
-              redirectUrl.searchParams.set("reason", "store_deleted");
-            }
-            return NextResponse.redirect(redirectUrl);
-         }
-      }
-      
-      // If we are on reactivate page but status Is active, go home
-      if (status === "active" && currentPath.startsWith("/reactivate")) {
-        return NextResponse.redirect(new URL("/", request.url));
+    // getUser() validates auth but returns DB data, not JWT claims.
+    // The custom_access_token hook injects data into the JWT, so we
+    // need getSession() to read those claims.
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    // session.user.app_metadata returns DB-stored metadata, NOT hook-injected claims.
+    // The custom_access_token hook injects claims into the raw JWT, so we decode it directly.
+    let claims: Record<string, any> = {};
+    if (session?.access_token) {
+      try {
+        const payload = JSON.parse(Buffer.from(session.access_token.split('.')[1], 'base64').toString());
+        claims = payload.app_metadata || {};
+      } catch {
+        claims = session?.user?.app_metadata || {};
       }
     }
-  }
+    const hookIsActive = claims.account_status !== undefined;
 
-  // ============================================
-  // SUBSCRIPTION GUARD LOGIC
-  // ============================================
-  if (user && !isLikelyOffline) {
-    // Check if user belongs to a store and has completed profile
-    const { data: userData } = await supabase
-      .from("users")
-      .select("store_id, first_name, last_name, metadata")
-      .eq("user_id", user.id)
-      .single();
+    let status: string;
+    let hasStore: boolean;
+    let hasName: boolean;
+    let hasJobTitle: boolean;
+    let subStatus: string | undefined;
+    let subEndDateRaw: string | undefined;
 
+    if (hookIsActive) {
+      // ---- FAST PATH: Read from JWT claims (no DB queries) ----
+      status = claims.account_status;
+      hasStore = claims.store_id !== undefined && claims.store_id !== null;
+      hasName = claims.has_name === true;
+      hasJobTitle = claims.has_job_title === true;
+      subStatus = claims.sub_status;
+      subEndDateRaw = claims.sub_end_date;
+    } else {
+      // ---- FALLBACK PATH: DB queries (until hook is enabled) ----
+      console.warn("[middleware] JWT hook not active — falling back to DB queries");
+
+      // Account status check
+      const { data: statusData } = await supabase.rpc("check_account_status");
+      status = (statusData as any)?.status || "active";
+
+      // Profile & store check
+      const { data: userData } = await supabase
+        .from("users")
+        .select("store_id, first_name, last_name, metadata")
+        .eq("user_id", user.id)
+        .single();
+
+      hasStore = !!userData?.store_id;
+      hasName = !!userData?.first_name && !!userData?.last_name;
+      const jobTitle = (userData?.metadata as { job_title?: string })?.job_title;
+      hasJobTitle = !!jobTitle;
+
+      // Subscription check
+      if (hasStore && userData?.store_id) {
+        const { data: sub } = await supabase
+          .from("store_subscriptions")
+          .select("status, end_date")
+          .eq("store_id", userData.store_id)
+          .maybeSingle();
+        subStatus = sub?.status;
+        subEndDateRaw = sub?.end_date;
+      }
+    }
+
+    const currentPath = request.nextUrl.pathname;
+
+    // --- 1. Account Status Guard ---
+    if (status === "user_deleted") {
+      if (!currentPath.startsWith("/reactivate")) {
+         return NextResponse.redirect(new URL("/reactivate", request.url));
+      }
+    } else if (status === "store_deleted" || status === "no_store") {
+       if (!currentPath.startsWith("/settings") && !currentPath.startsWith("/login")) {
+          const redirectUrl = new URL("/settings", request.url);
+          if (status === "store_deleted") {
+            redirectUrl.searchParams.set("reason", "store_deleted");
+          }
+          return NextResponse.redirect(redirectUrl);
+       }
+    }
+    
+    if (status === "active" && currentPath.startsWith("/reactivate")) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    // --- 2. Subscription & Profile Guard ---
     const isOnboardingPage = request.nextUrl.pathname.startsWith("/onboarding");
     const isSelectStorePage = request.nextUrl.pathname.startsWith("/select-store");
 
-    const hasStore = !!userData?.store_id;
-    const hasName = !!userData?.first_name && !!userData?.last_name;
-    const jobTitle = (userData?.metadata as { job_title?: string })?.job_title;
-    const hasJobTitle = !!jobTitle;
-
-    // 1. Profile Name/Job not complete -> Onboarding
     if (!hasName || !hasJobTitle) {
-      if (!isOnboardingPage && !isApiRoute) {
+      if (!isOnboardingPage) {
         return NextResponse.redirect(new URL("/onboarding", request.url));
       }
-    } 
-    // 2. Profile Name/Job complete but no Store selected -> Store Selection
-    else if (!hasStore) {
-      if (!isSelectStorePage && !isApiRoute && !isOnboardingPage) {
+    } else if (!hasStore) {
+      if (!isSelectStorePage && !isOnboardingPage) {
         return NextResponse.redirect(new URL("/select-store", request.url));
       }
-    }
-    // 3. Everything complete -> Check Subscription
-    else {
-      // Check subscription status for that store
-      const { data: sub, error: subError } = await supabase
-        .from("store_subscriptions")
-        .select("status, end_date")
-        .eq("store_id", userData.store_id)
-        .maybeSingle();
-
-      // If the query itself failed (e.g. RLS blocking), don't lock the user out
-      if (subError) {
-        console.error("Subscription query failed (allowing access):", subError.message);
-        // Fail-open: allow access when we can't determine subscription status
-        return response;
-      }
-
-      // If no subscription record exists, the store has never subscribed -> allow access (trial/free)
-      // Only block if a record EXISTS but is expired or not paid
-      const hasSubscriptionRecord = !!sub;
+    } else {
+      // Check Subscription
+      const hasSubscriptionRecord = subStatus !== undefined;
 
       let isExpired = false;
       if (hasSubscriptionRecord) {
         const now = new Date();
-        const endDate = sub?.end_date ? new Date(sub.end_date) : null;
-        const isPaid = sub?.status === "PAID";
-        // Expired = has a record, but it's not paid OR the end_date is in the past
+        const endDate = subEndDateRaw ? new Date(subEndDateRaw) : null;
+        const isPaid = subStatus === "PAID";
         isExpired = !isPaid || !endDate || endDate <= now;
       }
 
-      // Define paths to exempt (so they don't get stuck in a redirect loop)
       const isExemptPage =
         request.nextUrl.pathname.startsWith("/settings") ||
         request.nextUrl.pathname.startsWith("/subscribe-required") ||
         request.nextUrl.pathname.startsWith("/onboarding") ||
         isSelectStorePage;
 
-      // Only redirect if a subscription record exists AND is expired/unpaid
-      // Never block stores that haven't subscribed yet (no record)
       const isDemoUser = user?.is_anonymous;
       
-      if (hasSubscriptionRecord && isExpired && !isExemptPage && !isApiRoute && !isDemoUser) {
+      if (hasSubscriptionRecord && isExpired && !isExemptPage && !isDemoUser) {
         return NextResponse.redirect(new URL("/subscribe-required", request.url));
       }
     }

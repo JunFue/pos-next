@@ -1,10 +1,8 @@
-"use server";
-
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/utils/supabase/client";
 import { Item } from "../utils/itemTypes";
 
 const getSupabase = async () => {
-  return await createClient();
+  return createClient();
 };
 
 // 1. UPDATE: Interface to include the new column from RPC

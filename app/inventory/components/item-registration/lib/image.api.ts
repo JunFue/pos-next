@@ -1,13 +1,11 @@
-"use server";
-
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/utils/supabase/client";
 
 /**
  * Uploads an item thumbnail image to Supabase Storage.
  * Returns the public URL of the uploaded image.
  */
 export const uploadItemImage = async (formData: FormData): Promise<string> => {
-  const supabase = await createClient();
+  const supabase = createClient();
 
   const file = formData.get("file") as File;
   if (!file || !(file instanceof File)) {

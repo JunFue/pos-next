@@ -1,9 +1,7 @@
-"use server";
-
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/utils/supabase/client";
 
 const getSupabase = async () => {
-  return await createClient();
+  return createClient();
 };
 
 export interface Category {

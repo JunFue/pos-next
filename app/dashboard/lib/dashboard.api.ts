@@ -1,11 +1,9 @@
-"use server";
-
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/utils/supabase/client";
 import dayjs from "dayjs";
 import { CashFlowEntry, FinancialReportItem } from "./types";
 
 const getSupabase = async () => {
-  return await createClient();
+  return createClient();
 };
 
 const getStoreId = async () => {
