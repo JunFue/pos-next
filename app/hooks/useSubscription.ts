@@ -5,18 +5,36 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 export interface Subscription {
   id: string;
   store_id: string;
-  status: "PENDING" | "PAID" | "EXPIRED" | "active"; // Added 'active' just in case legacy
+  status: "PENDING" | "PAID" | "EXPIRED" | "active";
   amount_paid: number;
+  plan_type: "monthly" | "annual";
   start_date: string;
-  end_date: string; // Changed from current_period_end to match Supabase schema
+  end_date: string;
+  reference_notes?: string;
+}
+
+export interface SubscriptionRequest {
+  id: string;
+  store_id: string;
+  requester_user_id: string;
+  plan_type: "monthly" | "annual";
+  payment_method: "gcash_to_gcash" | "otc_to_gcash";
+  amount: number;
+  status: "pending" | "approved" | "rejected";
+  gcash_reference?: string;
+  admin_notes?: string;
+  created_at: string;
+  reviewed_at?: string;
 }
 
 export interface SubscriptionPayment {
   id: string;
   amount: number;
   status: string;
+  plan_type: string;
+  payment_method: string;
+  gcash_reference?: string;
   created_at: string;
-  transaction_id: string;
 }
 
 export function useSubscription() {
@@ -29,47 +47,66 @@ export function useSubscription() {
         "@/app/actions/subscription"
       );
       const result = await fetchSubscriptionData();
-      console.log("fetchSubscriptionData result:", result);
 
       if (result.success) {
         return {
           storeId: result.storeId || null,
           subscription: result.subscription || null,
+          pendingRequest: result.pendingRequest || null,
           payments: result.payments || [],
         };
       } else {
         console.error("fetchSubscriptionData failed:", result.error);
-        return { storeId: null, subscription: null, payments: [] };
+        return {
+          storeId: null,
+          subscription: null,
+          pendingRequest: null,
+          payments: [],
+        };
       }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes — refetch periodically to pick up DB changes
-    refetchOnWindowFocus: true, // Refetch when user returns to app (e.g. after DB edits)
+    staleTime: 2 * 60 * 1000, // 2 minutes — check more often for approval status
+    refetchOnWindowFocus: true,
   });
 
-  const subscription = data?.subscription || null;
-  const payments = data?.payments || [];
+  const subscription = (data?.subscription as Subscription) || null;
+  const pendingRequest =
+    (data?.pendingRequest as SubscriptionRequest) || null;
+  const payments = (data?.payments as SubscriptionPayment[]) || [];
   const storeId = data?.storeId || null;
 
-  const subscribeAction = async () => {
+  const submitRequest = async (
+    planType: "monthly" | "annual",
+    paymentMethod: "gcash_to_gcash" | "otc_to_gcash",
+    gcashReference?: string
+  ) => {
     if (!storeId) {
-      alert("Store ID not found. Please reload.");
-      return;
+      throw new Error("Store ID not found. Please reload.");
     }
 
-    try {
-      // Import the Xendit Server Action
-      const { createXenditSubscription } = await import(
-        "@/app/actions/subscription"
-      );
+    const { submitSubscriptionRequest } = await import(
+      "@/app/actions/subscription"
+    );
 
-      // This will trigger a redirect to Xendit.
-      // The code below this line won't execute if redirect happens successfully.
-      await createXenditSubscription(storeId);
-    } catch (error) {
-      console.error("Subscription initiation failed:", error);
-      alert("Failed to initialize payment. Please check console.");
-    }
+    const result = await submitSubscriptionRequest(
+      storeId,
+      planType,
+      paymentMethod,
+      gcashReference
+    );
+
+    // Refetch subscription data to show pending state
+    queryClient.invalidateQueries({ queryKey: ["subscription-data"] });
+
+    return result;
   };
 
-  return { subscription, payments, loading, subscribe: subscribeAction };
+  return {
+    subscription,
+    pendingRequest,
+    payments,
+    loading,
+    storeId,
+    submitRequest,
+  };
 }

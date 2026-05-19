@@ -145,10 +145,16 @@ CREATE TABLE public.payments (
   customer_id uuid,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+  order_discount_type text,
+  order_discount_value numeric DEFAULT 0,
+  order_discount_amount numeric DEFAULT 0,
+  voucher_id uuid,
+  voucher_code text,
   CONSTRAINT payments_pkey PRIMARY KEY (id),
   CONSTRAINT payments_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id),
   CONSTRAINT payments_cashier_name_fkey FOREIGN KEY (cashier_id) REFERENCES auth.users(id),
-  CONSTRAINT payments_store_id_fkey FOREIGN KEY (store_id) REFERENCES public.stores(store_id)
+  CONSTRAINT payments_store_id_fkey FOREIGN KEY (store_id) REFERENCES public.stores(store_id),
+  CONSTRAINT payments_voucher_id_fkey FOREIGN KEY (voucher_id) REFERENCES public.vouchers(id)
 );
 CREATE TABLE public.playground_states (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -268,6 +274,7 @@ CREATE TABLE public.transactions (
   category_id uuid,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   payment_id uuid,
+  discount_type text DEFAULT 'flat'::text,
   CONSTRAINT transactions_pkey PRIMARY KEY (id),
   CONSTRAINT transactions_payment_id_fkey FOREIGN KEY (payment_id) REFERENCES public.payments(id),
   CONSTRAINT transactions_cashier_fkey FOREIGN KEY (cashier) REFERENCES auth.users(id),
@@ -287,4 +294,37 @@ CREATE TABLE public.users (
   CONSTRAINT users_pkey PRIMARY KEY (user_id),
   CONSTRAINT user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT users_store_id_fkey FOREIGN KEY (store_id) REFERENCES public.stores(store_id)
+);
+CREATE TABLE public.voucher_redemptions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  voucher_id uuid NOT NULL,
+  payment_id uuid NOT NULL,
+  amount_redeemed numeric NOT NULL,
+  redeemed_at timestamp with time zone DEFAULT now(),
+  redeemed_by uuid NOT NULL,
+  CONSTRAINT voucher_redemptions_pkey PRIMARY KEY (id),
+  CONSTRAINT voucher_redemptions_voucher_fkey FOREIGN KEY (voucher_id) REFERENCES public.vouchers(id),
+  CONSTRAINT voucher_redemptions_payment_fkey FOREIGN KEY (payment_id) REFERENCES public.payments(id),
+  CONSTRAINT voucher_redemptions_user_fkey FOREIGN KEY (redeemed_by) REFERENCES auth.users(id)
+);
+CREATE TABLE public.vouchers (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  store_id uuid NOT NULL,
+  code text NOT NULL,
+  label text,
+  voucher_type text NOT NULL DEFAULT 'fixed'::text,
+  original_value numeric NOT NULL,
+  remaining_balance numeric NOT NULL,
+  min_order_amount numeric DEFAULT 0,
+  max_discount_amount numeric,
+  usage_limit integer,
+  times_used integer DEFAULT 0,
+  valid_from timestamp with time zone DEFAULT now(),
+  valid_until timestamp with time zone,
+  is_active boolean DEFAULT true,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT vouchers_pkey PRIMARY KEY (id),
+  CONSTRAINT vouchers_store_id_fkey FOREIGN KEY (store_id) REFERENCES public.stores(store_id),
+  CONSTRAINT vouchers_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id)
 );

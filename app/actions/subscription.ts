@@ -1,9 +1,10 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
 
-// 1. Fetcher for the Hook
+// ============================================================
+// 1. Fetch subscription data + pending requests
+// ============================================================
 export async function fetchSubscriptionData() {
   const supabase = await createClient();
   const {
@@ -11,12 +12,9 @@ export async function fetchSubscriptionData() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    console.error("fetchSubscriptionData: Not authenticated");
     return { success: false, error: "Not authenticated" };
   }
 
-  // UPDATED: Get Store ID directly from the 'users' table
-  // This is the source of truth and avoids RLS recursion on the members table.
   const { data: userData, error: userError } = await supabase
     .from("users")
     .select("store_id")
@@ -24,19 +22,16 @@ export async function fetchSubscriptionData() {
     .single();
 
   if (userError) {
-    console.error("fetchSubscriptionData: Error fetching user data", userError);
     return { success: false, error: "Failed to fetch user data" };
   }
 
   if (!userData?.store_id) {
-    console.error("fetchSubscriptionData: No store_id found on user record");
     return { success: false, error: "No store found" };
   }
 
   const storeId = userData.store_id;
-  console.log("fetchSubscriptionData: Found store_id", storeId);
 
-  // Get Subscription
+  // Get current subscription
   const { data: subscription, error: subError } = await supabase
     .from("store_subscriptions")
     .select("*")
@@ -44,94 +39,125 @@ export async function fetchSubscriptionData() {
     .maybeSingle();
 
   if (subError) {
-    console.error("fetchSubscriptionData: Subscription query error", subError);
+    console.error("Subscription query error:", subError);
   }
 
-  // Get Payments (Optional: returning the current subscription as a history item)
-  const payments = subscription
-    ? [
-        {
-          id: subscription.id,
-          amount: subscription.amount_paid || 500,
-          status: subscription.status,
-          created_at: subscription.updated_at,
-          transaction_id: subscription.xendit_invoice_id,
-        },
-      ]
-    : [];
+  // Get pending/recent requests
+  const { data: requests, error: reqError } = await supabase
+    .from("subscription_requests")
+    .select("*")
+    .eq("store_id", storeId)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  if (reqError) {
+    console.error("Subscription requests query error:", reqError);
+  }
+
+  // Build payment history from subscription + requests
+  const payments = (requests || []).map((req) => ({
+    id: req.id,
+    amount: req.amount,
+    status: req.status,
+    plan_type: req.plan_type,
+    payment_method: req.payment_method,
+    gcash_reference: req.gcash_reference,
+    created_at: req.created_at,
+  }));
 
   return {
     success: true,
-    storeId: storeId,
+    storeId,
     subscription,
+    pendingRequest:
+      (requests || []).find((r) => r.status === "pending") || null,
     payments,
   };
 }
 
-
-// 2. Xendit Payment Creator
-export async function createXenditSubscription(storeId: string) {
+// ============================================================
+// 2. Submit a new subscription request
+// ============================================================
+export async function submitSubscriptionRequest(
+  storeId: string,
+  planType: "monthly" | "annual",
+  paymentMethod: "gcash_to_gcash" | "otc_to_gcash",
+  gcashReference?: string
+) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
   if (!user) throw new Error("Not authenticated");
 
-  // FIX: Fetch from 'users' table instead of 'members'
-  // This works for both Store Owners and Team Members
-  const { data: userData, error } = await supabase
+  // Verify user belongs to this store
+  const { data: userData, error: userError } = await supabase
     .from("users")
-    .select("email, store_id")
+    .select("store_id, user_id, email, first_name, last_name")
     .eq("user_id", user.id)
     .single();
 
-  if (error || !userData) {
-    console.error("User lookup failed:", error);
-    throw new Error("User not found");
+  if (userError || !userData) throw new Error("User not found");
+  if (userData.store_id !== storeId) throw new Error("Unauthorized");
+
+  // Calculate amount
+  const amount = planType === "monthly" ? 500 : 5500;
+
+  // Check for existing pending request
+  const { data: existingPending } = await supabase
+    .from("subscription_requests")
+    .select("id")
+    .eq("store_id", storeId)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  if (existingPending) {
+    throw new Error(
+      "You already have a pending subscription request. Please wait for it to be reviewed."
+    );
   }
 
-  // Security Check: Ensure the user actually belongs to this store
-  if (userData.store_id !== storeId) {
-    throw new Error("Unauthorized: You do not belong to this store");
-  }
-
-  // Xendit Logic
-  const externalId = `sub_${storeId}_${Date.now()}`;
-  const authHeader = `Basic ${Buffer.from(
-    process.env.XENDIT_SECRET_KEY + ":"
-  ).toString("base64")}`;
-
-  const payload = {
-    external_id: externalId,
-    amount: 500,
-    payer_email: userData.email || "customer@example.com",
-    description: `Monthly Subscription for Store (User: ${userData.email})`,
-    invoice_duration: 86400,
-    success_redirect_url: `${process.env.NEXT_PUBLIC_SITE_URL}/settings?payment=success`,
-    failure_redirect_url: `${process.env.NEXT_PUBLIC_SITE_URL}/settings?payment=failure`,
-    currency: "PHP",
-    meta: {
+  // Insert the request
+  const { data: newRequest, error: insertError } = await supabase
+    .from("subscription_requests")
+    .insert({
       store_id: storeId,
-      payer_user_id: user.id,
-    },
-  };
+      requester_user_id: userData.user_id,
+      plan_type: planType,
+      payment_method: paymentMethod,
+      amount,
+      gcash_reference: gcashReference || null,
+    })
+    .select()
+    .single();
 
-  const res = await fetch("https://api.xendit.co/v2/invoices", {
-    method: "POST",
-    headers: {
-      Authorization: authHeader,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  const invoice = await res.json();
-
-  if (!res.ok) {
-    console.error("Xendit Error:", invoice);
-    throw new Error("Failed to create payment invoice");
+  if (insertError) {
+    console.error("Failed to insert subscription request:", insertError);
+    throw new Error("Failed to submit subscription request");
   }
 
-  // Redirect to Xendit
-  redirect(invoice.invoice_url);
+  // Send email notification to admin (fire-and-forget)
+  try {
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    await fetch(`${siteUrl}/api/subscription/notify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        requestId: newRequest.id,
+        storeName: storeId,
+        requesterName: `${userData.first_name || ""} ${userData.last_name || ""}`.trim(),
+        requesterEmail: userData.email,
+        planType,
+        paymentMethod,
+        amount,
+        gcashReference: gcashReference || "Not provided",
+      }),
+    });
+  } catch (emailError) {
+    // Don't fail the request if email fails
+    console.error("Email notification failed (non-blocking):", emailError);
+  }
+
+  return { success: true, request: newRequest };
 }
