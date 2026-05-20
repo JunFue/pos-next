@@ -161,3 +161,91 @@ export async function submitSubscriptionRequest(
 
   return { success: true, request: newRequest };
 }
+
+// ============================================================
+// 3. Submit a Free Trial Request
+// ============================================================
+export async function requestFreeTrial(storeId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+
+  // Verify user belongs to this store
+  const { data: userData, error: userError } = await supabase
+    .from("users")
+    .select("store_id, user_id, email, first_name, last_name")
+    .eq("user_id", user.id)
+    .single();
+
+  if (userError || !userData) throw new Error("User not found");
+  if (userData.store_id !== storeId) throw new Error("Unauthorized");
+
+  // Check if they ever had a trial before (optional but good practice)
+  const { data: previousTrial } = await supabase
+    .from("subscription_requests")
+    .select("id")
+    .eq("store_id", storeId)
+    .eq("plan_type", "trial")
+    .maybeSingle();
+
+  if (previousTrial) {
+    throw new Error("A free trial has already been requested for this store.");
+  }
+
+  // Check for any existing pending request
+  const { data: existingPending } = await supabase
+    .from("subscription_requests")
+    .select("id")
+    .eq("store_id", storeId)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  if (existingPending) {
+    throw new Error("You already have a pending subscription request.");
+  }
+
+  // Insert the trial request
+  const { data: newRequest, error: insertError } = await supabase
+    .from("subscription_requests")
+    .insert({
+      store_id: storeId,
+      requester_user_id: userData.user_id,
+      plan_type: 'trial',
+      payment_method: 'none',
+      amount: 0,
+      gcash_reference: null,
+    })
+    .select()
+    .single();
+
+  if (insertError) {
+    console.error("Failed to insert trial request:", insertError);
+    throw new Error("Failed to submit free trial request");
+  }
+
+  // Send email notification to admin specifically for trial
+  try {
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    await fetch(`${siteUrl}/api/subscription/notify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        requestId: newRequest.id,
+        storeName: storeId,
+        requesterName: `${userData.first_name || ""} ${userData.last_name || ""}`.trim(),
+        requesterEmail: userData.email,
+        planType: 'trial',
+        paymentMethod: 'none',
+        amount: 0,
+        gcashReference: "Free Trial Request",
+      }),
+    });
+  } catch (emailError) {
+    console.error("Email notification failed for trial (non-blocking):", emailError);
+  }
+
+  return { success: true, request: newRequest };
+}

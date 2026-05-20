@@ -228,11 +228,11 @@ export default async function proxy(request: NextRequest) {
       // Check Subscription
       const hasSubscriptionRecord = subStatus !== undefined;
 
-      let isExpired = false;
+      let isExpired = true; // Default to true so new stores w/o sub are blocked
       if (hasSubscriptionRecord) {
         const now = new Date();
         const endDate = subEndDateRaw ? new Date(subEndDateRaw) : null;
-        const isPaid = subStatus === "PAID";
+        const isPaid = subStatus === "PAID" || subStatus === "TRIAL" || subStatus === "ACTIVE";
         isExpired = !isPaid || !endDate || endDate <= now;
       }
 
@@ -244,7 +244,7 @@ export default async function proxy(request: NextRequest) {
 
       const isDemoUser = user?.is_anonymous;
       
-      if (hasSubscriptionRecord && isExpired && !isExemptPage && !isDemoUser) {
+      if (isExpired && !isExemptPage && !isDemoUser) {
         return NextResponse.redirect(new URL("/subscribe-required", request.url));
       }
     }
