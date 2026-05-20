@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Store, Loader2, AlertTriangle, ArrowRight, LogOut } from "lucide-react";
 import { getUserStores, switchActiveStore } from "@/app/actions/store";
 import { logout } from "@/app/actions/auth";
+import { useRouter } from "next/navigation";
 
 interface StoreEntry {
   store_id: string;
@@ -17,6 +18,7 @@ export default function SelectStorePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSwitching, setIsSwitching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchStores() {
@@ -25,8 +27,7 @@ export default function SelectStorePage() {
         if (result.success && result.stores) {
           setStores(result.stores);
           
-          // If the user somehow only has one store, we should probably auto-select it
-          // but for now, we'll let them pick or let the middleware handle it.
+          // auto-select if only 1 store
           if (result.stores.length === 1) {
              handleSelect(result.stores[0].store_id);
           }
@@ -49,7 +50,9 @@ export default function SelectStorePage() {
     try {
       const result = await switchActiveStore(storeId);
       if (result.success) {
-        window.location.href = "/";
+        // Trigger a hard reload via router to ensure cookies are fresh
+        router.refresh();
+        router.replace("/");
       } else {
         setError(result.error || "Failed to enter store.");
         setIsSwitching(false);

@@ -16,10 +16,14 @@ DECLARE
   claims jsonb;
   app_metadata jsonb;
   u_info record;
-  s_info record;
-  sub_info record;
   user_permissions jsonb;
   v_status text;
+
+  -- Use explicit variables instead of records to avoid runtime unassigned errors
+  v_drawer_mode text;
+  v_store_deleted_at timestamptz;
+  v_sub_status text;
+  v_sub_end_date timestamptz;
 BEGIN
   -- 1. Fetch user data (Merged role and deleted_at checks)
   SELECT store_id, role, deleted_at, first_name, last_name, metadata->>'job_title' as job_title 
@@ -33,11 +37,11 @@ BEGIN
 
   -- 2. Fetch store data and subscription
   IF u_info.store_id IS NOT NULL THEN
-    SELECT drawer_mode, deleted_at INTO s_info
+    SELECT drawer_mode, deleted_at INTO v_drawer_mode, v_store_deleted_at
     FROM public.stores
     WHERE store_id = u_info.store_id;
 
-    SELECT status, end_date INTO sub_info 
+    SELECT status, end_date INTO v_sub_status, v_sub_end_date 
     FROM public.store_subscriptions 
     WHERE store_id = u_info.store_id;
   END IF;
@@ -63,7 +67,7 @@ BEGIN
       v_status := 'user_deleted';
   ELSE
       IF u_info.store_id IS NOT NULL THEN
-          IF s_info.deleted_at IS NOT NULL THEN
+          IF v_store_deleted_at IS NOT NULL THEN
               v_status := 'store_deleted';
           END IF;
       ELSE
@@ -90,8 +94,8 @@ BEGIN
     app_metadata := jsonb_set(app_metadata, '{permissions}', user_permissions);
   END IF;
 
-  IF s_info.drawer_mode IS NOT NULL THEN
-    app_metadata := jsonb_set(app_metadata, '{drawer_mode}', to_jsonb(s_info.drawer_mode));
+  IF v_drawer_mode IS NOT NULL THEN
+    app_metadata := jsonb_set(app_metadata, '{drawer_mode}', to_jsonb(v_drawer_mode));
   END IF;
 
   -- New injections for Middleware Guard
@@ -99,9 +103,14 @@ BEGIN
   app_metadata := jsonb_set(app_metadata, '{has_job_title}', to_jsonb(u_info.job_title IS NOT NULL));
   app_metadata := jsonb_set(app_metadata, '{account_status}', to_jsonb(v_status));
   
-  IF sub_info IS NOT NULL THEN
-      app_metadata := jsonb_set(app_metadata, '{sub_status}', to_jsonb(sub_info.status));
-      app_metadata := jsonb_set(app_metadata, '{sub_end_date}', to_jsonb(sub_info.end_date));
+  IF v_sub_status IS NOT NULL THEN
+      app_metadata := jsonb_set(app_metadata, '{sub_status}', to_jsonb(v_sub_status));
+      
+      IF v_sub_end_date IS NOT NULL THEN
+          app_metadata := jsonb_set(app_metadata, '{sub_end_date}', to_jsonb(v_sub_end_date));
+      ELSE 
+          app_metadata := app_metadata - 'sub_end_date';
+      END IF;
   ELSE
       app_metadata := app_metadata - 'sub_status' - 'sub_end_date';
   END IF;

@@ -1,7 +1,10 @@
+"use client";
+
 import { useState } from "react";
 import { ShieldAlert, ArrowRight, LifeBuoy, Clock, Smartphone, Sparkles, Loader2, CheckCircle2 } from "lucide-react";
-import Link from "next/link";
 import { requestFreeTrial } from "@/app/actions/subscription";
+import Link from "next/link";
+import { createClient } from "@/utils/supabase/client";
 
 interface SubscriptionRequiredProps {
   storeId: string;
@@ -10,9 +13,21 @@ interface SubscriptionRequiredProps {
 }
 
 const SubscriptionRequired = ({ storeId, hasPendingTrial, hasPendingSubscription }: SubscriptionRequiredProps) => {
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRequestingTrial, setIsRequestingTrial] = useState(false);
   const [trialRequested, setTrialRequested] = useState(hasPendingTrial);
   const [errorObj, setErrorObj] = useState<string | null>(null);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      const supabase = createClient();
+      await supabase.auth.refreshSession();
+      window.location.reload();
+    } catch {
+      window.location.reload();
+    }
+  };
 
   const handleRequestTrial = async () => {
     setIsRequestingTrial(true);
@@ -134,10 +149,11 @@ const SubscriptionRequired = ({ storeId, hasPendingTrial, hasPendingSubscription
         <p className="text-zinc-500 text-sm">
           Already submitted payment?{" "}
           <button 
-            onClick={() => window.location.reload()} 
-            className="text-blue-500 hover:underline font-medium"
+            onClick={handleRefresh} 
+            disabled={isRefreshing}
+            className="text-blue-500 hover:underline font-medium disabled:opacity-50"
           >
-            Refresh page
+            {isRefreshing ? "Refreshing..." : "Refresh page"}
           </button>
         </p>
       </div>

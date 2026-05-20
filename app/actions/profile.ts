@@ -143,6 +143,10 @@ export async function updateProfile(data: {
     }
   }
 
+  // FORCE JWT REFRESH: This ensures the custom access token hook runs again
+  // and updates the user's claims (has_name, has_job_title, etc.) immediately.
+  await supabase.auth.refreshSession();
+
   revalidatePath("/", "layout");
   revalidatePath("/settings");
   return { success: true };

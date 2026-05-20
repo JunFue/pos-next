@@ -328,13 +328,19 @@ export async function switchActiveStore(targetStoreId: string) {
     if (!user) return { success: false, error: "Not authenticated" };
 
     // Call the RPC to switch stores
-    const { error: rpcError } = await supabase.rpc("switch_active_store", {
+    const { data: rpcData, error: rpcError } = await supabase.rpc("switch_active_store", {
       target_store_id: targetStoreId,
     });
 
     if (rpcError) {
       console.error("Error switching store:", rpcError);
       return { success: false, error: rpcError.message };
+    }
+
+    const result = rpcData as { success: boolean; error?: string; message?: string } | null;
+    if (result && result.success === false) {
+      console.log("switch_active_store RPC returned logic error:", result.error || result.message);
+      return { success: false, error: result.error || result.message || "Unauthorized to enter this store." };
     }
 
     // Refresh session to get updated JWT claims

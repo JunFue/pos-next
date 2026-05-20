@@ -214,8 +214,9 @@ export function SubscriptionSettings() {
   const endDateObj = subscription?.end_date
     ? new Date(subscription.end_date)
     : null;
-  const isActive =
-    subscription?.status === "PAID" && endDateObj && endDateObj > now;
+  const status = subscription?.status?.toUpperCase();
+  const isPaid = status === "PAID" || status === "TRIAL" || status === "ACTIVE";
+  const isActive = isPaid && endDateObj && endDateObj > now;
 
   const formattedEndDate = subscription?.end_date
     ? dayjs(subscription.end_date).format("MMM D, YYYY")

@@ -192,14 +192,39 @@ export default async function proxy(request: NextRequest) {
     }
 
     const currentPath = request.nextUrl.pathname;
+    const isOnboardingPage = currentPath.startsWith("/onboarding");
+    const isSelectStorePage = currentPath.startsWith("/select-store");
+    const isSettingsPage = currentPath.startsWith("/settings");
 
-    // --- 1. Account Status Guard ---
+    // --- 1. Fatal Account Status (Highest Priority) ---
     if (status === "user_deleted") {
       if (!currentPath.startsWith("/reactivate")) {
          return NextResponse.redirect(new URL("/reactivate", request.url));
       }
-    } else if (status === "store_deleted" || status === "no_store") {
-       if (!currentPath.startsWith("/settings") && !currentPath.startsWith("/login")) {
+      return response;
+    }
+
+    // --- 2. Profile Onboarding Guard ---
+    // If they haven't set their name or job title, they MUST go to onboarding.
+    if (!hasName || !hasJobTitle) {
+      if (!isOnboardingPage) {
+        return NextResponse.redirect(new URL("/onboarding", request.url));
+      }
+      return response; // Stay on onboarding to allow setup
+    }
+
+    // --- 3. Store Selection Guard ---
+    // User is onboarded but has no store.
+    if (!hasStore) {
+      if (!isSelectStorePage && !isOnboardingPage && !isSettingsPage) {
+        return NextResponse.redirect(new URL("/select-store", request.url));
+      }
+      // Allow them to stay on select-store, onboarding, or settings (to join via code)
+    }
+
+    // --- 4. Secondary Account Status Guard ---
+    if (status === "store_deleted" || status === "no_store") {
+       if (!isSettingsPage && !isSelectStorePage && !isOnboardingPage && !currentPath.startsWith("/login")) {
           const redirectUrl = new URL("/settings", request.url);
           if (status === "store_deleted") {
             redirectUrl.searchParams.set("reason", "store_deleted");
@@ -212,34 +237,21 @@ export default async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL("/", request.url));
     }
 
-    // --- 2. Subscription & Profile Guard ---
-    const isOnboardingPage = request.nextUrl.pathname.startsWith("/onboarding");
-    const isSelectStorePage = request.nextUrl.pathname.startsWith("/select-store");
-
-    if (!hasName || !hasJobTitle) {
-      if (!isOnboardingPage) {
-        return NextResponse.redirect(new URL("/onboarding", request.url));
-      }
-    } else if (!hasStore) {
-      if (!isSelectStorePage && !isOnboardingPage) {
-        return NextResponse.redirect(new URL("/select-store", request.url));
-      }
-    } else {
-      // Check Subscription
-      const hasSubscriptionRecord = subStatus !== undefined;
-
-      let isExpired = true; // Default to true so new stores w/o sub are blocked
-      if (hasSubscriptionRecord) {
+    // --- 5. Subscription Guard (Only for users with a store) ---
+    if (hasStore) {
+      let isExpired = true; 
+      if (subStatus) {
         const now = new Date();
         const endDate = subEndDateRaw ? new Date(subEndDateRaw) : null;
-        const isPaid = subStatus === "PAID" || subStatus === "TRIAL" || subStatus === "ACTIVE";
+        const normalizedStatus = subStatus.toUpperCase();
+        const isPaid = normalizedStatus === "PAID" || normalizedStatus === "TRIAL" || normalizedStatus === "ACTIVE";
         isExpired = !isPaid || !endDate || endDate <= now;
       }
 
       const isExemptPage =
-        request.nextUrl.pathname.startsWith("/settings") ||
-        request.nextUrl.pathname.startsWith("/subscribe-required") ||
-        request.nextUrl.pathname.startsWith("/onboarding") ||
+        isSettingsPage ||
+        currentPath.startsWith("/subscribe-required") ||
+        isOnboardingPage ||
         isSelectStorePage;
 
       const isDemoUser = user?.is_anonymous;
