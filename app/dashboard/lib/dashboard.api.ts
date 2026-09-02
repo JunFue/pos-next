@@ -98,11 +98,6 @@ export const fetchFinancialReport = async (
     (acc, curr) => ({
       gross: acc.gross + (Number(curr.total_gross_sales) || 0),
       expenses: acc.expenses + (Number(curr.total_cashout) || 0),
-      // For cash on hand, we take the last day's cash_remaining in the range
-      // but for a summary, maybe we just want to show the current state or sum?
-      // Usually "Cash on Hand" in a period report is the ending balance.
-      // However, the original report might have been per category.
-      // Since daily_store_stats is overall, we return one "Overall" row.
     }),
     { gross: 0, expenses: 0 }
   );
@@ -168,7 +163,7 @@ export const fetchDashboardStats = async (
     .select("balance")
     .eq("store_id", storeId)
     .lte("date", date)
-    .order("date", { ascending: false }) // Get the latest balance up to the selected date
+    .order("date", { ascending: false })
     .limit(1)
     .maybeSingle();
 
@@ -180,7 +175,6 @@ export const fetchDashboardStats = async (
     return null;
   }
 
-  // Use the live balance if available, otherwise fallback to stats table
   const cashInDrawer = cashData ? Number(cashData.balance) : (statsData ? Number(statsData.cash_remaining) : 0);
 
   return {

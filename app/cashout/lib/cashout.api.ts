@@ -436,121 +436,57 @@ export const createExpense = async (input: CashoutInput) => {
 
 // --- CLASSIFICATION API ---
 
-// 4. Fetch Classifications
+// 4. Fetch Classifications (Admin-controlled)
 export const fetchClassifications = async (): Promise<Classification[]> => {
   const supabase = await getSupabase();
-  const { data, error } = await supabase
-    .from("classification")
-    .select("*")
-    .order("name", { ascending: true });
+  
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: userData } = await supabase
+    .from("users")
+    .select("store_id")
+    .eq("user_id", user.id)
+    .single();
+
+  if (!userData?.store_id) return [];
+
+  // Find the admin user_id of this store
+  const { data: storeData } = await supabase
+    .from("stores")
+    .select("user_id")
+    .eq("store_id", userData.store_id)
+    .single();
+
+  const adminId = storeData?.user_id;
+
+  // Fetch classifications for this admin or fallback to store
+  let query = supabase.from("classification").select("*").order("name", { ascending: true });
+  if (adminId) {
+    query = query.or(`admin_id.eq.${adminId},store_id.eq.${userData.store_id}`);
+  } else {
+    query = query.eq("store_id", userData.store_id);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("Error fetching classifications:", error);
     return [];
   }
 
-  // Auto-seed if empty for this store
-  if (!data || data.length === 0) {
-    await seedClassifications();
-    // Re-fetch after seeding
-    const { data: seededData } = await supabase
-      .from("classification")
-      .select("*")
-      .order("name", { ascending: true });
-    return seededData || [];
-  }
-
-  return data || [];
-};
-
-// 4b. Seed Default Classifications
-export const seedClassifications = async () => {
-  const supabase = await getSupabase();
-  
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
-
-  const { data: userData } = await supabase
-    .from("users")
-    .select("store_id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (!userData?.store_id) return;
-
-  const defaults = [
-    { name: 'Utilities', icon: 'Lightbulb' },
-    { name: 'Rent & Lease', icon: 'Store' },
-    { name: 'Supplier Payment', icon: 'Truck' },
-    { name: 'Salaries', icon: 'User' },
-    { name: 'Maintenance', icon: 'Wrench' },
-    { name: 'Internet/Comm', icon: 'Wifi' },
-    { name: 'Supplies', icon: 'Coffee' },
-    { name: 'Marketing', icon: 'Briefcase' },
-    { name: 'Taxes & Permits', icon: 'ShieldCheck' }
-  ];
-
-  const insertData = defaults.map(d => ({
-    name: d.name,
-    icon: d.icon,
-    store_id: userData.store_id
-  }));
-
-  const { error } = await supabase.from("classification").insert(insertData);
-  if (error) console.error("Error seeding classifications:", error);
-};
-
-// 5. Create Classification
-export const createClassification = async (name: string, icon: string = 'Store') => {
-  const supabase = await getSupabase();
-  
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-
-  const { data: userData } = await supabase
-    .from("users")
-    .select("store_id")
-    .eq("user_id", user.id)
-    .single();
-
-  const { error } = await supabase.from("classification").insert({
-    name,
-    icon,
-    store_id: userData?.store_id
+  // Deduplicate by lowercase trimmed name if any legacy records remain
+  const seen = new Set<string>();
+  const uniqueClassifications: Classification[] = [];
+  (data || []).forEach((c) => {
+    const key = (c.name || "").trim().toLowerCase();
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      uniqueClassifications.push(c);
+    }
   });
 
-  if (error) {
-    console.error("Error creating classification:", error);
-    throw new Error(error.message);
-  }
-};
-
-// 6. Update Classification
-export const updateClassification = async (id: string, name: string, icon?: string) => {
-  const supabase = await getSupabase();
-  const updateData: any = { name };
-  if (icon) updateData.icon = icon;
-
-  const { error } = await supabase
-    .from("classification")
-    .update(updateData)
-    .eq("id", id);
-
-  if (error) {
-    console.error("Error updating classification:", error);
-    throw new Error(error.message);
-  }
-};
-
-// 7. Delete Classification
-export const deleteClassification = async (id: string) => {
-  const supabase = await getSupabase();
-  const { error } = await supabase.from("classification").delete().eq("id", id);
-
-  if (error) {
-    console.error("Error deleting classification:", error);
-    throw new Error(error.message);
-  }
+  return uniqueClassifications;
 };
 
 // 8. Delete Expense
@@ -564,33 +500,6 @@ export const deleteExpense = async (id: string) => {
   }
 };
 
-// --- DATA INTEGRITY / TRANSFER ---
-
-// 10. Check Classification Usage
-export const checkClassificationUsage = async (id: string): Promise<number> => {
-  const supabase = await getSupabase();
-  const { count, error } = await supabase
-    .from("expenses")
-    .select("*", { count: 'exact', head: true })
-    .eq("classification_id", id);
-
-  if (error) throw error;
-  return count || 0;
-};
-
-// 11. Transfer Classification
-export const transferClassification = async (fromId: string, toId: string) => {
-  const supabase = await getSupabase();
-  const { error } = await supabase
-    .from("expenses")
-    .update({ classification_id: toId })
-    .eq("classification_id", fromId);
-
-  if (error) throw error;
-  
-  // After transfer, delete the old one
-  await deleteClassification(fromId);
-};
 
 // 9. Update Expense (Direct Update)
 export const updateExpense = async (id: string, input: CashoutInput) => {

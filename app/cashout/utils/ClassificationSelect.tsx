@@ -45,9 +45,6 @@ export const ClassificationSelect = forwardRef<
     const {
       classifications,
       isLoading: loading,
-      addClassification,
-      editClassification,
-      removeClassification,
     } = useClassifications();
 
     // UI state
@@ -56,11 +53,6 @@ export const ClassificationSelect = forwardRef<
     
     // We track if the user is actively typing to avoid overwriting their text with the DB name
     const isTyping = useRef(false);
-
-    // Edit state
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [editValue, setEditValue] = useState("");
-    const [actionLoading, setActionLoading] = useState(false);
 
     // Keyboard navigation
     const [highlightIndex, setHighlightIndex] = useState<number>(-1);
@@ -106,7 +98,6 @@ export const ClassificationSelect = forwardRef<
           !containerRef.current.contains(e.target as Node)
         ) {
           setIsOpen(false);
-          setEditingId(null);
           setHighlightIndex(-1);
         }
       };
@@ -127,69 +118,9 @@ export const ClassificationSelect = forwardRef<
     const handleSelect = (cls: Classification) => {
       isTyping.current = false;
       setSearch(cls.name);
-      onChange(cls.id); // <--- CRITICAL: Sending ID, not Name
+      onChange(cls.id); // <--- Sending ID, not Name
       setIsOpen(false);
       setHighlightIndex(-1);
-    };
-
-    // Create Handler
-    const handleCreate = async () => {
-      const trimmed = search.trim();
-      if (!trimmed) return;
-      try {
-        setActionLoading(true);
-        await addClassification(trimmed);
-        // We don't manually set ID here; Effect 2 will detect the new item and auto-select it.
-        setIsOpen(false);
-        setHighlightIndex(-1);
-      } catch {
-        alert("Failed to create classification");
-      } finally {
-        setActionLoading(false);
-      }
-    };
-
-    // Edit Handlers
-    const startEdit = (e: React.MouseEvent, cls: Classification) => {
-      e.stopPropagation();
-      setEditingId(cls.id);
-      setEditValue(cls.name);
-    };
-
-    const saveEdit = async (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (!editingId || !editValue.trim()) return;
-      try {
-        setActionLoading(true);
-        await editClassification(editingId, editValue);
-        setEditingId(null);
-        // The list updates, Effect 1 runs, updates display text automatically.
-      } catch {
-        alert("Failed to update classification");
-      } finally {
-        setActionLoading(false);
-      }
-    };
-
-    // Delete Handler
-    const handleDelete = async (e: React.MouseEvent, id: string) => {
-      e.stopPropagation();
-      if (!confirm("Are you sure? This cannot be undone.")) return;
-      try {
-        setActionLoading(true);
-        await removeClassification(id);
-        
-        // If we deleted the currently selected item, clear the selection
-        if (value === id) {
-          onChange("");
-          setSearch("");
-          isTyping.current = false;
-        }
-      } catch {
-        alert("Failed to delete classification");
-      } finally {
-        setActionLoading(false);
-      }
     };
 
     return (
@@ -202,20 +133,18 @@ export const ClassificationSelect = forwardRef<
             name={name}
             value={search} // Controlled by 'search' (Name), not 'value' (ID)
             onBlur={(e) => {
-                 // On blur, if we have an exact match typed out, enforce selection
-                 const match = classifications.find(c => c.name.toLowerCase() === search.toLowerCase().trim());
-                 if (match && value !== match.id) {
-                     handleSelect(match);
-                 }
-                 if (onBlur) onBlur(e);
+              // On blur, if we have an exact match typed out, enforce selection
+              const match = classifications.find(c => c.name.toLowerCase() === search.toLowerCase().trim());
+              if (match && value !== match.id) {
+                handleSelect(match);
+              }
+              if (onBlur) onBlur(e);
             }}
             onChange={(e) => {
               const next = e.target.value;
               isTyping.current = true;
               setSearch(next);
               
-              // When typing, we don't have a valid ID yet, so clear it.
-              // Effect 2 will auto-fill it if a match is found while typing.
               if (value) onChange(""); 
               
               if (!isOpen) setIsOpen(true);
@@ -224,9 +153,8 @@ export const ClassificationSelect = forwardRef<
             onFocus={() => {
               setIsOpen(true);
               if (value) {
-                 // Find index of current ID
-                 const idx = filtered.findIndex((c) => c.id === value);
-                 setHighlightIndex(idx >= 0 ? idx : -1);
+                const idx = filtered.findIndex((c) => c.id === value);
+                setHighlightIndex(idx >= 0 ? idx : -1);
               }
             }}
             onKeyDown={(e) => {
@@ -250,9 +178,6 @@ export const ClassificationSelect = forwardRef<
                 if (highlightIndex >= 0 && filtered[highlightIndex]) {
                   handleSelect(filtered[highlightIndex]);
                   if (onKeyDown) onKeyDown(e);
-                } else if (!exactMatch && search.trim()) {
-                    handleCreate(); // Allow Enter to create
-                    if (onKeyDown) onKeyDown(e);
                 }
                 return;
               }
@@ -265,7 +190,7 @@ export const ClassificationSelect = forwardRef<
               if (onKeyDown) onKeyDown(e);
             }}
             disabled={disabled}
-            placeholder={placeholder || "Select or create classification..."}
+            placeholder={placeholder || "Select classification..."}
             className={`w-full border-input rounded-xl p-2.5 text-sm focus:ring-ring focus:border-ring border bg-muted/20 focus:bg-card text-foreground transition-colors placeholder-muted-foreground/50 ${
               error ? "border-red-500" : ""
             }`}
@@ -297,7 +222,7 @@ export const ClassificationSelect = forwardRef<
             {filtered.map((cls, idx) => (
               <div
                 key={cls.id}
-                className={`group flex items-center justify-between px-3 py-2 cursor-pointer text-sm ${
+                className={`flex items-center justify-between px-3 py-2 cursor-pointer text-sm ${
                   idx === highlightIndex
                     ? "bg-muted text-primary"
                     : "text-foreground hover:bg-muted/50"
@@ -306,80 +231,15 @@ export const ClassificationSelect = forwardRef<
                 onMouseLeave={() => setHighlightIndex(-1)}
                 onClick={() => handleSelect(cls)}
               >
-                {editingId === cls.id ? (
-                  <div
-                    className="flex items-center gap-2 w-full"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <input
-                      className="bg-muted px-2 py-1 border border-border rounded focus:outline-none w-full text-foreground text-xs"
-                      value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
-                      autoFocus
-                      onKeyDown={(e) => {
-                          if(e.key === 'Enter') saveEdit(e as any);
-                      }}
-                    />
-                    <button
-                      onClick={saveEdit}
-                      disabled={actionLoading}
-                      className="text-green-400 hover:text-green-300"
-                    >
-                      <Check className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingId(null);
-                      }}
-                      className="text-red-400 hover:text-red-300"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <span className={value === cls.id ? "font-bold text-primary" : ""}>
-                      {cls.name}
-                    </span>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={(e) => startEdit(e, cls)}
-                        className="hover:bg-muted p-1 rounded text-blue-500"
-                      >
-                        <Edit2 className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={(e) => handleDelete(e, cls.id)}
-                        className="hover:bg-muted p-1 rounded text-red-500"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </>
-                )}
+                <span className={value === cls.id ? "font-bold text-primary" : ""}>
+                  {cls.name}
+                </span>
               </div>
             ))}
 
-            {!exactMatch && search.trim() !== "" && (
-              <button
-                type="button"
-                onClick={handleCreate}
-                disabled={actionLoading}
-                className="flex items-center gap-2 hover:bg-muted px-3 py-2 border-border border-t w-full text-primary text-sm text-left"
-              >
-                {actionLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Plus className="w-4 h-4" />
-                )}
-                Create &quot;{search}&quot;
-              </button>
-            )}
-
-            {filtered.length === 0 && search.trim() === "" && (
+            {filtered.length === 0 && (
               <div className="px-3 py-4 text-muted-foreground text-xs text-center">
-                Start typing to add...
+                {search.trim() === "" ? "No categories available" : `No category matching "${search}"`}
               </div>
             )}
           </div>
