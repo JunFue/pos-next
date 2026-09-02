@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendSubscriptionNotificationSms } from "@/lib/sms";
 
 // Use service role for admin-level lookups
 const supabaseAdmin = createClient(
@@ -39,7 +40,23 @@ export async function POST(req: Request) {
     const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || "junelfuentes.02@gmail.com";
     const superAdminUrl = process.env.SUPER_ADMIN_URL || "http://localhost:3002";
 
-    // Format the email content as plain text for the edge function
+    // 1. Send SMS notification to personal phone number (09097215229 / ADMIN_PHONE_NUMBER)
+    try {
+      const smsResult = await sendSubscriptionNotificationSms({
+        storeName: actualStoreName,
+        requesterName,
+        requesterEmail,
+        planType,
+        amount: Number(amount) || 0,
+        paymentMethod,
+        gcashReference,
+      });
+      console.log("SMS notification result:", smsResult);
+    } catch (smsErr) {
+      console.error("SMS notification failed (non-blocking):", smsErr);
+    }
+
+    // 2. Format the email content as plain text for the edge function
     const subject = `🔔 New Subscription Request — ${actualStoreName}`;
     const htmlBody = `
       <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
@@ -91,9 +108,7 @@ export async function POST(req: Request) {
       </div>
     `;
 
-    // Send email via Supabase Edge Function (or fallback)
-    // For now, use the Supabase built-in auth.admin to send a custom email
-    // via the edge function endpoint
+    // 3. Send email via Supabase Edge Function (or fallback)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
@@ -116,7 +131,6 @@ export async function POST(req: Request) {
     if (!emailResponse.ok) {
       const errorText = await emailResponse.text();
       console.error("Edge function email failed:", emailResponse.status, errorText);
-      // Don't fail the overall request — email is best-effort
       console.log("Email notification skipped — edge function not deployed yet.");
       console.log("Email would have been sent to:", adminEmail);
       console.log("Subject:", subject);
@@ -127,7 +141,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Notification error:", error);
-    // Don't fail — notification is best-effort
-    return NextResponse.json({ success: true, note: "Email notification may have failed" });
+    return NextResponse.json({ success: true, note: "Notification processed with warnings" });
   }
 }

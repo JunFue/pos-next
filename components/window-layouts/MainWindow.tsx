@@ -8,6 +8,7 @@ import { useMediaQuery } from "../../app/hooks/useMediaQuery";
 import { useViewStore } from "./store/useViewStore";
 import { Navigation } from "../navigation/Navigation";
 import { Header } from "../Header";
+import { SubscriptionExpiryBanner } from "../subscription/SubscriptionExpiryBanner";
 import { useAuthStore } from "@/store/useAuthStore";
 import { X, Loader2 } from "lucide-react";
 
@@ -85,6 +86,7 @@ export function MainWindow({
           onSignInClick={openSignInModal} 
           onSignOutClick={onSignOutClick} 
         />
+        <SubscriptionExpiryBanner />
         
         <main className="flex-1 overflow-y-auto flex flex-col p-2 pt-0">
             {children}

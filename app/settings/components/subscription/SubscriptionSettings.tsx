@@ -178,6 +178,7 @@ export function SubscriptionSettings() {
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isRenewingEarly, setIsRenewingEarly] = useState(false);
 
   const amount = planType === "monthly" ? MONTHLY_PRICE : ANNUAL_PRICE;
 
@@ -192,6 +193,7 @@ export function SubscriptionSettings() {
     setError(null);
     try {
       await submitRequest(planType, paymentMethod, gcashRef || undefined);
+      setIsRenewingEarly(false);
       // Reset form on success — the UI will show pending state from the hook
     } catch (e: any) {
       setError(e.message || "Something went wrong. Please try again.");
@@ -218,6 +220,11 @@ export function SubscriptionSettings() {
   const isPaid = status === "PAID" || status === "TRIAL" || status === "ACTIVE";
   const isActive = isPaid && endDateObj && endDateObj > now;
 
+  const daysRemaining = endDateObj
+    ? Math.max(0, Math.ceil(dayjs(endDateObj).diff(dayjs(), "hour") / 24))
+    : 999;
+  const isExpiringSoon = isActive && daysRemaining <= 7;
+
   const formattedEndDate = subscription?.end_date
     ? dayjs(subscription.end_date).format("MMM D, YYYY")
     : "-";
@@ -225,9 +232,9 @@ export function SubscriptionSettings() {
   const hasPending = !!pendingRequest;
 
   // ============================================================
-  // RENDER: Active Subscription
+  // RENDER: Active Subscription (unless user clicked Renew Early)
   // ============================================================
-  if (isActive) {
+  if (isActive && !isRenewingEarly) {
     return (
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-2">
@@ -248,7 +255,55 @@ export function SubscriptionSettings() {
               </p>
             </div>
           </div>
+
+          <button
+            onClick={() => {
+              setIsRenewingEarly(true);
+              setStep("select");
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 text-xs font-bold transition-all"
+          >
+            <Sparkles className="w-4 h-4" />
+            Renew / Extend Plan
+          </button>
         </div>
+
+        {/* 7-Day Expiry Notice Card */}
+        {isExpiringSoon && (
+          <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
+                <Clock className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
+                  <span>
+                    {daysRemaining === 0
+                      ? "⚠️ Subscription Expires Today"
+                      : `⏳ Subscription Expiring in ${daysRemaining} Day${daysRemaining === 1 ? "" : "s"}`}
+                  </span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 uppercase font-black">
+                    Action Needed
+                  </span>
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Your {subscription?.plan_type} subscription ends on <strong className="text-foreground">{formattedEndDate}</strong>. Renew early to prevent POS interruption.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setIsRenewingEarly(true);
+                setStep("select");
+              }}
+              className="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md shadow-amber-500/20 shrink-0 flex items-center justify-center gap-2 active:scale-95"
+            >
+              <span>Renew Now</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         <div className="gap-8 grid md:grid-cols-2">
           {/* Status Card */}
@@ -375,22 +430,35 @@ export function SubscriptionSettings() {
   }
 
   // ============================================================
-  // RENDER: Subscription Form (Inactive)
+  // RENDER: Subscription Form (Inactive or Early Renewal)
   // ============================================================
   return (
     <div className="space-y-8">
-      <div className="flex items-center gap-4 mb-2">
-        <div className="flex justify-center items-center bg-primary/10 rounded-xl w-12 h-12 text-primary border border-primary/20 shadow-inner">
-          <Sparkles className="w-6 h-6" />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2">
+        <div className="flex items-center gap-4">
+          <div className="flex justify-center items-center bg-primary/10 rounded-xl w-12 h-12 text-primary border border-primary/20 shadow-inner">
+            <Sparkles className="w-6 h-6" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-foreground tracking-tight">
+              {isRenewingEarly ? "Renew / Extend Subscription" : "Subscribe to PUNCH POS"}
+            </h2>
+            <p className="text-muted-foreground text-sm mt-0.5">
+              {isRenewingEarly
+                ? `Extend your active subscription before it expires on ${formattedEndDate}.`
+                : "Choose a plan and pay via GCash to activate your store."}
+            </p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-lg font-semibold text-foreground tracking-tight">
-            Subscribe to PUNCH POS
-          </h2>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Choose a plan and pay via GCash to activate your store.
-          </p>
-        </div>
+
+        {isRenewingEarly && (
+          <button
+            onClick={() => setIsRenewingEarly(false)}
+            className="px-4 py-2 rounded-xl border border-border bg-muted/40 hover:bg-muted text-xs font-semibold text-muted-foreground hover:text-foreground transition-all"
+          >
+            ← Back to Active Plan
+          </button>
+        )}
       </div>
 
       {error && (
