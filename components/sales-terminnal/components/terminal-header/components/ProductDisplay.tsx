@@ -24,7 +24,7 @@ export const ProductDisplay = ({
             {currentProduct.name}
           </h1>
           <p
-            className={`text-2xl md:text-4xl font-lexend font-black tracking-tighter transition-colors ${
+            className={`pos-total-glow text-2xl md:text-4xl font-lexend font-black tracking-tighter transition-all duration-300 ${
               isBackdating ? "text-amber-600" : "text-primary"
             }`}
           >

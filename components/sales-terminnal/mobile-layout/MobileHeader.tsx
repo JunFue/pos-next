@@ -1,7 +1,7 @@
-// Mobile Header Component
 import React from "react";
 import { ProductDisplay } from "../components/terminal-header/components/ProductDisplay";
 import { MobileCustomerInput } from "./MobileCustomerInput";
+import { Palette } from "lucide-react";
 
 interface MobileHeaderProps {
   customerName: string;
@@ -16,6 +16,7 @@ interface MobileHeaderProps {
   };
   grandTotal: number;
   isBackdating: boolean;
+  onOpenThemeModal?: () => void;
 }
 
 export const MobileHeader = ({
@@ -27,18 +28,32 @@ export const MobileHeader = ({
   currentProduct,
   grandTotal,
   isBackdating,
+  onOpenThemeModal,
 }: MobileHeaderProps) => {
   return (
     <div className="flex flex-col sm:hidden gap-2 h-full">
-      {/* Customer Input - Top Right */}
-      <div className="flex justify-end mb-1 w-full">
-        <MobileCustomerInput
-          customerName={customerName || ""}
-          isCustomerSelected={isCustomerSelected}
-          onSearchOpen={onSearchOpen}
-          onClearCustomer={onClearCustomer}
-          onCustomerNameChange={onCustomerNameChange}
-        />
+      {/* Customer Input & Theme Customizer Bar */}
+      <div className="flex items-center justify-between gap-2 mb-1 w-full">
+        {onOpenThemeModal && (
+          <button
+            type="button"
+            onClick={onOpenThemeModal}
+            className="p-1.5 rounded-lg bg-muted/50 border border-border text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 shrink-0"
+            title="Theme Settings"
+          >
+            <Palette className="w-4 h-4 text-primary" />
+            <span className="text-[10px] font-bold">Theme</span>
+          </button>
+        )}
+        <div className="flex-1 flex justify-end">
+          <MobileCustomerInput
+            customerName={customerName || ""}
+            isCustomerSelected={isCustomerSelected}
+            onSearchOpen={onSearchOpen}
+            onClearCustomer={onClearCustomer}
+            onCustomerNameChange={onCustomerNameChange}
+          />
+        </div>
       </div>
 
       {/* Product Info & Grand Total */}

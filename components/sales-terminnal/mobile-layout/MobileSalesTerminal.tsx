@@ -11,6 +11,8 @@ import { PaymentPopup } from "../modals/PaymentPopup";
 import { SuccessReceiptModal } from "../utils/SuccessReceiptModal";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { useTerminalShortcuts } from "../hooks/useTerminalShortcuts";
+import { PosThemeWrapper } from "../components/PosThemeWrapper";
+import { PosThemeCustomizerModal } from "../modals/PosThemeCustomizerModal";
 
 export const MobileSalesTerminal = () => {
   const {
@@ -32,6 +34,7 @@ export const MobileSalesTerminal = () => {
 
   const [activeField, setActiveField] = useState<"barcode" | "quantity" | null>("barcode");
   const [isPaymentPopupOpen, setIsPaymentPopupOpen] = useState(false);
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
 
   const cartTotal = cartItems.reduce((sum, item) => sum + item.total, 0);
   const watchedCustomerName = methods.watch("customerName");
@@ -41,6 +44,7 @@ export const MobileSalesTerminal = () => {
     onClear,
     onCharge: () => setIsPaymentPopupOpen(true),
     onToggleFreeMode: () => {}, // Not yet implemented for mobile simple view
+    onOpenThemeModal: () => setIsThemeModalOpen(true),
     hasItems: cartItems.length > 0,
   });
 
@@ -54,70 +58,78 @@ export const MobileSalesTerminal = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background overflow-hidden relative">
-      <FormProvider {...methods}>
-        {/* Header - Fixed Top */}
-        <header className="shrink-0 border-b border-border p-2 bg-card">
-          <MobileHeader
-            customerName={watchedCustomerName || "Walk-in"}
-            isCustomerSelected={!!customerId}
-            onSearchOpen={() => {}} // TODO: Customer search modal
-            onClearCustomer={() => {
-                setCustomerId(null);
-                methods.setValue("customerName", null);
-            }}
-            onCustomerNameChange={(name) => methods.setValue("customerName", name)}
-            currentProduct={{
-                name: "Ready to Scan",
-                price: "0.00",
-                stock: 0
-            }}
+    <PosThemeWrapper className="flex flex-col h-screen overflow-hidden relative">
+      <div className="flex flex-col h-full bg-background overflow-hidden relative">
+        <FormProvider {...methods}>
+          {/* Header - Fixed Top */}
+          <header className="shrink-0 border-b border-border p-2 bg-card">
+            <MobileHeader
+              customerName={watchedCustomerName || "Walk-in"}
+              isCustomerSelected={!!customerId}
+              onSearchOpen={() => {}} // TODO: Customer search modal
+              onClearCustomer={() => {
+                  setCustomerId(null);
+                  methods.setValue("customerName", null);
+              }}
+              onCustomerNameChange={(name) => methods.setValue("customerName", name)}
+              currentProduct={{
+                  name: "Ready to Scan",
+                  price: "0.00",
+                  stock: 0
+              }}
+              grandTotal={cartTotal}
+              isBackdating={false}
+              onOpenThemeModal={() => setIsThemeModalOpen(true)}
+            />
+          </header>
+
+          {/* Form Fields - Input Bar */}
+          <section className="shrink-0 border-b border-border bg-muted/30">
+            <MobileFormFields
+              onAddToCartClick={() => onAddToCart(false)}
+              activeField={activeField}
+              setActiveField={setActiveField}
+            />
+          </section>
+
+          {/* Main Content - QuickPick Grid */}
+          <main className="flex-1 overflow-hidden">
+            <MobileActionPanel
+              onAddToCart={() => onAddToCart(false)}
+              onCharge={() => setIsPaymentPopupOpen(true)}
+              activeField={activeField}
+              setActiveField={setActiveField}
+              onClearCart={onClear}
+            />
+          </main>
+
+          {/* Side Panels & Modals */}
+          <MobileCartPanel
+            cartItems={cartItems}
             grandTotal={cartTotal}
-            isBackdating={false}
-          />
-        </header>
-
-        {/* Form Fields - Input Bar */}
-        <section className="shrink-0 border-b border-border bg-muted/30">
-          <MobileFormFields
-            onAddToCartClick={() => onAddToCart(false)}
-            activeField={activeField}
-            setActiveField={setActiveField}
-          />
-        </section>
-
-        {/* Main Content - QuickPick Grid */}
-        <main className="flex-1 overflow-hidden">
-          <MobileActionPanel
-            onAddToCart={() => onAddToCart(false)}
+            onRemoveItem={onRemoveItem}
             onCharge={() => setIsPaymentPopupOpen(true)}
-            activeField={activeField}
-            setActiveField={setActiveField}
-            onClearCart={onClear}
           />
-        </main>
 
-        {/* Side Panels & Modals */}
-        <MobileCartPanel
-          cartItems={cartItems}
-          grandTotal={cartTotal}
-          onRemoveItem={onRemoveItem}
-          onCharge={() => setIsPaymentPopupOpen(true)}
-        />
+          <PaymentPopup
+            isOpen={isPaymentPopupOpen}
+            onClose={() => setIsPaymentPopupOpen(false)}
+            totalAmount={cartTotal}
+            onConfirm={handlePaymentComplete}
+          />
 
-        <PaymentPopup
-          isOpen={isPaymentPopupOpen}
-          onClose={() => setIsPaymentPopupOpen(false)}
-          totalAmount={cartTotal}
-          onConfirm={handlePaymentComplete}
-        />
+          {successData && (
+            <SuccessReceiptModal data={successData} onClose={closeSuccessModal} />
+          )}
 
-        {successData && (
-          <SuccessReceiptModal data={successData} onClose={closeSuccessModal} />
-        )}
+          <ErrorMessage message={errorMessage} onClose={clearErrorMessage} />
 
-        <ErrorMessage message={errorMessage} onClose={clearErrorMessage} />
-      </FormProvider>
-    </div>
+          <PosThemeCustomizerModal
+            isOpen={isThemeModalOpen}
+            onClose={() => setIsThemeModalOpen(false)}
+          />
+        </FormProvider>
+      </div>
+    </PosThemeWrapper>
   );
 };

@@ -6,6 +6,7 @@ interface UseTerminalShortcutsProps {
   onCharge: () => void;
   onToggleFreeMode: () => void; // [NEW]
   hasItems: boolean;
+  onOpenThemeModal?: () => void;
 }
 
 export const useTerminalShortcuts = ({
@@ -13,6 +14,7 @@ export const useTerminalShortcuts = ({
   onCharge,
   onToggleFreeMode, // [NEW]
   hasItems,
+  onOpenThemeModal,
 }: UseTerminalShortcutsProps) => {
   const router = useRouter();
 
@@ -79,6 +81,10 @@ export const useTerminalShortcuts = ({
             event.preventDefault();
             router.push("/google-workspace");
             break;
+          case "p":
+            event.preventDefault();
+            onOpenThemeModal?.();
+            break;
           case "f3": // Handle Alt + F3
             event.preventDefault();
             onToggleFreeMode();
@@ -93,5 +99,5 @@ export const useTerminalShortcuts = ({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [onClear, onCharge, hasItems, router]);
+  }, [onClear, onCharge, hasItems, router, onOpenThemeModal, onToggleFreeMode]);
 };

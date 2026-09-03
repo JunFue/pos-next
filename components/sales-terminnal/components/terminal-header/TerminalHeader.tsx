@@ -18,6 +18,7 @@ type TerminalHeaderProps = {
   setActiveField: (field: "customerName" | "barcode" | "quantity" | "freeSearch" | "freeQty" | null) => void;
   activeField: "customerName" | "barcode" | "quantity" | "freeSearch" | "freeQty" | null;
   isTabletMode?: boolean;
+  onOpenThemeModal?: () => void;
 };
 export const TerminalHeader = ({
   setCustomerId,
@@ -27,6 +28,7 @@ export const TerminalHeader = ({
   setActiveField,
   activeField,
   isTabletMode,
+  onOpenThemeModal,
 }: TerminalHeaderProps) => {
   const {
     user,
@@ -75,7 +77,7 @@ export const TerminalHeader = ({
             </div>
             
             <div className="mt-auto pt-4">
-              <HeaderToolbar />
+              <HeaderToolbar onOpenThemeModal={onOpenThemeModal} />
             </div>
           </div>
 
@@ -108,7 +110,7 @@ export const TerminalHeader = ({
                 <span className="text-muted-foreground text-[10px] uppercase tracking-[0.2em] mb-1">
                   Grand Total
                 </span>
-                <span className="font-bold text-[2.5rem] text-primary tracking-tighter leading-none">
+                <span className="pos-total-glow font-bold text-[2.5rem] text-primary tracking-tighter leading-none transition-all duration-300">
                   ₱{grandTotal.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
