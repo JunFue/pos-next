@@ -4,11 +4,12 @@ import React from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Sun, Moon, Monitor, Store, X } from "lucide-react";
+import { Sun, Moon, Monitor, Store, X, Maximize, Minimize } from "lucide-react";
 import { Notifications } from "@/app/components/Notifications";
 import { UserProfile } from "@/app/components/UserProfile";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useFilterStore } from "@/store/useFilterStore";
+import { useViewStore } from "@/components/window-layouts/store/useViewStore";
 import { DateRangeFilter } from "@/components/reusables/DateRangeFilter";
 import { getStoreInfo } from "@/app/actions/store";
 
@@ -33,6 +34,7 @@ const THEME_CYCLE = ["light", "dark", "system"] as const;
 
 export function Header({ onSignInClick, onSignOutClick }: HeaderProps) {
   const { user, isAuthReady } = useAuthStore();
+  const { isFullscreen, toggleFullscreen } = useViewStore();
   const { dateRange, setDateRange, resetDateRange } = useFilterStore();
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
@@ -133,6 +135,20 @@ export function Header({ onSignInClick, onSignOutClick }: HeaderProps) {
 
         {/* Divider */}
         <div className="hidden lg:block w-px h-6 bg-border" />
+
+        {/* Fullscreen Toggle */}
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          className={`flex items-center justify-center w-9 h-9 rounded-full border transition-colors ${
+            isFullscreen
+              ? "bg-primary/20 border-primary text-primary"
+              : "bg-muted/50 hover:bg-muted border-border text-muted-foreground hover:text-foreground"
+          }`}
+          title={isFullscreen ? "Exit Fullscreen (Tab / Alt + F)" : "Enter Fullscreen (Tab / Alt + F)"}
+        >
+          {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+        </button>
 
         {/* Theme Toggle */}
         {mounted && (

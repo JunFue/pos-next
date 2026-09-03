@@ -42,6 +42,7 @@ export const PosThemeCustomizerModal: React.FC<PosThemeCustomizerModalProps> = (
   const {
     theme,
     applyPreset,
+    setMode,
     setColor,
     setShadowProfile,
     setFontFamily,
@@ -300,6 +301,57 @@ export const PosThemeCustomizerModal: React.FC<PosThemeCustomizerModalProps> = (
           {/* 1. CURATED PRESETS */}
           {activeTab === "presets" && (
             <div className="space-y-4">
+              {/* App Theme Synchronization Mode */}
+              <div className="p-3.5 rounded-xl bg-muted/20 border border-border/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <span className="font-bold text-xs text-foreground block">
+                    Theme Sync Mode
+                  </span>
+                  <span className="text-[11px] text-muted-foreground block">
+                    Choose whether the POS terminal automatically syncs with the app header or stays fixed.
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg border border-border/50 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setMode("auto")}
+                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      theme.mode === "auto"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Auto Sync
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode("light")}
+                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      theme.mode === "light"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Sun className="w-3.5 h-3.5" />
+                    Light
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode("dark")}
+                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      theme.mode === "dark"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Moon className="w-3.5 h-3.5" />
+                    Dark
+                  </button>
+                </div>
+              </div>
+
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-sm text-foreground">

@@ -1,11 +1,14 @@
-import { Printer, HelpCircle, Palette } from "lucide-react";
+import { Printer, HelpCircle, Palette, Maximize, Minimize } from "lucide-react";
 import { ShortcutsGuide } from "../ShortcutsGuide";
+import { useViewStore } from "@/components/window-layouts/store/useViewStore";
 
 interface HeaderToolbarProps {
   onOpenThemeModal?: () => void;
 }
 
 export const HeaderToolbar = ({ onOpenThemeModal }: HeaderToolbarProps) => {
+  const { isFullscreen, toggleFullscreen } = useViewStore();
+
   return (
     <div className="mt-auto">
       <span className="block mb-2 font-bold text-[10px] text-muted-foreground uppercase tracking-widest">
@@ -13,6 +16,22 @@ export const HeaderToolbar = ({ onOpenThemeModal }: HeaderToolbarProps) => {
       </span>
       <div className="flex items-center gap-2">
         <ShortcutsGuide />
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          className={`group flex justify-center items-center rounded-lg w-10 h-10 transition-all duration-300 border ${
+            isFullscreen
+              ? "bg-primary/20 border-primary text-primary shadow-sm"
+              : "bg-muted/50 hover:bg-primary/10 border-border hover:border-primary/50 text-muted-foreground hover:text-primary"
+          }`}
+          title={isFullscreen ? "Exit Fullscreen (Tab / Alt + F)" : "Enter Fullscreen (Tab / Alt + F)"}
+        >
+          {isFullscreen ? (
+            <Minimize className="w-4 h-4" />
+          ) : (
+            <Maximize className="w-4 h-4" />
+          )}
+        </button>
         <button
           type="button"
           onClick={onOpenThemeModal}

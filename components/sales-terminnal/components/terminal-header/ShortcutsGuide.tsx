@@ -35,6 +35,7 @@ export const ShortcutsGuide = ({ isInline = false }: ShortcutsGuideProps) => {
 
   const terminalShortcuts = [
     { key: "Spacebar", label: "Open Payment / Finish", alt: "Enter to confirm in popup" },
+    { key: "Tab", label: "Toggle Fullscreen Mode", alt: "Hide / Show Header & Sidebar" },
     { key: "Alt + P", label: "Customize POS Theme", alt: "Colors, Fonts & Shadows" },
     { key: "Alt + F1", label: "Search Customer" },
     { key: "Alt + F3", label: "Free Item Modal" },

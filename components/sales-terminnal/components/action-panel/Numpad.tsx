@@ -86,7 +86,7 @@ export const Numpad = ({ onKeyPress, onClear, isTabletMode }: NumpadProps) => {
     <div className="flex flex-col gap-2 h-full">
       {/* Toggle Header — different options for tablet vs desktop */}
       <div className="flex items-center justify-between shrink-0 h-6">
-        <span className="text-xs text-slate-400 font-bold">
+        <span className="text-xs text-muted-foreground font-bold">
           {isTabletMode
             ? (showNumpadInTablet ? "Numpad" : "Virtual Keyboard")
             : (showKeyboard ? "T9 Keypad" : "Numpad")
@@ -96,7 +96,7 @@ export const Numpad = ({ onKeyPress, onClear, isTabletMode }: NumpadProps) => {
           type="button"
           onClick={() => isTabletMode ? setShowNumpadInTablet(!showNumpadInTablet) : setShowKeyboard(!showKeyboard)}
           onMouseDown={(e) => e.preventDefault()}
-          className="p-1 rounded bg-muted border border-border text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+          className="p-1 rounded bg-muted border border-border text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
           title={isTabletMode
             ? (showNumpadInTablet ? "Show Virtual Keyboard" : "Show Numpad")
             : (showKeyboard ? "Show Numpad" : "Show T9 Keypad")

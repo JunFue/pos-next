@@ -26,7 +26,7 @@ export async function GET(request: Request) {
     console.error("Auth Callback Error - exchangeCodeForSession failed:", error);
   }
 
-  // Check if session already exists (e.g. cookies already set)
+  // Check if session already exists
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -35,6 +35,5 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL(next, requestUrl.origin));
   }
 
-  // If no code and no active session, redirect to login instead of 404
   return NextResponse.redirect(new URL("/login", requestUrl.origin));
 }

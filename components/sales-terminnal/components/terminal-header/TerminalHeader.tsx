@@ -44,7 +44,7 @@ export const TerminalHeader = ({
     handleCustomerNameChange,
   } = useTerminalHeader(setCustomerId);
 
-  const statusColor = isBackdating ? "text-amber-400" : "text-cyan-400";
+  const statusColor = isBackdating ? "text-amber-500" : "text-primary";
   const borderColor = isBackdating
     ? "border-amber-500/30"
     : "border-transparent";

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useViewStore } from "@/components/window-layouts/store/useViewStore";
 
 interface UseTerminalShortcutsProps {
   onClear: () => void;
@@ -20,7 +21,14 @@ export const useTerminalShortcuts = ({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // 1. Handle Existing Escape Shortcut
+      // 1. Handle Tab key to toggle Fullscreen mode
+      if (event.key === "Tab") {
+        event.preventDefault();
+        useViewStore.getState().toggleFullscreen();
+        return;
+      }
+
+      // 2. Handle Escape Shortcut (Solely for Clear / Cancel)
       if (event.key === "Escape") {
         event.preventDefault();
         onClear();
@@ -81,6 +89,10 @@ export const useTerminalShortcuts = ({
             event.preventDefault();
             router.push("/google-workspace");
             break;
+          case "f": // Handle Alt + F
+            event.preventDefault();
+            useViewStore.getState().toggleFullscreen();
+            break;
           case "p":
             event.preventDefault();
             onOpenThemeModal?.();
@@ -92,6 +104,12 @@ export const useTerminalShortcuts = ({
           default:
             break;
         }
+      }
+
+      // 4. Handle F11 key directly
+      if (event.key === "F11") {
+        event.preventDefault();
+        useViewStore.getState().toggleFullscreen();
       }
     };
 

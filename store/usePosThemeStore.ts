@@ -5,6 +5,7 @@ export type ShadowProfile = "soft" | "neon" | "retro-3d" | "glass" | "flat";
 export type PosFontFamily = "lexend" | "geist-sans" | "vt323" | "geist-mono";
 export type PosFontScale = "compact" | "normal" | "large";
 export type PosBorderRadius = "none" | "sm" | "md" | "lg" | "full";
+export type PosThemeMode = "auto" | "dark" | "light";
 
 export interface PosThemeColors {
   background: string;
@@ -25,6 +26,7 @@ export interface PosThemeConfig {
   id: string;
   name: string;
   isCustom?: boolean;
+  mode: PosThemeMode; // "auto" follows app light/dark mode
   colors: PosThemeColors;
   shadowProfile: ShadowProfile;
   fontFamily: PosFontFamily;
@@ -37,6 +39,7 @@ export const PRESET_THEMES: Record<string, PosThemeConfig> = {
   default: {
     id: "default",
     name: "Classic Slate & Blue",
+    mode: "auto",
     colors: {
       background: "#0b1120",
       card: "#111827",
@@ -57,9 +60,58 @@ export const PRESET_THEMES: Record<string, PosThemeConfig> = {
     borderRadius: "lg",
     glowIntensity: "medium",
   },
+  sunlight: {
+    id: "sunlight",
+    name: "Clean Light (Sunlight)",
+    mode: "light",
+    colors: {
+      background: "#ffffff",
+      card: "#f8fafc",
+      muted: "#f1f5f9",
+      foreground: "#0f172a",
+      mutedForeground: "#64748b",
+      primary: "#2563eb",
+      primaryForeground: "#ffffff",
+      secondary: "#d97706",
+      border: "#e2e8f0",
+      input: "#ffffff",
+      inputBorder: "#cbd5e1",
+      ring: "#2563eb",
+    },
+    shadowProfile: "soft",
+    fontFamily: "lexend",
+    fontScale: "normal",
+    borderRadius: "lg",
+    glowIntensity: "low",
+  },
+  "dusty-blue": {
+    id: "dusty-blue",
+    name: "Dusty Blue (Soothing Eyes)",
+    mode: "dark",
+    colors: {
+      background: "#263751",
+      card: "#1d2c43",
+      muted: "#314463",
+      foreground: "#f1f5f9",
+      mutedForeground: "#94a3b8",
+      primary: "#60a5fa",
+      primaryForeground: "#0f172a",
+      secondary: "#38bdf8",
+      border: "#3d5173",
+      input: "#1a273b",
+      inputBorder: "#4a6288",
+      ring: "#60a5fa",
+    },
+    shadowProfile: "soft",
+    fontFamily: "lexend",
+    fontScale: "normal",
+    borderRadius: "lg",
+    glowIntensity: "low",
+  },
   cyberpunk: {
     id: "cyberpunk",
     name: "Cyberpunk Matrix",
+    mode: "dark",
     colors: {
       background: "#05070d",
       card: "#0b101d",
@@ -83,6 +135,7 @@ export const PRESET_THEMES: Record<string, PosThemeConfig> = {
   "retro-amber": {
     id: "retro-amber",
     name: "Retro CRT Amber",
+    mode: "dark",
     colors: {
       background: "#120e08",
       card: "#1d170f",
@@ -106,6 +159,7 @@ export const PRESET_THEMES: Record<string, PosThemeConfig> = {
   nordic: {
     id: "nordic",
     name: "Nordic Arctic Frost",
+    mode: "dark",
     colors: {
       background: "#0f172a",
       card: "#1e293b",
@@ -129,6 +183,7 @@ export const PRESET_THEMES: Record<string, PosThemeConfig> = {
   "midnight-velvet": {
     id: "midnight-velvet",
     name: "Midnight Velvet",
+    mode: "dark",
     colors: {
       background: "#13091f",
       card: "#1d1030",
@@ -152,6 +207,7 @@ export const PRESET_THEMES: Record<string, PosThemeConfig> = {
   emerald: {
     id: "emerald",
     name: "Emerald Cashier",
+    mode: "dark",
     colors: {
       background: "#061712",
       card: "#0d261e",
@@ -172,32 +228,10 @@ export const PRESET_THEMES: Record<string, PosThemeConfig> = {
     borderRadius: "md",
     glowIntensity: "medium",
   },
-  sunlight: {
-    id: "sunlight",
-    name: "High-Visibility Sunlight (Light)",
-    colors: {
-      background: "#f8fafc",
-      card: "#ffffff",
-      muted: "#e2e8f0",
-      foreground: "#0f172a",
-      mutedForeground: "#475569",
-      primary: "#2563eb",
-      primaryForeground: "#ffffff",
-      secondary: "#d97706",
-      border: "#cbd5e1",
-      input: "#ffffff",
-      inputBorder: "#94a3b8",
-      ring: "#2563eb",
-    },
-    shadowProfile: "soft",
-    fontFamily: "lexend",
-    fontScale: "normal",
-    borderRadius: "md",
-    glowIntensity: "low",
-  },
   espresso: {
     id: "espresso",
     name: "Espresso & Caramel",
+    mode: "dark",
     colors: {
       background: "#18120e",
       card: "#241b15",
@@ -222,7 +256,7 @@ export const PRESET_THEMES: Record<string, PosThemeConfig> = {
 
 // Helper: Convert HEX to RGB
 export function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  let cleanHex = hex.replace("#", "").trim();
+  let cleanHex = (hex || "#000000").replace("#", "").trim();
   if (cleanHex.length === 3) {
     cleanHex = cleanHex
       .split("")
@@ -290,17 +324,17 @@ export function autoHarmonizeColors(baseBg: string, basePrimary: string): PosThe
     };
   } else {
     const card = "#ffffff";
-    const muted = adjustHexBrightness(baseBg, -10);
-    const border = adjustHexBrightness(baseBg, -22);
+    const muted = adjustHexBrightness(baseBg, -5);
+    const border = adjustHexBrightness(baseBg, -15);
     const input = "#ffffff";
-    const inputBorder = adjustHexBrightness(baseBg, -30);
+    const inputBorder = adjustHexBrightness(baseBg, -25);
 
     return {
       background: baseBg,
       card,
       muted,
       foreground: "#0f172a",
-      mutedForeground: "#475569",
+      mutedForeground: "#64748b",
       primary: basePrimary,
       primaryForeground: primaryLum > 0.5 ? "#0f172a" : "#ffffff",
       secondary: adjustHexBrightness(basePrimary, 20),
@@ -317,6 +351,7 @@ interface PosThemeStoreState {
   isCustomizing: boolean;
   setIsCustomizing: (open: boolean) => void;
   applyPreset: (presetId: string) => void;
+  setMode: (mode: PosThemeMode) => void;
   setColor: (colorKey: keyof PosThemeColors, value: string) => void;
   setShadowProfile: (profile: ShadowProfile) => void;
   setFontFamily: (font: PosFontFamily) => void;
@@ -343,6 +378,22 @@ export const usePosThemeStore = create<PosThemeStoreState>()(
             },
           });
         }
+      },
+      setMode: (mode) => {
+        const currentTheme = get().theme;
+        let newColors = currentTheme.colors;
+        if (mode === "light" && !currentTheme.isCustom && currentTheme.id === "default") {
+          newColors = PRESET_THEMES.sunlight.colors;
+        } else if (mode === "dark" && !currentTheme.isCustom && currentTheme.id === "sunlight") {
+          newColors = PRESET_THEMES.default.colors;
+        }
+        set({
+          theme: {
+            ...currentTheme,
+            mode,
+            colors: newColors,
+          },
+        });
       },
       setColor: (colorKey, value) => {
         const currentTheme = get().theme;
@@ -426,6 +477,19 @@ export const usePosThemeStore = create<PosThemeStoreState>()(
     }),
     {
       name: "pos-terminal-theme-storage",
+      version: 2,
+      migrate: (persistedState: any, version: number) => {
+        if (!persistedState || version < 2 || !persistedState?.theme?.mode) {
+          return {
+            ...persistedState,
+            theme: {
+              ...PRESET_THEMES.default,
+              mode: "auto",
+            },
+          };
+        }
+        return persistedState;
+      },
       storage: createJSONStorage(() => localStorage),
     }
   )

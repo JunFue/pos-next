@@ -10,7 +10,7 @@ import { Navigation } from "../navigation/Navigation";
 import { Header } from "../Header";
 import { SubscriptionExpiryBanner } from "../subscription/SubscriptionExpiryBanner";
 import { useAuthStore } from "@/store/useAuthStore";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, Minimize2 } from "lucide-react";
 
 // Dynamic imports for modals (Moved from app/page.tsx)
 const SignUp = dynamic(
@@ -37,16 +37,27 @@ export function MainWindow({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { viewState, posMode } = useViewStore();
+  const { viewState, posMode, isFullscreen, setIsFullscreen } = useViewStore();
   const isTabletMode = posMode === 'tablet';
+
+  // Sync browser fullscreen events
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, [isFullscreen, setIsFullscreen]);
 
   // Auth State
   const { user, signOut } = useAuthStore();
   const [authModalState, setAuthModalState] = useState<AuthModalState>("hidden");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Bypass split-screen layout for specific routes (maintenance, login, etc.)
-  const fullScreenRoutes = ["/maintenance", "/login", "/onboarding"];
+  // Bypass split-screen layout for specific routes (maintenance, login, auth callbacks, etc.)
+  const fullScreenRoutes = ["/maintenance", "/login", "/onboarding", "/auth", "/api"];
   const isFullScreenRoute = fullScreenRoutes.some(route => pathname?.startsWith(route));
   
   // Auth Handlers
@@ -76,22 +87,42 @@ export function MainWindow({
 
   // --- DESKTOP LAYOUT ---
   return (
-    <div className={`flex bg-background h-screen overflow-hidden text-foreground font-lexend ${isTabletMode ? "" : "lg:pl-20"}`}>
-      {/* Sidebar */}
-      <Navigation variant="sidebar" />
+    <div className={`flex bg-background h-screen overflow-hidden text-foreground font-lexend ${isTabletMode || isFullscreen ? "" : "lg:pl-20"}`}>
+      {/* Sidebar - hidden in fullscreen */}
+      {!isFullscreen && <Navigation variant="sidebar" />}
 
       {/* Main Content */}
       <div className="flex flex-col flex-1 h-screen overflow-hidden">
-        <Header 
-          onSignInClick={openSignInModal} 
-          onSignOutClick={onSignOutClick} 
-        />
-        <SubscriptionExpiryBanner />
+        {!isFullscreen && (
+          <>
+            <Header 
+              onSignInClick={openSignInModal} 
+              onSignOutClick={onSignOutClick} 
+            />
+            <SubscriptionExpiryBanner />
+          </>
+        )}
         
-        <main className="flex-1 overflow-y-auto flex flex-col p-2 pt-0">
+        <main className={`flex-1 overflow-y-auto flex flex-col ${isFullscreen ? "p-2" : "p-2 pt-0"}`}>
             {children}
         </main>
       </div>
+
+      {/* Floating Exit Fullscreen Button */}
+      {isFullscreen && (
+        <button
+          type="button"
+          onClick={() => useViewStore.getState().toggleFullscreen()}
+          className="fixed top-3 right-4 z-50 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-card/90 hover:bg-card text-foreground border border-border/80 shadow-2xl backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 group text-xs font-semibold cursor-pointer"
+          title="Exit Fullscreen Mode (Tab)"
+        >
+          <Minimize2 className="w-3.5 h-3.5 text-primary group-hover:rotate-90 transition-transform duration-300" />
+          <span>Exit Fullscreen</span>
+          <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted border border-border/70 text-muted-foreground">
+            Tab
+          </kbd>
+        </button>
+      )}
 
       {/* Auth Modals & Overlays */}
       {isLoggingOut && (
