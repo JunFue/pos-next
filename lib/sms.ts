@@ -161,7 +161,42 @@ export async function sendSms({ to, message, senderName }: SendSmsParams): Promi
 }
 
 /**
- * Helper to format & send SMS when a user submits a new subscription or trial request.
+ * Send a notification via Telegram Bot API
+ */
+export async function sendTelegramMessage(text: string): Promise<{ success: boolean; error?: string }> {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+
+  if (!token || !chatId) {
+    return { success: false, error: "Telegram bot token or chat ID not set" };
+  }
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      console.error("Telegram API error:", err);
+      return { success: false, error: err };
+    }
+
+    console.log("✅ Telegram alert dispatched to chat:", chatId);
+    return { success: true };
+  } catch (err: any) {
+    console.error("Telegram dispatch exception:", err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Helper to format & send alerts (SMS + Telegram) when a user submits a new subscription or trial request.
  */
 export async function sendSubscriptionNotificationSms({
   storeName,
@@ -200,6 +235,10 @@ export async function sendSubscriptionNotificationSms({
   
   message += `Review: ${superAdminUrl}`;
 
+  // 1. Send instant Telegram push notification to owner
+  sendTelegramMessage(message).catch((e) => console.error("Telegram notify failed:", e));
+
+  // 2. Send SMS via configured SMS gateway (Semaphore / Twilio)
   return await sendSms({
     to: recipientPhone,
     message: message.trim(),
@@ -231,6 +270,9 @@ export async function sendSubscriptionExpiryAlertSms({
   message += `Hello! The ${planLabel} subscription for ${storeName} ${urgency} on ${expiryDate}.\n`;
   message += `Please renew your subscription in POS Settings to ensure continuous service.\n`;
   message += `Thank you!`;
+
+  // Send Telegram reminder if configured
+  sendTelegramMessage(message).catch((e) => console.error("Telegram expiry alert failed:", e));
 
   return await sendSms({
     to: recipientPhone,
