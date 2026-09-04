@@ -1,4 +1,4 @@
-import { Printer, HelpCircle, Palette, Maximize, Minimize } from "lucide-react";
+import { Printer, HelpCircle, Palette, Maximize, Minimize, Tablet, Monitor } from "lucide-react";
 import { ShortcutsGuide } from "../ShortcutsGuide";
 import { useViewStore } from "@/components/window-layouts/store/useViewStore";
 
@@ -7,7 +7,8 @@ interface HeaderToolbarProps {
 }
 
 export const HeaderToolbar = ({ onOpenThemeModal }: HeaderToolbarProps) => {
-  const { isFullscreen, toggleFullscreen } = useViewStore();
+  const { isFullscreen, toggleFullscreen, posMode, setPosMode } = useViewStore();
+  const isTablet = posMode === "tablet";
 
   return (
     <div className="mt-auto">
@@ -16,6 +17,18 @@ export const HeaderToolbar = ({ onOpenThemeModal }: HeaderToolbarProps) => {
       </span>
       <div className="flex items-center gap-2">
         <ShortcutsGuide />
+        <button
+          type="button"
+          onClick={() => setPosMode(isTablet ? "desktop" : "tablet")}
+          className={`group flex justify-center items-center rounded-lg w-10 h-10 transition-all duration-300 border ${
+            isTablet
+              ? "bg-primary/20 border-primary text-primary shadow-sm"
+              : "bg-muted/50 hover:bg-primary/10 border-border hover:border-primary/50 text-muted-foreground hover:text-primary"
+          }`}
+          title={isTablet ? "Switch to Desktop Mode (Alt + M)" : "Switch to Tablet Touch Mode (Alt + M)"}
+        >
+          {isTablet ? <Monitor className="w-4 h-4" /> : <Tablet className="w-4 h-4" />}
+        </button>
         <button
           type="button"
           onClick={toggleFullscreen}

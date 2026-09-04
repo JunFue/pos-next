@@ -93,6 +93,10 @@ export const useTerminalShortcuts = ({
             event.preventDefault();
             useViewStore.getState().toggleFullscreen();
             break;
+          case "m": // Handle Alt + M (Toggle Tablet / Desktop Mode)
+            event.preventDefault();
+            useViewStore.getState().cyclePosMode();
+            break;
           case "p":
             event.preventDefault();
             onOpenThemeModal?.();
