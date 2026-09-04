@@ -4,7 +4,6 @@ import Image from "next/image";
 import {
   Archive,
   ArrowLeftRight,
-  Brain,
   Inbox,
   LayoutGrid,
   Settings,
@@ -190,17 +189,6 @@ const Navigation = React.memo(({ variant = "grid" }: NavigationProps) => {
         { label: "List", href: "/customers" },
         { label: "Groups", href: "/customers" },
         { label: "Feedback", href: "/customers" },
-      ],
-    },
-    {
-      id: "junfue-ai",
-      text: "JunFue AI",
-      Icon: Brain,
-      href: "/junfue-ai",
-      shortcuts: [
-        { label: "Chat", href: "/junfue-ai" },
-        { label: "Insights", href: "/junfue-ai" },
-        { label: "Automations", href: "/junfue-ai" },
       ],
     },
     {
