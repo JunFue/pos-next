@@ -17,7 +17,6 @@ import { DiscountModal } from "./modals/DiscountModal";
 import { useState } from "react";
 import { ActionPanel } from "./components/ActionPanel";
 import { useViewStore } from "@/components/window-layouts/store/useViewStore";
-import { FanIcon } from "lucide-react";
 import { PosThemeWrapper } from "./components/PosThemeWrapper";
 import { PosThemeCustomizerModal } from "./modals/PosThemeCustomizerModal";
 import { CartItem, DiscountType } from "./components/terminal-cart/types";
@@ -55,22 +54,11 @@ const DesktopSalesTerminal = () => {
   const [discountTargetItem, setDiscountTargetItem] = useState<CartItem | null>(null);
   
   // POS Layout Mode
-  const { posMode, cyclePosMode } = useViewStore();
+  const { posMode } = useViewStore();
   const isTabletMode = posMode === "tablet";
 
   // Calculate cart total
   const cartTotal = cartItems.reduce((sum, item) => sum + item.total, 0);
-
-  // Toggle Layout Mode with Loading Animation
-  const handleToggleLayout = () => {
-    setIsAnimating(true);
-    cyclePosMode();
-    
-    // Wait for layout calculation to finish before showing content
-    setTimeout(() => {
-      setIsAnimating(false);
-    }, 350); // Matches the css transition
-  };
 
   // 2. Call the hook and pass the triggers
   useTerminalShortcuts({ 
@@ -270,22 +258,6 @@ const DesktopSalesTerminal = () => {
               />
             )}
           </div>
-
-          {/* POS Layout Mode Switcher FAB */}
-          <button
-            type="button"
-            onClick={handleToggleLayout}
-            className={`
-              hidden lg:flex fixed right-6 bottom-24 z-50
-              bg-primary text-primary-foreground shadow-[0_0_20px_rgba(var(--color-primary),0.4)] 
-              p-2 rounded-full border-4 border-background transition-all duration-500 ease-in-out
-              hover:scale-110 hover:shadow-[0_0_30px_rgba(var(--color-primary),0.6)] active:scale-95
-              ${isTabletMode ? "rotate-180" : "rotate-0"}
-            `}
-            title={isTabletMode ? "Switch to Desktop Mode" : "Switch to Tablet Mode"}
-          >
-            <FanIcon className="w-5 h-5 animate-[spin_8s_linear_infinite]" />
-          </button>
         </FormProvider>
 
         {successData && (

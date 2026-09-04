@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { PosLayoutSettings } from "./PosLayoutSettings";
 import { VoucherSettings } from "./VoucherSettings";
 import { LowStockSettings } from "./LowStockSettings";
 import { PriceEditingSettings } from "./PriceEditingSettings";
@@ -12,6 +13,10 @@ export const PreferencesTab = () => {
       <div>
         <h2 className="text-xl font-bold text-foreground tracking-tight">System Preferences</h2>
         <p className="text-sm text-muted-foreground mt-1">Configure automated behaviors and system modules.</p>
+      </div>
+
+      <div className="bg-card/50 p-8 border border-border rounded-xl shadow-sm backdrop-blur-sm">
+        <PosLayoutSettings />
       </div>
 
       <div className="bg-card/50 p-8 border border-border rounded-xl shadow-sm backdrop-blur-sm">

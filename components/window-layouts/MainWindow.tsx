@@ -37,19 +37,8 @@ export function MainWindow({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { viewState, posMode, isFullscreen, setIsFullscreen } = useViewStore();
+  const { viewState, posMode, isFullscreen } = useViewStore();
   const isTabletMode = posMode === 'tablet';
-
-  // Sync browser fullscreen events
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      if (!document.fullscreenElement && isFullscreen) {
-        setIsFullscreen(false);
-      }
-    };
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, [isFullscreen, setIsFullscreen]);
 
   // Auth State
   const { user, signOut } = useAuthStore();

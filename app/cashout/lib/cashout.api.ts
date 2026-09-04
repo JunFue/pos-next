@@ -557,7 +557,7 @@ export const fetchRemittanceCategories = async (): Promise<RemittanceCategory[]>
 };
 
 // 13. Fetch Current Balance (for monitoring)
-export const fetchCurrentBalance = async (): Promise<number> => {
+export const fetchCurrentBalance = async (date?: string): Promise<number> => {
   const supabase = await getSupabase();
   
   // 1. Get current user's store_id
@@ -572,11 +572,17 @@ export const fetchCurrentBalance = async (): Promise<number> => {
   
   if (!userData?.store_id) return 0;
 
-  // 2. Get latest balance from overall_cash_flow
-  const { data, error } = await supabase
+  // 2. Get latest balance from overall_cash_flow (optionally up to selected date)
+  let query = supabase
     .from("overall_cash_flow")
     .select("balance")
-    .eq("store_id", userData.store_id)
+    .eq("store_id", userData.store_id);
+
+  if (date) {
+    query = query.lte("date", date);
+  }
+
+  const { data, error } = await query
     .order("date", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -586,5 +592,5 @@ export const fetchCurrentBalance = async (): Promise<number> => {
     return 0;
   }
 
-  return data?.balance || 0;
+  return data?.balance ? Number(data.balance) : 0;
 };

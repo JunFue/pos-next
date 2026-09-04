@@ -74,9 +74,13 @@ export function useExpenses(dateRange?: DateRange) {
         await createExpense(data);
         // Invalidate to ensure freshness
         await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
+        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
+        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       } catch (error) {
         // Invalidate on error to restore correct data
         await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
+        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
+        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
         throw error;
       } finally {
         setIsSubmitting(false);
@@ -124,8 +128,12 @@ export function useExpenses(dateRange?: DateRange) {
       try {
         await updateExpense(id, data);
         await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
+        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
+        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       } catch (error) {
         await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
+        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
+        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
         throw error;
       } finally {
         setIsSubmitting(false);
@@ -166,9 +174,13 @@ export function useExpenses(dateRange?: DateRange) {
       try {
         await deleteExpense(id);
         await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
+        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
+        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       } catch (error) {
         console.error("Failed to delete expense:", error);
         await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
+        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
+        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
         throw error;
       }
     },
@@ -183,7 +195,11 @@ export function useExpenses(dateRange?: DateRange) {
     editExpense,
     removeExpense,
     refresh: useCallback(
-      () => queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] }),
+      () => {
+        queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
+        queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      },
       [queryClient]
     ),
   };
@@ -286,6 +302,8 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
         await createExpense(input);
         // Invalidate all expense queries to ensure freshness everywhere
         await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
+        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
+        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       } catch (error) {
         // Rollback on error
         queryClient.setQueryData<InfiniteData<CashoutPage>>(queryKey, (old) => {
@@ -298,6 +316,8 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
         });
         // Invalidate summaries/balance on error to restore correct data
         await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
+        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
+        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
         throw error;
       } finally {
         setIsSubmitting(false);
@@ -363,8 +383,12 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
       try {
         await updateExpense(id, input);
         await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
+        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
+        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       } catch (error) {
         await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
+        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
+        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
         throw error;
       } finally {
         setIsSubmitting(false);
@@ -413,8 +437,12 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
       try {
         await deleteExpense(id);
         await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
+        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
+        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       } catch (error) {
         await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
+        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
+        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
         throw error;
       } finally {
         setIsSubmitting(false);
@@ -435,7 +463,11 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
     editExpense: editExpenseOptimistic,
     removeExpense: removeExpenseOptimistic,
     refresh: useCallback(
-      () => queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] }),
+      () => {
+        queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
+        queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      },
       [queryClient]
     ),
   };
@@ -464,29 +496,36 @@ export function useExpensesSummary(dateRange?: DateRange) {
     [dateRange?.start, dateRange?.end]
   );
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey,
     queryFn: () => fetchExpensesSummary(dateRange?.start, dateRange?.end),
+    staleTime: 1000 * 10, // 10 seconds
+    refetchInterval: 1000 * 15, // 15 seconds auto-refresh fallback
   });
 
   return {
     summary: data || { totalAmount: 0, totalCount: 0 },
     isLoading,
+    isFetching,
     error,
+    refetch,
   };
 }
 
 
-// New hook for current cash balance
-export function useCurrentBalance() {
-  const { data: balance = 0, isLoading } = useQuery({
-    queryKey: [EXPENSES_KEY, "balance"],
-    queryFn: fetchCurrentBalance,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+// Hook for current cash balance with date support & fast refresh
+export function useCurrentBalance(date?: string) {
+  const { data: balance = 0, isLoading, isFetching, refetch } = useQuery({
+    queryKey: [EXPENSES_KEY, "balance", date],
+    queryFn: () => fetchCurrentBalance(date),
+    staleTime: 1000 * 10, // 10 seconds
+    refetchInterval: 1000 * 15, // 15 seconds auto-refresh fallback
   });
 
   return {
-    balance,
+    balance: Number(balance) || 0,
     isLoading,
+    isFetching,
+    refetch,
   };
 }
