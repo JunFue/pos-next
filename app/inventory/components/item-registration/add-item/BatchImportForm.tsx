@@ -61,14 +61,14 @@ const BatchImportForm: React.FC<BatchImportFormProps> = ({
           <div className="bg-black/30 p-4 rounded-xl border border-foreground/5 space-y-2">
             <p className="text-[10px] font-bold text-primary/70 uppercase tracking-widest">Header Structure</p>
             <p className="text-xs font-mono text-muted-foreground break-all">
-              Name, Category, Selling Price (Price), Cost Price (Unit Cost), Stock, MinStock, Description
+              Name, Category, Selling Price (Price), Stock, MinStock, Description
             </p>
             <div className="h-px bg-foreground/5 my-2" />
             <p className="text-[10px] font-bold text-primary/70 uppercase tracking-widest">Example Data</p>
             <code className="block text-xs font-mono text-foreground/80 break-all leading-relaxed">
-              Latte, Beverage, 120, 45, 100, 10, "Smooth espresso with steamed milk"
+              Latte, Beverage, 120, 100, 10, "Smooth espresso with steamed milk"
               <br />
-              Blueberry Muffin, Food, 85, 40, 24, 5, "Freshly baked daily"
+              Blueberry Muffin, Food, 85, 24, 5, "Freshly baked daily"
             </code>
           </div>
         </div>
@@ -82,7 +82,7 @@ const BatchImportForm: React.FC<BatchImportFormProps> = ({
           value={batchRawText}
           onChange={(e) => setBatchRawText(e.target.value)}
           className="w-full h-56 px-4 py-4 bg-foreground/5 border border-foreground/10 rounded-2xl focus:ring-2 focus:ring-primary/50 outline-none font-mono text-sm text-foreground placeholder:text-muted-foreground/20 shadow-inner transition-all resize-none"
-          placeholder="LATTE, BEVERAGE, 120, 45, 100, 10, 'Morning bestseller'..."
+          placeholder="LATTE, BEVERAGE, 120, 100, 10, 'Morning bestseller'..."
         ></textarea>
       </div>
 

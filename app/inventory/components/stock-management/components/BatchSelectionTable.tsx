@@ -30,7 +30,6 @@ export const BatchSelectionTable: React.FC<BatchSelectionTableProps> = ({
           <th className="p-4 border-b border-slate-800">Item Name</th>
           <th className="p-4 border-b border-slate-800 text-right w-24">Live</th>
           <th className="p-4 border-b border-slate-800 w-32">Add Qty</th>
-          <th className="p-4 border-b border-slate-800 w-32">Cap. Price</th>
           <th className="p-4 border-b border-slate-800 w-48">Remarks</th>
           <th className="p-4 border-b border-slate-800 w-24 text-center">Actions</th>
         </tr>
@@ -90,22 +89,6 @@ export const BatchSelectionTable: React.FC<BatchSelectionTableProps> = ({
                   value={state.addQuantity || ""}
                   onChange={(e) => updateField(item, "addQuantity", parseInt(e.target.value) || 0)}
                   placeholder="0"
-                  className={`w-full bg-slate-950 border rounded px-3 py-1.5 text-sm outline-none transition-all ${
-                    isSelected
-                      ? "border-transparent text-gray-400 cursor-not-allowed"
-                      : "border-slate-800 text-white focus:border-blue-500/50"
-                  }`}
-                />
-              </td>
-
-              <td>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  disabled={isSelected}
-                  value={state.capitalPrice || ""}
-                  onChange={(e) => updateField(item, "capitalPrice", parseFloat(e.target.value) || 0)}
                   className={`w-full bg-slate-950 border rounded px-3 py-1.5 text-sm outline-none transition-all ${
                     isSelected
                       ? "border-transparent text-gray-400 cursor-not-allowed"

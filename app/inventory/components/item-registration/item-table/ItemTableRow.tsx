@@ -15,11 +15,10 @@ interface ItemTableRowProps {
     item_name: string;
     sku: string;
     sales_price: string;
-    unit_cost: string;
     description: string;
     image_url: string | null;
   } | null;
-  onUpdateField: (field: "item_name" | "sku" | "sales_price" | "unit_cost" | "description" | "image_url", value: string | null) => void;
+  onUpdateField: (field: "item_name" | "sku" | "sales_price" | "description" | "image_url", value: string | null) => void;
   onSave: () => void;
   onCancel: () => void;
   onEdit: () => void;
@@ -174,22 +173,6 @@ const ItemTableRow: React.FC<ItemTableRowProps> = ({
         ) : (
           <div className="font-medium text-sm text-foreground">
             ₱{(item.sales_price || 0).toLocaleString()}
-          </div>
-        )}
-      </td>
-      <td className="px-4 py-1.5 border-b border-border text-right">
-        {isEditing ? (
-          <input
-            type="number"
-            step="0.01"
-            value={editingData.unit_cost}
-            onChange={(e) => onUpdateField("unit_cost", e.target.value)}
-            className="w-24 px-2 py-0.5 bg-background border border-orange-500/50 rounded outline-none text-xs text-muted-foreground text-right"
-            placeholder="0.00"
-          />
-        ) : (
-          <div className="text-muted-foreground text-xs">
-            ₱{(item.unit_cost || 0).toLocaleString()}
           </div>
         )}
       </td>

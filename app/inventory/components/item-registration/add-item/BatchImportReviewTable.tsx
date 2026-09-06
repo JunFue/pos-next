@@ -53,9 +53,6 @@ export const BatchImportReviewTable: React.FC<BatchImportReviewTableProps> = ({
     const sellPrice = Number(item.sellingPrice);
     if (isNaN(sellPrice) || sellPrice < 0) errors.sellingPrice = "Invalid Price";
 
-    const costPrice = Number(item.salesPrice);
-    if (isNaN(costPrice) || costPrice < 0) errors.salesPrice = "Invalid Cost";
-
     const stock = Number(item.initialStock);
     if (isNaN(stock) || stock < 0) errors.initialStock = "Invalid Stock";
 
@@ -181,7 +178,6 @@ export const BatchImportReviewTable: React.FC<BatchImportReviewTableProps> = ({
                 <th className="p-3 min-w-[150px]">Item Name</th>
                 <th className="p-3 min-w-[100px]">Category</th>
                 <th className="p-3 w-32 text-right">Selling Price</th>
-                <th className="p-3 w-32 text-right">Cost Price</th>
                 <th className="p-3 w-24 text-center">Stock</th>
                 <th className="p-3 w-24 text-center">Min</th>
                 <th className="p-3 min-w-[150px]">Description</th>
@@ -278,25 +274,6 @@ export const BatchImportReviewTable: React.FC<BatchImportReviewTableProps> = ({
                             </div>
                         )}
                          {item.errors.sellingPrice && <div className="text-[10px] text-destructive text-right mt-0.5">{item.errors.sellingPrice}</div>}
-                    </td>
-
-                    {/* Cost Price */}
-                    <td className="p-2">
-                        {isEditing ? (
-                             <input
-                                type="number"
-                                value={Number.isNaN(item.salesPrice) ? "" : (item.salesPrice ?? "")}
-                                onChange={(e) => handleUpdateItem(item.tempId, "salesPrice", parseFloat(e.target.value))}
-                                className={`w-full bg-transparent border-b border-transparent focus:border-primary px-1 py-1 outline-none text-right font-mono ${
-                                    item.errors.salesPrice ? "border-destructive text-destructive" : ""
-                                }`}
-                            />
-                        ) : (
-                            <div className={`px-1 py-1 text-right font-mono ${item.errors.salesPrice ? "text-destructive" : "text-foreground"}`}>
-                                ₱{(item.salesPrice ?? 0).toFixed(2)}
-                            </div>
-                        )}
-                         {item.errors.salesPrice && <div className="text-[10px] text-destructive text-right mt-0.5">{item.errors.salesPrice}</div>}
                     </td>
 
                     {/* Stock */}

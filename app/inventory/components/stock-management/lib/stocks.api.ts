@@ -71,7 +71,7 @@ export const insertStock = async (data: {
   itemName: string;
   stockFlow: string;
   quantity: number;
-  capitalPrice: number;
+  capitalPrice?: number;
   notes?: string;
   expiryDate?: string;
 }) => {
@@ -97,7 +97,7 @@ export const insertStock = async (data: {
       item_name_in: data.itemName,
       flow_in: data.stockFlow,
       quantity_in: data.quantity,
-      capital_price_in: data.capitalPrice,
+      capital_price_in: data.capitalPrice ?? 0,
       notes_in: data.notes ?? null,
       expiry_date_in: (data.expiryDate && data.expiryDate.trim() !== "") ? data.expiryDate : null,
     }),
@@ -125,7 +125,7 @@ export const updateStock = async (data: {
   id: string;
   flow: string;
   quantity: number;
-  capital_price: number;
+  capital_price?: number;
   notes?: string;
 }) => {
   const supabase = await getSupabase();
@@ -134,7 +134,7 @@ export const updateStock = async (data: {
     .update({
       flow: data.flow,
       quantity: data.quantity,
-      capital_price: data.capital_price,
+      capital_price: data.capital_price ?? 0,
       notes: data.notes ?? null,
     })
     .eq("id", data.id)
@@ -153,7 +153,7 @@ export const insertStockBatch = async (items: {
   itemName: string;
   stockFlow: string;
   quantity: number;
-  capitalPrice: number;
+  capitalPrice?: number;
   notes?: string;
   expiryDate?: string;
 }[]) => {
@@ -187,7 +187,7 @@ export const insertStockBatch = async (items: {
     item_name: i.itemName, // keep for history/convenience if column exists
     flow: i.stockFlow,
     quantity: i.quantity,
-    capital_price: i.capitalPrice,
+    capital_price: i.capitalPrice ?? 0,
     notes: i.notes ?? "Batch Update",
     expiry_date: (i.expiryDate && i.expiryDate.trim() !== "") ? i.expiryDate : null,
     batch_remaining: i.stockFlow === "stock-in" ? i.quantity : 0,

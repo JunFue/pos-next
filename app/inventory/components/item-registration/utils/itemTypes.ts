@@ -14,13 +14,10 @@ export const itemSchema = z.object({
   sku: z.string().min(1, "SKU is required"),
   category: z.string().optional(),
 
-  // The fixed salesPrice validation is retained
   salesPrice: z
     .number()
-    .refine((val) => !isNaN(val), {
-      message: "Cost price must be a number",
-    })
-    .pipe(z.number().min(0, "Cost price must be zero or more")),
+    .optional()
+    .default(0),
 
   sellingPrice: z
     .number()

@@ -50,7 +50,7 @@ const StockManagementContent = () => {
           itemName: editingItem.item_name,
           stockFlow: data.stockFlow,
           quantity: data.quantity,
-          capitalPrice: data.capitalPrice,
+          capitalPrice: 0,
           notes: data.notes ?? "",
         },
         {

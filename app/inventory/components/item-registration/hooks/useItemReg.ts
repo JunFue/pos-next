@@ -28,7 +28,6 @@ export const useItemReg = () => {
     category: "",
     sku: "",
     sellingPrice: "",
-    salesPrice: "",
     stock: "",
     minStock: "",
     imageUrl: null as string | null,
@@ -53,7 +52,7 @@ export const useItemReg = () => {
       description: formData.description,
       category: selectedCat?.id || formData.category || undefined,
       sku: finalSKU,
-      salesPrice: parseFloat(formData.salesPrice) || 0,
+      salesPrice: 0,
       sellingPrice: parseFloat(formData.sellingPrice) || 0,
       lowStockThreshold: parseInt(formData.minStock) || null,
       imageUrl: formData.imageUrl,
@@ -70,7 +69,7 @@ export const useItemReg = () => {
               itemName: newItem.itemName,
               stockFlow: "stock-in",
               quantity: initialStock,
-              capitalPrice: newItem.salesPrice || 0, // Using cost price as capital price
+              capitalPrice: 0,
               notes: "Initial stock upon registration",
             });
           } catch (err) {
@@ -92,7 +91,6 @@ export const useItemReg = () => {
       category: "",
       sku: "",
       sellingPrice: "",
-      salesPrice: "",
       stock: "",
       minStock: "",
       imageUrl: null,
@@ -111,14 +109,14 @@ export const useItemReg = () => {
     
     const newItems = rows.map((row, index) => {
         const cols = row.split(",").map((s) => s.trim());
-        const [name, cat, sellPrice, costPrice, stock, minStock, ...desc] = cols;
+        const [name, cat, sellPrice, stock, minStock, ...desc] = cols;
 
         return {
             tempId: `batch-${Date.now()}-${index}`,
             itemName: name || "",
             category: cat || "",
             sellingPrice: parseFloat(sellPrice) || 0,
-            salesPrice: parseFloat(costPrice) || 0,
+            salesPrice: 0,
             initialStock: parseInt(stock) || 0,
             lowStockThreshold: parseInt(minStock) || null,
             description: desc.join(", ") || "",
@@ -167,7 +165,7 @@ export const useItemReg = () => {
                  description: item.description,
                  category: selectedCat?.id, // Use resolved ID
                  sku: item.sku || generateAutoSKU(selectedCat?.category),
-                 salesPrice: item.salesPrice,
+                 salesPrice: 0,
                  sellingPrice: item.sellingPrice,
                  lowStockThreshold: item.lowStockThreshold,
                  imageUrl: null,

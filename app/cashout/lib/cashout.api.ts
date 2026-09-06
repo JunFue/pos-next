@@ -62,6 +62,13 @@ interface RawExpenseRow extends ExpenseRowDB {
 
 export type CashoutType = 'COGS' | 'OPEX' | 'REMITTANCE';
 
+export interface CashoutStockItem {
+  item_id?: string;
+  item_name: string;
+  quantity: number;
+  expiry_date?: string;
+}
+
 export interface CashoutInput {
   transaction_date: string;
   amount: number;
@@ -83,6 +90,8 @@ export interface CashoutInput {
   icon?: string;
   category_id?: string; // For Drawer / Source of Funds
   remittance_category_id?: string; // FK to remittance_categories table
+  stock_items?: CashoutStockItem[];
+  is_stock_in?: boolean;
 }
 
 export interface RemittanceCategory {
@@ -431,6 +440,61 @@ export const createExpense = async (input: CashoutInput) => {
   if (error) {
     console.error("RPC Error:", error);
     throw new Error(error.message);
+  }
+
+  // 5. Handle COGS Stock Flow logging if cashout_type === 'COGS'
+  if (input.cashout_type === 'COGS' && input.stock_items && input.stock_items.length > 0) {
+    const isStockIn = input.is_stock_in ?? true;
+    const flow = isStockIn ? "stock-in" : "cogs-audit";
+
+    const stockFlowRows = [];
+    for (const item of input.stock_items) {
+      if (!item.item_name || item.quantity <= 0) continue;
+
+      let itemId = item.item_id;
+      if (!itemId) {
+        const { data: itemData } = await supabase
+          .from("items")
+          .select("id")
+          .eq("item_name", item.item_name)
+          .eq("store_id", storeId)
+          .maybeSingle();
+        itemId = itemData?.id;
+      }
+
+      if (itemId) {
+        const receiptTag = input.receipt_no ? `Ref #${input.receipt_no}` : "";
+        const supplierTag = [input.manufacturer, input.brand].filter(Boolean).join(" ");
+        const prefix = isStockIn ? "COGS Stock-In" : "COGS Audit (No Stock-in)";
+        const details = [prefix, receiptTag, supplierTag, input.notes].filter(Boolean).join(" - ");
+
+        stockFlowRows.push({
+          item_id: itemId,
+          item_name: item.item_name,
+          flow,
+          quantity: item.quantity,
+          capital_price: 0,
+          notes: details,
+          expiry_date: (item.expiry_date && item.expiry_date.trim() !== "") ? item.expiry_date : null,
+          batch_remaining: isStockIn ? item.quantity : 0,
+          user_id: user.id,
+          store_id: storeId,
+          time_stamp: input.transaction_date 
+            ? new Date(`${input.transaction_date}T${new Date().toTimeString().split(' ')[0]}`).toISOString()
+            : new Date().toISOString(),
+        });
+      }
+    }
+
+    if (stockFlowRows.length > 0) {
+      const { error: stockError } = await supabase
+        .from("stock_flow")
+        .insert(stockFlowRows);
+
+      if (stockError) {
+        console.error("❌ [API] Failed to record stock flow for COGS:", stockError);
+      }
+    }
   }
 };
 

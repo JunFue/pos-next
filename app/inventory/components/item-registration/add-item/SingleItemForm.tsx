@@ -10,7 +10,6 @@ interface SingleItemFormProps {
     category: string;
     sku: string;
     sellingPrice: string;
-    salesPrice: string;
     stock: string;
     minStock: string;
     imageUrl: string | null;
@@ -22,7 +21,6 @@ interface SingleItemFormProps {
     category: string;
     sku: string;
     sellingPrice: string;
-    salesPrice: string;
     stock: string;
     minStock: string;
     imageUrl: string | null;
@@ -53,7 +51,6 @@ const SingleItemForm: React.FC<SingleItemFormProps> = ({
   const categoryRef = useRef<HTMLSelectElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const sellingPriceRef = useRef<HTMLInputElement>(null);
-  const salesPriceRef = useRef<HTMLInputElement>(null);
   const skuRef = useRef<HTMLInputElement>(null);
   const stockRef = useRef<HTMLInputElement>(null);
   const minStockRef = useRef<HTMLInputElement>(null);
@@ -156,7 +153,7 @@ const SingleItemForm: React.FC<SingleItemFormProps> = ({
       </div>
 
       {/* Middle Row: Pricing, SKU, Thumbnail */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="space-y-2.5">
           <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 ml-1">
             Unit Price (₱) <span className="text-primary">*</span>
@@ -170,28 +167,6 @@ const SingleItemForm: React.FC<SingleItemFormProps> = ({
             value={formData.sellingPrice}
             onChange={(e) =>
               setFormData({ ...formData, sellingPrice: e.target.value })
-            }
-            onKeyDown={(e) => handleKeyDown(e, salesPriceRef)}
-            className="w-full px-4 py-3 bg-foreground/5 border border-foreground/10 rounded-xl focus:ring-2 focus:ring-primary/50 outline-none text-foreground shadow-inner transition-all hover:border-foreground/20"
-            placeholder="0.00"
-          />
-        </div>
-
-        <div className="space-y-2.5">
-          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80 ml-1">
-            Unit Cost (₱){" "}
-            <span className="text-muted-foreground/50 font-normal lowercase italic">
-              (opt.)
-            </span>
-          </label>
-          <input
-            ref={salesPriceRef}
-            type="number"
-            min="0"
-            step="0.01"
-            value={formData.salesPrice}
-            onChange={(e) =>
-              setFormData({ ...formData, salesPrice: e.target.value })
             }
             onKeyDown={(e) => handleKeyDown(e, skuRef)}
             className="w-full px-4 py-3 bg-foreground/5 border border-foreground/10 rounded-xl focus:ring-2 focus:ring-primary/50 outline-none text-foreground shadow-inner transition-all hover:border-foreground/20"

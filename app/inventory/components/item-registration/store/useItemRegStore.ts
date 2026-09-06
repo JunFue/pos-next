@@ -5,7 +5,7 @@ import { InventoryItem } from "../../stocks-monitor/lib/inventory.api";
 
 export type ViewMode = "list" | "add";
 export type AddTab = "single" | "batch";
-export type SortKey = "item_name" | "sales_price" | "unit_cost" | "current_stock";
+export type SortKey = "item_name" | "sales_price" | "current_stock";
 
 export interface SortConfig {
   key: SortKey;
@@ -26,7 +26,6 @@ interface ItemRegState {
     item_name: string;
     sku: string;
     sales_price: string;
-    unit_cost: string;
     description: string;
     image_url: string | null;
   }>;

@@ -69,7 +69,7 @@ const BarcodeModal: React.FC = () => {
                   name: i.item_name,
                   category: i.category || "General",
                   sku: i.sku,
-                  price: i.sales_price ?? i.unit_cost,
+                  price: i.sales_price ?? 0,
                 }))}
                 onCanvasReady={handleCanvasReady}
               />
@@ -79,7 +79,7 @@ const BarcodeModal: React.FC = () => {
                   name: barcodeModalData[0].item_name,
                   category: barcodeModalData[0].category || "General",
                   sku: barcodeModalData[0].sku,
-                  price: barcodeModalData[0].sales_price ?? barcodeModalData[0].unit_cost,
+                  price: barcodeModalData[0].sales_price ?? 0,
                 }}
                 onCanvasReady={handleCanvasReady}
               />

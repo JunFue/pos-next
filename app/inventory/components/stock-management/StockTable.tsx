@@ -55,7 +55,8 @@ export function StockTable({
     return stocks.filter(
       (s) =>
         s.item_name?.toLowerCase().includes(term) ||
-        s.notes?.toLowerCase().includes(term)
+        s.notes?.toLowerCase().includes(term) ||
+        s.flow?.toLowerCase().includes(term)
     );
   }, [stocks, searchTerm]);
 
@@ -72,34 +73,42 @@ export function StockTable({
       columnHelper.accessor("flow", {
         header: "Flow",
         meta: { align: "center" },
-        cell: (info) => (
-          <div className="flex justify-center">
-            <span
-              className={`px-2 py-1 rounded-full text-[10px] font-medium uppercase tracking-wider ${
-                info.getValue() === "stock-in"
-                  ? "bg-green-500/20 text-green-500 border border-green-500/30"
-                  : "bg-red-500/20 text-red-500 border border-red-500/30"
-              }`}
-            >
-              {info.getValue().replace("-", " ")}
-            </span>
-          </div>
-        ),
+        cell: (info) => {
+          const flow = info.getValue() || "";
+          const isStockIn = flow === "stock-in";
+          const isStockOut = flow === "stock-out";
+          const isCogsAudit = flow === "cogs-audit" || flow === "cogs";
+
+          let badgeStyle = "bg-blue-500/20 text-blue-500 border-blue-500/30";
+          let label = flow.replace("-", " ");
+
+          if (isStockIn) {
+            badgeStyle = "bg-green-500/20 text-green-500 border-green-500/30";
+            label = "Stock In";
+          } else if (isStockOut) {
+            badgeStyle = "bg-red-500/20 text-red-500 border-red-500/30";
+            label = "Stock Out";
+          } else if (isCogsAudit) {
+            badgeStyle = "bg-amber-500/20 text-amber-500 border-amber-500/30";
+            label = "COGS (Audit)";
+          }
+
+          return (
+            <div className="flex justify-center">
+              <span
+                className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${badgeStyle}`}
+              >
+                {label}
+              </span>
+            </div>
+          );
+        },
       }),
       columnHelper.accessor("quantity", {
         header: "Qty",
         meta: { align: "right" },
         cell: (info) => (
           <span className="font-mono text-foreground block text-right">{info.getValue()}</span>
-        ),
-      }),
-      columnHelper.accessor("capital_price", {
-        header: "Cap. Price",
-        meta: { align: "right" },
-        cell: (info) => (
-          <span className="font-mono text-primary block text-right">
-            ₱{(info.getValue() ?? 0).toFixed(2)}
-          </span>
         ),
       }),
       columnHelper.accessor("notes", {

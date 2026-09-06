@@ -13,7 +13,7 @@ export interface StockInput {
   itemName: string;
   stockFlow: string;
   quantity: number;
-  capitalPrice: number;
+  capitalPrice?: number;
   notes?: string;
   expiryDate?: string;
 }
@@ -69,7 +69,7 @@ export const useStocks = () => {
         id,
         flow: data.stockFlow,
         quantity: data.quantity,
-        capital_price: data.capitalPrice,
+        capital_price: data.capitalPrice ?? 0,
         notes: data.notes,
       });
       handleMutationSuccess(options?.onSuccess);

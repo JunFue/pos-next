@@ -68,22 +68,21 @@ const ItemTable: React.FC<ItemTableProps> = ({
                 { label: "Item Group", key: "item_name", width: "w-[30%] min-w-[180px]" },
                 { label: "SKU", key: "sku", width: "w-[12%] min-w-[90px]" },
                 { label: "Category", key: null, width: "w-[12%] min-w-[100px]" },
-                { label: "Unit Price", key: "sales_price", width: "w-[10%] min-w-[80px]" },
-                { label: "Unit Cost", key: "unit_cost", width: "w-[10%] min-w-[80px]" },
+                { label: "Unit Price", key: "sales_price", width: "w-[12%] min-w-[90px]" },
                 { label: "Description", key: "description", width: "grow min-w-[150px]" },
               ].map((col) => (
                 <th
                   key={col.label}
                   className={`px-4 py-2 border-b border-border text-[10px] font-bold uppercase tracking-wider text-muted-foreground ${
                     col.key ? "cursor-pointer hover:text-primary transition-colors" : ""
-                  } ${col.key === "sales_price" || col.key === "unit_cost" ? "text-right" : ""} ${
+                  } ${col.key === "sales_price" ? "text-right" : ""} ${
                     col.width || ""
                   }`}
                   onClick={() => col.key && col.key !== "description" && handleSort(col.key as SortKey)}
                 >
                   <div
                     className={`flex items-center gap-1 ${
-                      col.key === "sales_price" || col.key === "unit_cost" ? "justify-end" : ""
+                      col.key === "sales_price" ? "justify-end" : ""
                     }`}
                   >
                     {col.label}

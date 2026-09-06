@@ -5,7 +5,6 @@ import { useStocks } from "../../../hooks/useStocks";
 export type BatchField = {
   selected: boolean;
   addQuantity: number;
-  capitalPrice: number;
   notes: string;
 };
 
@@ -22,7 +21,6 @@ export const useBatchStockForm = (items: Item[]) => {
       batchData[item.id!] || {
         selected: false,
         addQuantity: 0,
-        capitalPrice: item.salesPrice || 0,
         notes: "",
       }
     );
@@ -35,7 +33,6 @@ export const useBatchStockForm = (items: Item[]) => {
       const current = prev[item.id!] || {
         selected: false,
         addQuantity: 0,
-        capitalPrice: item.salesPrice || 0,
         notes: "",
       };
       
@@ -52,7 +49,6 @@ export const useBatchStockForm = (items: Item[]) => {
       const current = prev[item.id!] || {
         selected: false,
         addQuantity: 0,
-        capitalPrice: item.salesPrice || 0,
         notes: "",
       };
       
@@ -88,15 +84,13 @@ export const useBatchStockForm = (items: Item[]) => {
   // Totals for review calculation
   const totals = useMemo(() => {
     let totalQty = 0;
-    let totalCost = 0;
     
     selectedItems.forEach(item => {
       const data = batchData[item.id!];
       totalQty += data.addQuantity;
-      totalCost += data.addQuantity * data.capitalPrice;
     });
 
-    return { totalQty, totalCost, count: selectedItems.length };
+    return { totalQty, count: selectedItems.length };
   }, [selectedItems, batchData]);
 
   // Navigation Actions
@@ -121,7 +115,7 @@ export const useBatchStockForm = (items: Item[]) => {
         itemName: item.itemName,
         stockFlow: "stock-in",
         quantity: data.addQuantity,
-        capitalPrice: data.capitalPrice,
+        capitalPrice: 0,
         notes: data.notes || "Batch Update",
       };
     });

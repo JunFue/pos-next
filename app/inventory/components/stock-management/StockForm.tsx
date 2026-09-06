@@ -36,7 +36,6 @@ export function StockForm({
       stockFlow: undefined,
       notes: "",
       quantity: 0,
-      capitalPrice: 0,
       expiryDate: undefined,
     },
   });
@@ -50,10 +49,6 @@ export function StockForm({
   const { ref: rhfQuantityRef, ...quantityRest } = register("quantity", {
     valueAsNumber: true,
   });
-  const { ref: rhfCapitalPriceRef, ...capitalPriceRest } = register(
-    "capitalPrice",
-    { valueAsNumber: true }
-  );
   const { ref: rhfNotesRef, ...notesRest } = register("notes");
   const { ref: rhfExpiryDateRef, ...expiryDateRest } = register("expiryDate");
   
@@ -61,7 +56,6 @@ export function StockForm({
 
   const stockFlowRef = useRef<HTMLSelectElement>(null);
   const quantityRef = useRef<HTMLInputElement>(null);
-  const capitalPriceRef = useRef<HTMLInputElement>(null);
   const expiryDateRef = useRef<HTMLInputElement>(null);
   const notesRef = useRef<HTMLTextAreaElement>(null);
   const submitButtonRef = useRef<HTMLButtonElement>(null);
@@ -72,7 +66,6 @@ export function StockForm({
         itemName: itemToEdit.item_name || "",
         stockFlow: itemToEdit.flow as "stock-in" | "stock-out",
         quantity: itemToEdit.quantity,
-        capitalPrice: itemToEdit.capital_price,
         notes: itemToEdit.notes || "",
         expiryDate: itemToEdit.expiry_date || undefined,
       });
@@ -83,7 +76,6 @@ export function StockForm({
         stockFlow: undefined,
         notes: "",
         quantity: 0,
-        capitalPrice: 0,
         expiryDate: undefined,
       });
       // Added: Auto-focus Item Name when opening blank form
@@ -117,8 +109,6 @@ export function StockForm({
       } else if (name === "stockFlow" || target.id === "stockFlow") {
         quantityRef.current?.focus();
       } else if (name === "quantity" || target.id === "quantity") {
-        capitalPriceRef.current?.focus();
-      } else if (name === "capitalPrice" || target.id === "capitalPrice") {
         if (currentFlow === "stock-in") {
           expiryDateRef.current?.focus();
         } else {
@@ -255,36 +245,6 @@ export function StockForm({
         />
         {errors.quantity && (
           <p className="mt-1 text-red-500 text-sm">{errors.quantity.message}</p>
-        )}
-      </div>
-
-      {/* Capital Price */}
-      <div>
-        <label
-          htmlFor="capitalPrice"
-          className="block mb-1 font-medium text-muted-foreground text-sm"
-        >
-          Capital Price
-        </label>
-        <input
-          id="capitalPrice"
-          type="number"
-          step="0.01"
-          {...capitalPriceRest}
-          ref={(el) => {
-            rhfCapitalPriceRef(el);
-            capitalPriceRef.current = el;
-          }}
-          className={`w-full bg-background border border-input text-foreground rounded-md focus:border-ring focus:ring-1 focus:ring-ring ${
-            errors.capitalPrice ? "border-red-500" : ""
-          }`}
-          placeholder="0.00"
-          onFocus={(e) => e.target.select()}
-        />
-        {errors.capitalPrice && (
-          <p className="mt-1 text-red-500 text-sm">
-            {errors.capitalPrice.message}
-          </p>
         )}
       </div>
 

@@ -74,6 +74,8 @@ export function useExpenses(dateRange?: DateRange) {
         await createExpense(data);
         // Invalidate to ensure freshness
         await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
+        await queryClient.invalidateQueries({ queryKey: ["stocks"] });
+        await queryClient.invalidateQueries({ queryKey: ["inventory"] });
         await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
         await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       } catch (error) {
@@ -302,6 +304,8 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
         await createExpense(input);
         // Invalidate all expense queries to ensure freshness everywhere
         await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
+        await queryClient.invalidateQueries({ queryKey: ["stocks"] });
+        await queryClient.invalidateQueries({ queryKey: ["inventory"] });
         await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
         await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       } catch (error) {

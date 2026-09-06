@@ -7,7 +7,7 @@ import { Item } from "../../item-registration/utils/itemTypes";
 interface BatchReviewStepProps {
   selectedItems: Item[];
   batchData: any;
-  totals: { totalQty: number; totalCost: number; count: number };
+  totals: { totalQty: number; count: number };
   onBack: () => void;
   onSubmit: () => void;
   isProcessing: boolean;
@@ -32,7 +32,7 @@ export const BatchReviewStep: React.FC<BatchReviewStepProps> = ({
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-4 p-6 shrink-0">
+      <div className="grid grid-cols-2 gap-4 p-6 shrink-0">
         <div className="bg-slate-950 border border-slate-800 rounded-lg p-4">
           <div className="text-slate-500 text-xs uppercase font-semibold mb-1">Total Items</div>
           <div className="text-2xl font-bold text-white">{totals.count}</div>
@@ -40,12 +40,6 @@ export const BatchReviewStep: React.FC<BatchReviewStepProps> = ({
         <div className="bg-slate-950 border border-slate-800 rounded-lg p-4">
           <div className="text-slate-500 text-xs uppercase font-semibold mb-1">Total Quantity Adding</div>
           <div className="text-2xl font-bold text-blue-400">+{totals.totalQty}</div>
-        </div>
-        <div className="bg-slate-950 border border-slate-800 rounded-lg p-4">
-          <div className="text-slate-500 text-xs uppercase font-semibold mb-1">Est. Capital Value</div>
-          <div className="text-2xl font-bold text-emerald-400">
-             ₱{totals.totalCost.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-          </div>
         </div>
       </div>
 
@@ -55,10 +49,9 @@ export const BatchReviewStep: React.FC<BatchReviewStepProps> = ({
           <table className="w-full text-left">
             <thead className="bg-slate-900 text-xs uppercase font-semibold text-muted-foreground">
               <tr>
-                <th className="p-4 w-1/3">Item Name</th>
+                <th className="p-4 w-1/2">Item Name</th>
                 <th className="p-4 text-center">Add Qty</th>
-                <th className="p-4 text-right">Capital Price</th>
-                <th className="p-4 w-1/3">Notes</th>
+                <th className="p-4 w-1/2">Notes</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
@@ -72,9 +65,6 @@ export const BatchReviewStep: React.FC<BatchReviewStepProps> = ({
                     </td>
                     <td className="p-4 text-center font-mono text-blue-300">
                       +{data.addQuantity}
-                    </td>
-                    <td className="p-4 text-right font-mono text-emerald-300">
-                      ₱{(data.capitalPrice ?? 0).toFixed(2)}
                     </td>
                     <td className="p-4 text-slate-500 italic">
                       {data.notes || "—"}
