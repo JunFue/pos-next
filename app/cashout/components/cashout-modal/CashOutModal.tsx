@@ -18,10 +18,14 @@ interface CashOutModalProps {
   isOpen: boolean;
   onClose: () => void;
   editData?: CashoutRecord | null;
+  onSaveExpense?: (data: CashoutInput) => Promise<void> | void;
+  onEditExpense?: (id: string, data: CashoutInput) => Promise<void> | void;
 }
 
-const CashOutModal = ({ isOpen, onClose, editData }: CashOutModalProps) => {
-  const { addExpense, editExpense, isSubmitting } = useExpenses();
+const CashOutModal = ({ isOpen, onClose, editData, onSaveExpense, onEditExpense }: CashOutModalProps) => {
+  const { addExpense: fallbackAddExpense, editExpense: fallbackEditExpense, isSubmitting } = useExpenses();
+  const addExpense = onSaveExpense || fallbackAddExpense;
+  const editExpense = onEditExpense || fallbackEditExpense;
   const { customTransactionDate } = useTransactionStore();
   const [activeTab, setActiveTab] = useState<CashoutType>('COGS'); 
   const [selectedDrawerId, setSelectedDrawerId] = useState<string>("");

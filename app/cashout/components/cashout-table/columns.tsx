@@ -53,9 +53,18 @@ export const getColumns = (
         );
       }
 
+      const isOptimistic = (row.original as any)._optimistic || (row.original as any)._syncing;
+
       return (
         <div className="flex flex-col">
-          <span className="font-medium text-foreground">{row.getValue("date")}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="font-medium text-foreground">{row.getValue("date")}</span>
+            {isOptimistic && (
+              <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-1 py-0.2 rounded border border-amber-500/20 animate-pulse uppercase">
+                syncing
+              </span>
+            )}
+          </div>
           <span className="text-xs text-muted-foreground">{row.original.timestamp}</span>
         </div>
       );
@@ -246,10 +255,15 @@ export const getColumns = (
         );
       }
 
+      const isOptimistic = (row.original as any)._optimistic || (row.original as any)._syncing;
       const formatted = formatCurrency(amount, 'PHP');
 
       return (
-        <div className="text-right font-bold text-red-500 bg-red-500/10 px-2.5 py-1 rounded-lg inline-block float-right border border-red-500/20">
+        <div className={`text-right font-bold px-2.5 py-1 rounded-lg inline-block float-right border transition-colors duration-300 ${
+          isOptimistic
+            ? "text-amber-500 bg-amber-500/10 border-amber-500/30 animate-pulse"
+            : "text-red-500 bg-red-500/10 border-red-500/20"
+        }`}>
           -{formatted}
         </div>
       );

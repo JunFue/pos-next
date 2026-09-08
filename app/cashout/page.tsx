@@ -61,14 +61,19 @@ function CashoutContent() {
       fetchNextPage, 
       hasNextPage, 
       isFetchingNextPage,
+      addExpense,
       removeExpense,
       editExpense,
       isSubmitting
   } = useExpensesInfinite(20, dateRange);
 
   const { can_manage_expenses } = usePermissions();
-  const { summary } = useExpensesSummary(dateRange);
+  const { summary, isFetching: isFetchingSummary } = useExpensesSummary(dateRange);
   const { balance, isFetching: isFetchingBalance } = useCurrentBalance(dateRange.start);
+
+  const isBalanceOptimistic = isFetchingBalance || isSubmitting;
+  const isCategorySalesOptimistic = isFetchingCategorySales || isSubmitting;
+  const isSummaryOptimistic = isFetchingSummary || isSubmitting || (summary as any)?._optimistic;
 
   const handleEditExpense = useCallback((record: CashoutRecord) => {
     setEditingRecord(record);
@@ -129,15 +134,25 @@ function CashoutContent() {
                   <div className="flex items-center gap-2 mb-1">
                       <div className="p-1.5 bg-red-100/50 text-red-600 rounded-lg"><DollarSign size={16}/></div>
                       <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Cash Out</h3>
+                      {isSummaryOptimistic && (
+                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" title="Updating..." />
+                      )}
                   </div>
-                  <p className="text-2xl font-bold text-foreground">{formatCurrency(summary.totalAmount ?? 0, 'PHP')}</p>
+                  <p className={`text-2xl font-bold transition-colors duration-300 ${isSummaryOptimistic ? "text-amber-500 dark:text-amber-400" : "text-foreground"}`}>
+                    {formatCurrency(summary.totalAmount ?? 0, 'PHP')}
+                  </p>
               </div>
               <div className="bg-card p-4 rounded-xl shadow-sm border border-border flex flex-col justify-center">
                   <div className="flex items-center gap-2 mb-1">
                       <div className="p-1.5 bg-blue-100/50 text-blue-600 rounded-lg"><Filter size={16}/></div>
                       <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Transactions</h3>
+                      {isSummaryOptimistic && (
+                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" title="Updating..." />
+                      )}
                   </div>
-                  <p className="text-2xl font-bold text-foreground">{summary.totalCount}</p>
+                  <p className={`text-2xl font-bold transition-colors duration-300 ${isSummaryOptimistic ? "text-amber-500 dark:text-amber-400" : "text-foreground"}`}>
+                    {summary.totalCount}
+                  </p>
               </div>
               <VitalCard
                 flipped={isFlipped}
@@ -162,12 +177,22 @@ function CashoutContent() {
                           )}
                       </div>
                       <div className="flex items-baseline justify-between mb-1">
-                        <p className={`text-xl font-bold ${balance < 0 ? "text-red-600" : "text-foreground"}`}>
+                        <p className={`text-xl font-bold transition-colors duration-300 ${
+                          balance < 0 
+                            ? "text-red-600" 
+                            : isBalanceOptimistic 
+                            ? "text-amber-500 dark:text-amber-400" 
+                            : "text-foreground"
+                        }`}>
                           {formatCurrency(balance, 'PHP')}
                         </p>
-                        {(isFetchingCategorySales || isFetchingBalance) && (
+                        {isBalanceOptimistic ? (
+                          <span className="ml-2 text-[9px] font-bold tracking-wider text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20 animate-pulse uppercase">
+                            syncing
+                          </span>
+                        ) : (isFetchingCategorySales || isFetchingBalance) ? (
                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse ml-2" title="Syncing..."></div>
-                        )}
+                        ) : null}
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-auto">
                         {isMultiDrawer && categorySales.length > 0 ? "Click to see breakdown" : "Overall physical cash remaining."}
@@ -176,28 +201,45 @@ function CashoutContent() {
                 }
                 backContent={
                   <div className="absolute inset-0 w-full h-full backface-hidden transform-[rotateY(180deg)] bg-card border border-border p-2 rounded-xl shadow-inner flex flex-col">
-                      <div className="flex items-center">
-                        <div className="p-1.5 bg-muted rounded-md text-muted-foreground">
-                          <Wallet size={14} />
-                        </div>
-                        <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
-                          Drawer Breakdown
-                        </h4>
-                      </div>
-                      <div className="flex-1 overflow-y-auto min-h-0">
-                        {categorySales.map((entry) => (
-                          <div
-                            key={entry.category}
-                            className="flex items-center justify-between text-[11px] bg-muted/40 rounded-lg"
-                          >
-                            <span className="text-muted-foreground font-medium truncate">
-                              {entry.category}
-                            </span>
-                            <span className="font-mono font-semibold text-foreground whitespace-nowrap">
-                              ₱{entry.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                            </span>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-1.5">
+                          <div className="p-1 bg-muted rounded-md text-muted-foreground">
+                            <Wallet size={13} />
                           </div>
-                        ))}
+                          <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
+                            Drawer Breakdown
+                          </h4>
+                        </div>
+                        {isCategorySalesOptimistic && (
+                          <span className="text-[8px] font-bold uppercase tracking-wider text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 animate-pulse">
+                            syncing
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1 overflow-y-auto min-h-0 space-y-1">
+                        {categorySales.map((entry: any) => {
+                          const isEntryOptimistic = entry._optimistic || isCategorySalesOptimistic;
+                          return (
+                            <div
+                              key={entry.category}
+                              className="flex items-center justify-between text-[11px] bg-muted/40 rounded-lg px-2 py-1 transition-colors"
+                            >
+                              <span className="text-muted-foreground font-medium truncate">
+                                {entry.category}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <span className={`font-mono font-semibold whitespace-nowrap transition-colors duration-300 ${
+                                  isEntryOptimistic ? "text-amber-500 dark:text-amber-400 font-bold" : "text-foreground"
+                                }`}>
+                                  ₱{entry.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                </span>
+                                {isEntryOptimistic && (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" title="Optimistic update" />
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                   </div>
                 }
@@ -236,6 +278,8 @@ function CashoutContent() {
           isOpen={isModalOpen} 
           onClose={handleCloseModal} 
           editData={editingRecord}
+          onSaveExpense={addExpense}
+          onEditExpense={editExpense}
         />
       </div>
   );

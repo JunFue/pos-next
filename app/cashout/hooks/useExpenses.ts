@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient, useInfiniteQuery, keepPreviousData, InfiniteData } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useInfiniteQuery, keepPreviousData, InfiniteData, QueryClient } from "@tanstack/react-query";
 import { useState, useCallback, useMemo } from "react";
 import {
   fetchExpenses,
@@ -34,6 +34,58 @@ interface CashoutPage {
 // Shared query key prefix for all expense-related data
 const EXPENSES_KEY = "expenses";
 
+export type CategorySaleItem = {
+  category: string;
+  cash_in: number;
+  balance: number;
+  _optimistic?: boolean;
+};
+
+// Helper: Optimistically update drawer breakdown in cache
+const updateDrawerBreakdownCache = (
+  queryClient: QueryClient,
+  amountDelta: number, // negative for deductions, positive for refunds/reversals
+  categoryId?: string,
+  drawerName?: string
+) => {
+  const drawers = queryClient.getQueryData<any[]>(["drawers"]) || [];
+  const resolvedName = drawerName || drawers.find((d: any) => d.id === categoryId)?.category;
+
+  queryClient.setQueriesData<CategorySaleItem[]>({ queryKey: ["daily-category-sales"] }, (old) => {
+    if (!old || !Array.isArray(old)) return old;
+    if (old.length === 1) {
+      return [{
+        ...old[0],
+        balance: old[0].balance + amountDelta,
+        _optimistic: true,
+      }];
+    }
+    return old.map((d) => {
+      const isMatch = (resolvedName && d.category.toLowerCase() === resolvedName.toLowerCase()) ||
+                      (categoryId && d.category === categoryId);
+      if (isMatch) {
+        return {
+          ...d,
+          balance: d.balance + amountDelta,
+          _optimistic: true,
+        };
+      }
+      return d;
+    });
+  });
+};
+
+// Helper: Invalidate all cashflow/inventory queries after mutation settles
+const invalidateCashoutQueries = async (queryClient: QueryClient) => {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] }),
+    queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] }),
+    queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] }),
+    queryClient.invalidateQueries({ queryKey: ["stocks"] }),
+    queryClient.invalidateQueries({ queryKey: ["inventory"] }),
+  ]);
+};
+
 // Original hook for backwards compatibility
 export function useExpenses(dateRange?: DateRange) {
   const queryClient = useQueryClient();
@@ -54,88 +106,88 @@ export function useExpenses(dateRange?: DateRange) {
       setIsSubmitting(true);
 
       // 1. Update Summary Cache
-      const summaryKey = [EXPENSES_KEY, "summary", dateRange?.start, dateRange?.end];
-      queryClient.setQueryData<{ totalAmount: number; totalCount: number }>(summaryKey, (old) => {
-        if (!old) return old;
-        return {
-          totalAmount: old.totalAmount + data.amount,
-          totalCount: old.totalCount + 1,
-        };
-      });
+      queryClient.setQueriesData<{ totalAmount: number; totalCount: number; _optimistic?: boolean }>(
+        { queryKey: [EXPENSES_KEY, "summary"] },
+        (old) => {
+          if (!old) return old;
+          return {
+            totalAmount: old.totalAmount + data.amount,
+            totalCount: old.totalCount + 1,
+            _optimistic: true,
+          };
+        }
+      );
 
-      // 2. Update Balance Cache
-      const balanceKey = [EXPENSES_KEY, "balance"];
-      queryClient.setQueryData<number>(balanceKey, (old) => {
+      // 2. Update Balance Cache (Instant Total Cash Remaining update)
+      queryClient.setQueriesData<number>({ queryKey: [EXPENSES_KEY, "balance"] }, (old) => {
         if (old === undefined) return old;
         return old - data.amount;
       });
 
+      // 3. Update Drawer Breakdown Cache (Instant Backside update)
+      updateDrawerBreakdownCache(queryClient, -data.amount, data.category_id);
+
       try {
         await createExpense(data);
-        // Invalidate to ensure freshness
-        await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
-        await queryClient.invalidateQueries({ queryKey: ["stocks"] });
-        await queryClient.invalidateQueries({ queryKey: ["inventory"] });
-        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
-        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+        await invalidateCashoutQueries(queryClient);
       } catch (error) {
-        // Invalidate on error to restore correct data
-        await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
-        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
-        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+        await invalidateCashoutQueries(queryClient);
         throw error;
       } finally {
         setIsSubmitting(false);
       }
     },
-    [queryClient, dateRange]
+    [queryClient]
   );
 
   const editExpense = useCallback(
     async (id: string, data: CashoutInput) => {
       setIsSubmitting(true);
 
-      // Try to find the original amount from various caches to calculate the difference
-      // This is a bit tricky since useExpenses doesn't know about infinite pages, 
-      // but they share the same queryClient.
       const listData = queryClient.getQueryData<CashoutRecord[]>(queryKey);
-      const originalRecord = listData?.find(e => e.id === id);
+      const originalRecord = listData?.find((e) => e.id === id);
       
-      // Also check infinite cache if not found in list
       let originalAmount = originalRecord?.amount;
       if (originalAmount === undefined) {
-          const infiniteData = queryClient.getQueryData<InfiniteData<CashoutPage>>([EXPENSES_KEY, "infinite", 20, dateRange?.start, dateRange?.end]);
-          originalAmount = infiniteData?.pages.flatMap(p => p.data).find(e => e.id === id)?.amount || 0;
+        const infiniteData = queryClient.getQueryData<InfiniteData<CashoutPage>>([
+          EXPENSES_KEY,
+          "infinite",
+          20,
+          dateRange?.start,
+          dateRange?.end,
+        ]);
+        originalAmount = infiniteData?.pages.flatMap((p) => p.data).find((e) => e.id === id)?.amount || 0;
       }
       
       const amountDiff = data.amount - originalAmount;
 
       // 1. Update Summary
-      const summaryKey = [EXPENSES_KEY, "summary", dateRange?.start, dateRange?.end];
-      queryClient.setQueryData<{ totalAmount: number; totalCount: number }>(summaryKey, (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          totalAmount: old.totalAmount + amountDiff,
-        };
-      });
+      queryClient.setQueriesData<{ totalAmount: number; totalCount: number; _optimistic?: boolean }>(
+        { queryKey: [EXPENSES_KEY, "summary"] },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            totalAmount: old.totalAmount + amountDiff,
+            _optimistic: true,
+          };
+        }
+      );
 
       // 2. Update Balance
-      const balanceKey = [EXPENSES_KEY, "balance"];
-      queryClient.setQueryData<number>(balanceKey, (old) => {
+      queryClient.setQueriesData<number>({ queryKey: [EXPENSES_KEY, "balance"] }, (old) => {
         if (old === undefined) return old;
         return old - amountDiff;
       });
 
+      // 3. Update Drawer Breakdown
+      updateDrawerBreakdownCache(queryClient, -amountDiff, data.category_id);
+
       try {
         await updateExpense(id, data);
-        await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
-        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
-        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+        await invalidateCashoutQueries(queryClient);
       } catch (error) {
-        await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
-        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
-        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+        await invalidateCashoutQueries(queryClient);
         throw error;
       } finally {
         setIsSubmitting(false);
@@ -146,43 +198,52 @@ export function useExpenses(dateRange?: DateRange) {
 
   const removeExpense = useCallback(
     async (id: string) => {
-      // Find amount for summary/balance update
       const listData = queryClient.getQueryData<CashoutRecord[]>(queryKey);
-      const originalRecord = listData?.find(e => e.id === id);
+      const originalRecord = listData?.find((e) => e.id === id);
       
       let originalAmount = originalRecord?.amount;
+      let categoryId = originalRecord?.categoryId;
       if (originalAmount === undefined) {
-          const infiniteData = queryClient.getQueryData<InfiniteData<CashoutPage>>([EXPENSES_KEY, "infinite", 20, dateRange?.start, dateRange?.end]);
-          originalAmount = infiniteData?.pages.flatMap(p => p.data).find(e => e.id === id)?.amount || 0;
+        const infiniteData = queryClient.getQueryData<InfiniteData<CashoutPage>>([
+          EXPENSES_KEY,
+          "infinite",
+          20,
+          dateRange?.start,
+          dateRange?.end,
+        ]);
+        const found = infiniteData?.pages.flatMap((p) => p.data).find((e) => e.id === id);
+        originalAmount = found?.amount || 0;
+        categoryId = found?.categoryId;
       }
 
       // 1. Update Summary
-      const summaryKey = [EXPENSES_KEY, "summary", dateRange?.start, dateRange?.end];
-      queryClient.setQueryData<{ totalAmount: number; totalCount: number }>(summaryKey, (old) => {
-        if (!old) return old;
-        return {
-          totalAmount: old.totalAmount - originalAmount,
-          totalCount: old.totalCount - 1,
-        };
-      });
+      queryClient.setQueriesData<{ totalAmount: number; totalCount: number; _optimistic?: boolean }>(
+        { queryKey: [EXPENSES_KEY, "summary"] },
+        (old) => {
+          if (!old) return old;
+          return {
+            totalAmount: old.totalAmount - originalAmount,
+            totalCount: old.totalCount - 1,
+            _optimistic: true,
+          };
+        }
+      );
 
       // 2. Update Balance
-      const balanceKey = [EXPENSES_KEY, "balance"];
-      queryClient.setQueryData<number>(balanceKey, (old) => {
+      queryClient.setQueriesData<number>({ queryKey: [EXPENSES_KEY, "balance"] }, (old) => {
         if (old === undefined) return old;
         return old + originalAmount;
       });
 
+      // 3. Update Drawer Breakdown
+      updateDrawerBreakdownCache(queryClient, originalAmount, categoryId);
+
       try {
         await deleteExpense(id);
-        await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
-        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
-        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+        await invalidateCashoutQueries(queryClient);
       } catch (error) {
         console.error("Failed to delete expense:", error);
-        await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
-        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
-        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+        await invalidateCashoutQueries(queryClient);
         throw error;
       }
     },
@@ -196,14 +257,7 @@ export function useExpenses(dateRange?: DateRange) {
     addExpense,
     editExpense,
     removeExpense,
-    refresh: useCallback(
-      () => {
-        queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
-        queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
-        queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      },
-      [queryClient]
-    ),
+    refresh: useCallback(() => invalidateCashoutQueries(queryClient), [queryClient]),
   };
 }
 
@@ -256,61 +310,70 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
     async (input: CashoutInput) => {
       setIsSubmitting(true);
       const tempId = `temp-${Date.now()}`;
-      // Basic optimistic record - simplified
+      
+      const drawers = queryClient.getQueryData<any[]>(["drawers"]) || [];
+      const resolvedDrawer = drawers.find((d: any) => d.id === input.category_id);
+
       const optimistic: OptimisticCashoutRecord = {
         id: tempId,
         date: input.transaction_date,
-        timestamp: new Date().toLocaleTimeString(),
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         created_at: new Date().toISOString(),
         category: input.cashout_type,
         amount: input.amount,
         notes: input.notes,
         receiptNo: input.receipt_no,
-        expenseCategory: input.expenseCategory, // approximate
-        product: input.product || input.source, // approximate
+        expenseCategory: input.expenseCategory,
+        product: input.product || input.source,
+        manufacturer: input.manufacturer,
+        referenceNo: input.referenceNo,
+        subTypeLabel: input.subTypeLabel,
+        drawerName: resolvedDrawer?.category,
+        categoryId: input.category_id,
         _optimistic: true,
         _syncing: true,
       };
 
       // 1. Update Infinite Query Cache
-      queryClient.setQueryData<InfiniteData<CashoutPage>>(queryKey, (old) => {
-        if (!old) return old;
+      queryClient.setQueriesData<InfiniteData<CashoutPage>>({ queryKey: [EXPENSES_KEY, "infinite"] }, (old) => {
+        if (!old || !old.pages || old.pages.length === 0) return old;
         const newPages = [...old.pages];
         newPages[0] = {
           ...newPages[0],
           data: [optimistic, ...newPages[0].data],
+          count: (newPages[0].count || 0) + 1,
         };
         return { ...old, pages: newPages };
       });
 
       // 2. Update Summary Query Cache
-      const summaryKey = [EXPENSES_KEY, "summary", dateRange?.start, dateRange?.end];
-      queryClient.setQueryData<{ totalAmount: number; totalCount: number }>(summaryKey, (old) => {
-        if (!old) return old;
-        return {
-          totalAmount: old.totalAmount + input.amount,
-          totalCount: old.totalCount + 1,
-        };
-      });
+      queryClient.setQueriesData<{ totalAmount: number; totalCount: number; _optimistic?: boolean }>(
+        { queryKey: [EXPENSES_KEY, "summary"] },
+        (old) => {
+          if (!old) return old;
+          return {
+            totalAmount: old.totalAmount + input.amount,
+            totalCount: old.totalCount + 1,
+            _optimistic: true,
+          };
+        }
+      );
 
-      // 3. Update Balance Query Cache
-      const balanceKey = [EXPENSES_KEY, "balance"];
-      queryClient.setQueryData<number>(balanceKey, (old) => {
+      // 3. Update Balance Query Cache (Instant Total Cash Remaining calculation)
+      queryClient.setQueriesData<number>({ queryKey: [EXPENSES_KEY, "balance"] }, (old) => {
         if (old === undefined) return old;
         return old - input.amount;
       });
 
+      // 4. Update Drawer Breakdown Cache (Instant Drawer Balance calculation)
+      updateDrawerBreakdownCache(queryClient, -input.amount, input.category_id, resolvedDrawer?.category);
+
       try {
         await createExpense(input);
-        // Invalidate all expense queries to ensure freshness everywhere
-        await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
-        await queryClient.invalidateQueries({ queryKey: ["stocks"] });
-        await queryClient.invalidateQueries({ queryKey: ["inventory"] });
-        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
-        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+        await invalidateCashoutQueries(queryClient);
       } catch (error) {
         // Rollback on error
-        queryClient.setQueryData<InfiniteData<CashoutPage>>(queryKey, (old) => {
+        queryClient.setQueriesData<InfiniteData<CashoutPage>>({ queryKey: [EXPENSES_KEY, "infinite"] }, (old) => {
           if (!old) return old;
           const newPages = old.pages.map((page) => ({
             ...page,
@@ -318,16 +381,13 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
           }));
           return { ...old, pages: newPages };
         });
-        // Invalidate summaries/balance on error to restore correct data
-        await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
-        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
-        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+        await invalidateCashoutQueries(queryClient);
         throw error;
       } finally {
         setIsSubmitting(false);
       }
     },
-    [queryClient, queryKey, dateRange]
+    [queryClient]
   );
 
   // Optimistic Edit
@@ -335,14 +395,13 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
     async (id: string, input: CashoutInput) => {
       setIsSubmitting(true);
       
-      // Get previous amount for calculations
       const pages = queryClient.getQueryData<InfiniteData<CashoutPage>>(queryKey)?.pages;
-      const originalRecord = pages?.flatMap(p => p.data).find(e => e.id === id);
+      const originalRecord = pages?.flatMap((p) => p.data).find((e) => e.id === id);
       const originalAmount = originalRecord?.amount || 0;
       const amountDiff = input.amount - originalAmount;
 
       // 1. Update Infinite Query
-      queryClient.setQueryData<InfiniteData<CashoutPage>>(queryKey, (old) => {
+      queryClient.setQueriesData<InfiniteData<CashoutPage>>({ queryKey: [EXPENSES_KEY, "infinite"] }, (old) => {
         if (!old) return old;
         const newPages = old.pages.map((page) => ({
           ...page,
@@ -368,37 +427,38 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
       });
 
       // 2. Update Summary
-      const summaryKey = [EXPENSES_KEY, "summary", dateRange?.start, dateRange?.end];
-      queryClient.setQueryData<{ totalAmount: number; totalCount: number }>(summaryKey, (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          totalAmount: old.totalAmount + amountDiff,
-        };
-      });
+      queryClient.setQueriesData<{ totalAmount: number; totalCount: number; _optimistic?: boolean }>(
+        { queryKey: [EXPENSES_KEY, "summary"] },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            totalAmount: old.totalAmount + amountDiff,
+            _optimistic: true,
+          };
+        }
+      );
 
       // 3. Update Balance
-      const balanceKey = [EXPENSES_KEY, "balance"];
-      queryClient.setQueryData<number>(balanceKey, (old) => {
+      queryClient.setQueriesData<number>({ queryKey: [EXPENSES_KEY, "balance"] }, (old) => {
         if (old === undefined) return old;
         return old - amountDiff;
       });
 
+      // 4. Update Drawer Breakdown
+      updateDrawerBreakdownCache(queryClient, -amountDiff, input.category_id);
+
       try {
         await updateExpense(id, input);
-        await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
-        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
-        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+        await invalidateCashoutQueries(queryClient);
       } catch (error) {
-        await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
-        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
-        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+        await invalidateCashoutQueries(queryClient);
         throw error;
       } finally {
         setIsSubmitting(false);
       }
     },
-    [queryClient, queryKey, dateRange]
+    [queryClient, queryKey]
   );
 
   // Optimistic Delete
@@ -406,13 +466,13 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
     async (id: string) => {
       setIsSubmitting(true);
 
-      // Get amount for calculations
       const pages = queryClient.getQueryData<InfiniteData<CashoutPage>>(queryKey)?.pages;
-      const originalRecord = pages?.flatMap(p => p.data).find(e => e.id === id);
+      const originalRecord = pages?.flatMap((p) => p.data).find((e) => e.id === id);
       const originalAmount = originalRecord?.amount || 0;
+      const categoryId = originalRecord?.categoryId;
 
       // 1. Update Infinite Query
-      queryClient.setQueryData<InfiniteData<CashoutPage>>(queryKey, (old) => {
+      queryClient.setQueriesData<InfiniteData<CashoutPage>>({ queryKey: [EXPENSES_KEY, "infinite"] }, (old) => {
         if (!old) return old;
         const newPages = old.pages.map((page) => ({
           ...page,
@@ -422,37 +482,38 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
       });
 
       // 2. Update Summary
-      const summaryKey = [EXPENSES_KEY, "summary", dateRange?.start, dateRange?.end];
-      queryClient.setQueryData<{ totalAmount: number; totalCount: number }>(summaryKey, (old) => {
-        if (!old) return old;
-        return {
-          totalAmount: old.totalAmount - originalAmount,
-          totalCount: old.totalCount - 1,
-        };
-      });
+      queryClient.setQueriesData<{ totalAmount: number; totalCount: number; _optimistic?: boolean }>(
+        { queryKey: [EXPENSES_KEY, "summary"] },
+        (old) => {
+          if (!old) return old;
+          return {
+            totalAmount: old.totalAmount - originalAmount,
+            totalCount: old.totalCount - 1,
+            _optimistic: true,
+          };
+        }
+      );
 
       // 3. Update Balance
-      const balanceKey = [EXPENSES_KEY, "balance"];
-      queryClient.setQueryData<number>(balanceKey, (old) => {
+      queryClient.setQueriesData<number>({ queryKey: [EXPENSES_KEY, "balance"] }, (old) => {
         if (old === undefined) return old;
         return old + originalAmount;
       });
 
+      // 4. Update Drawer Breakdown
+      updateDrawerBreakdownCache(queryClient, originalAmount, categoryId);
+
       try {
         await deleteExpense(id);
-        await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
-        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
-        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+        await invalidateCashoutQueries(queryClient);
       } catch (error) {
-        await queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
-        await queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
-        await queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+        await invalidateCashoutQueries(queryClient);
         throw error;
       } finally {
         setIsSubmitting(false);
       }
     },
-    [queryClient, queryKey, dateRange]
+    [queryClient, queryKey]
   );
 
   return {
@@ -466,14 +527,7 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
     addExpense: addExpenseOptimistic,
     editExpense: editExpenseOptimistic,
     removeExpense: removeExpenseOptimistic,
-    refresh: useCallback(
-      () => {
-        queryClient.invalidateQueries({ queryKey: [EXPENSES_KEY] });
-        queryClient.invalidateQueries({ queryKey: ["daily-category-sales"] });
-        queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      },
-      [queryClient]
-    ),
+    refresh: useCallback(() => invalidateCashoutQueries(queryClient), [queryClient]),
   };
 }
 
