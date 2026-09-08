@@ -386,6 +386,43 @@ export const fetchExpensesSummary = async (
   };
 };
 
+// Helper to verify if the user has backdating privileges
+const checkUserCanBackdate = async (supabase: any, userId: string): Promise<boolean> => {
+  const { data: permData, error: permError } = await supabase
+    .from("staff_permissions")
+    .select("can_backdate")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!permError && permData?.can_backdate) {
+    return true;
+  }
+
+  // Fallback: check if admin
+  const { data: userData } = await supabase
+    .from("users")
+    .select("role")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  return userData?.role === "admin";
+};
+
+export interface ServerDateResponse {
+  date: string;
+  time: string;
+  iso: string;
+}
+
+export const fetchServerDate = async (): Promise<ServerDateResponse> => {
+  const now = new Date();
+  return {
+    date: now.toISOString().split("T")[0],
+    time: now.toTimeString().split(" ")[0],
+    iso: now.toISOString(),
+  };
+};
+
 // 3. Create Expense (RPC)
 export const createExpense = async (input: CashoutInput) => {
   const supabase = await getSupabase();
@@ -411,7 +448,17 @@ export const createExpense = async (input: CashoutInput) => {
     throw new Error("Store ID not found for user. Please ensure you are assigned to a store.");
   }
 
-  // 3. Build metadata from form-specific fields
+  // 3. Check backdating authorization and enforce server time
+  const canBackdate = await checkUserCanBackdate(supabase, user.id);
+  const serverNow = new Date();
+  const serverDate = serverNow.toISOString().split("T")[0];
+
+  // Only allow custom date if user is authorized to backdate; otherwise strictly enforce server date
+  const finalTransactionDate = (canBackdate && input.transaction_date && input.transaction_date.trim() !== "")
+    ? input.transaction_date
+    : serverDate;
+
+  // 4. Build metadata from form-specific fields
   const metadata: Record<string, any> = { ...(input.metadata || {}) };
   if (input.product) metadata.product = input.product;
   if (input.manufacturer) metadata.manufacturer = input.manufacturer;
@@ -423,9 +470,9 @@ export const createExpense = async (input: CashoutInput) => {
   if (input.expenseCategory) metadata.expenseCategory = input.expenseCategory;
   if (input.icon) metadata.icon = input.icon;
 
-  // 4. Call the RPC
+  // 5. Call the RPC
   const { error } = await supabase.rpc("insert_new_expense", {
-    transaction_date_in: input.transaction_date,
+    transaction_date_in: finalTransactionDate,
     amount_in: input.amount,
     notes_in: input.notes,
     store_id_in: storeId, 
@@ -442,12 +489,16 @@ export const createExpense = async (input: CashoutInput) => {
     throw new Error(error.message);
   }
 
-  // 5. Handle COGS Stock Flow logging if cashout_type === 'COGS'
+  // 6. Handle COGS Stock Flow logging if cashout_type === 'COGS'
   if (input.cashout_type === 'COGS' && input.stock_items && input.stock_items.length > 0) {
     const isStockIn = input.is_stock_in ?? true;
     const flow = isStockIn ? "stock-in" : "cogs-audit";
 
     const stockFlowRows = [];
+    const stockFlowTimestamp = (canBackdate && input.transaction_date && input.transaction_date.trim() !== "")
+      ? new Date(`${input.transaction_date}T${serverNow.toTimeString().split(' ')[0]}`).toISOString()
+      : serverNow.toISOString();
+
     for (const item of input.stock_items) {
       if (!item.item_name || item.quantity <= 0) continue;
 
@@ -479,9 +530,7 @@ export const createExpense = async (input: CashoutInput) => {
           batch_remaining: isStockIn ? item.quantity : 0,
           user_id: user.id,
           store_id: storeId,
-          time_stamp: input.transaction_date 
-            ? new Date(`${input.transaction_date}T${new Date().toTimeString().split(' ')[0]}`).toISOString()
-            : new Date().toISOString(),
+          time_stamp: stockFlowTimestamp,
         });
       }
     }
@@ -569,6 +618,13 @@ export const deleteExpense = async (id: string) => {
 export const updateExpense = async (id: string, input: CashoutInput) => {
   const supabase = await getSupabase();
 
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("Not authenticated");
+  }
+
+  const canBackdate = await checkUserCanBackdate(supabase, user.id);
+
   // Build metadata from form-specific fields
   const metadata: Record<string, any> = { ...(input.metadata || {}) };
   if (input.product) metadata.product = input.product;
@@ -581,18 +637,24 @@ export const updateExpense = async (id: string, input: CashoutInput) => {
   if (input.expenseCategory) metadata.expenseCategory = input.expenseCategory;
   if (input.icon) metadata.icon = input.icon;
   
+  const updatePayload: Record<string, any> = {
+    classification_id: input.classification_id, 
+    amount: input.amount,
+    receipt_no: input.receipt_no,
+    notes: input.notes,
+    cashout_type: input.cashout_type,
+    metadata,
+    remittance_category_id: input.remittance_category_id || null,
+  };
+
+  // Only update transaction_date if user is authorized to backdate
+  if (canBackdate && input.transaction_date) {
+    updatePayload.transaction_date = input.transaction_date;
+  }
+
   const { error } = await supabase
     .from("expenses")
-    .update({
-      transaction_date: input.transaction_date,
-      classification_id: input.classification_id, 
-      amount: input.amount,
-      receipt_no: input.receipt_no,
-      notes: input.notes,
-      cashout_type: input.cashout_type,
-      metadata,
-      remittance_category_id: input.remittance_category_id || null,
-    })
+    .update(updatePayload)
     .eq("id", id);
 
   if (error) {

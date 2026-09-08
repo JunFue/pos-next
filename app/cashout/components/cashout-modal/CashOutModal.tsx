@@ -1,14 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Truck, Lightbulb, ArrowRight, X, DollarSign, Save, FileText, Unlock } from 'lucide-react';
-import { CashoutInput, CashoutType, CashoutRecord } from '../../lib/cashout.api';
+import { Truck, Lightbulb, ArrowRight, X, DollarSign, Save, FileText, Unlock, Lock } from 'lucide-react';
+import { CashoutInput, CashoutType, CashoutRecord, fetchServerDate } from '../../lib/cashout.api';
 import { DrawerSelect } from "../shared/DrawerSelect";
 import { CogsForm } from './CogsForm';
 import { OpexForm } from './OpexForm';
 import { RemittanceForm } from './RemittanceForm';
 import { useExpenses } from '../../hooks/useExpenses'; // Reuse the hook logic
 import { useTransactionStore } from '@/app/settings/backdating/stores/useTransactionStore';
+import { usePermissions } from '@/app/hooks/usePermissions';
 import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import { fetchDrawerMode } from '@/app/dashboard/lib/dashboard.api';
@@ -27,8 +28,16 @@ const CashOutModal = ({ isOpen, onClose, editData, onSaveExpense, onEditExpense 
   const addExpense = onSaveExpense || fallbackAddExpense;
   const editExpense = onEditExpense || fallbackEditExpense;
   const { customTransactionDate } = useTransactionStore();
+  const { can_backdate } = usePermissions();
   const [activeTab, setActiveTab] = useState<CashoutType>('COGS'); 
   const [selectedDrawerId, setSelectedDrawerId] = useState<string>("");
+
+  // ─── Authoritative Server Date ────────────────────────────────────────────
+  const { data: serverDateInfo } = useQuery({
+    queryKey: ["server-date"],
+    queryFn: fetchServerDate,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
   
   // ─── Drawer Mode & Drawers ────────────────────────────────────────────────
   const { drawers, isLoading: isLoadingDrawers } = useDrawers();
@@ -39,6 +48,7 @@ const CashOutModal = ({ isOpen, onClose, editData, onSaveExpense, onEditExpense 
   });
 
   const isMultiDrawer = drawerMode === "multiple";
+  const isBackdatingActive = can_backdate && !!customTransactionDate;
 
   // Auto-select drawer in Unified mode
   useEffect(() => {
@@ -77,19 +87,19 @@ const CashOutModal = ({ isOpen, onClose, editData, onSaveExpense, onEditExpense 
           referenceNo: editData.referenceNo,
           subTypeLabel: editData.subTypeLabel
         });
-      } else if (!baseData.date) {
-        // Create Mode
-        const initialDate = customTransactionDate 
+      } else {
+        // Create Mode - Use authoritative server date or active backdate
+        const effectiveDate = isBackdatingActive
           ? dayjs(customTransactionDate).format("YYYY-MM-DD")
-          : new Date().toISOString().split('T')[0];
+          : (serverDateInfo?.date || new Date().toISOString().split('T')[0]);
 
         setBaseData(prev => ({
           ...prev,
-          date: initialDate
+          date: effectiveDate
         }));
       }
     }
-  }, [isOpen, editData, customTransactionDate]);
+  }, [isOpen, editData, isBackdatingActive, customTransactionDate, serverDateInfo?.date]);
 
   const [specificData, setSpecificData] = useState<Partial<CashoutInput>>({});
 
@@ -152,7 +162,7 @@ const CashOutModal = ({ isOpen, onClose, editData, onSaveExpense, onEditExpense 
         let nextInput = document.querySelector(`[name="${nextField}"]`) as HTMLElement;
         
         // Skip date if it's disabled or readonly
-        if (nextField === "date" && customTransactionDate) {
+        if (nextField === "date" && (!can_backdate || isBackdatingActive)) {
             const skipTo = activeTab === 'COGS' ? 'receipt_no' : 'notes';
             nextInput = document.querySelector(`[name="${skipTo}"]`) as HTMLElement;
         }
@@ -233,20 +243,36 @@ const CashOutModal = ({ isOpen, onClose, editData, onSaveExpense, onEditExpense 
                 />
             </div>
             <div className="w-1/3">
-              <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Date</label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">Date</label>
+                {!can_backdate && (
+                  <span className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground/80 bg-muted/60 px-1.5 py-0.5 rounded border border-border/50">
+                    <Lock className="w-2.5 h-2.5" /> Server Date
+                  </span>
+                )}
+              </div>
               <input 
                 type="date"
                 name="date"
-                className={`w-full border-input rounded-xl shadow-sm focus:ring-ring focus:border-ring py-4 px-3 border bg-muted/20 text-foreground text-sm ${customTransactionDate ? 'opacity-50 cursor-not-allowed bg-muted' : ''}`}
+                className={`w-full border-input rounded-xl shadow-sm py-4 px-3 border text-sm transition-colors ${
+                  !can_backdate || isBackdatingActive 
+                    ? 'opacity-60 cursor-not-allowed bg-muted/60 text-muted-foreground select-none' 
+                    : 'bg-muted/20 text-foreground focus:ring-ring focus:border-ring'
+                }`}
                 value={baseData.date}
-                onChange={(e) => setBaseData({...baseData, date: e.target.value})}
+                onChange={(e) => {
+                  if (can_backdate && !isBackdatingActive) {
+                    setBaseData({...baseData, date: e.target.value});
+                  }
+                }}
                 onKeyDown={(e) => handleKeyDown(e, activeTab === 'COGS' ? 'receipt_no' : 'notes')}
-                disabled={!!customTransactionDate}
+                disabled={!can_backdate || isBackdatingActive}
+                readOnly={!can_backdate || isBackdatingActive}
               />
             </div>
           </div>
 
-          {customTransactionDate && (
+          {isBackdatingActive && (
             <div className="mb-6 flex items-start gap-3 bg-amber-500/10 p-4 border border-amber-500/20 rounded-xl text-amber-600 text-[11px] leading-tight">
                <Unlock className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                <span>

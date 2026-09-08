@@ -10,6 +10,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { fetchDashboardStats, fetchDrawerMode, fetchLatestCategorySales } from "../lib/dashboard.api";
 import { useRealtimeCashflow } from "@/app/cashout/hooks/useRealtimeCashflow";
+import { useExpenses } from "@/app/cashout/hooks/useExpenses";
 
 export type FlipCardKey = "sales" | "profit" | "cash" | "cashout";
 export type ExpenseCategory = "COGS" | "OPEX" | "REMIT";
@@ -17,6 +18,7 @@ export type ExpenseCategory = "COGS" | "OPEX" | "REMIT";
 export function useDashboard() {
   // Subscribe to real-time sales, payments, and expenses
   useRealtimeCashflow();
+  const { addExpense } = useExpenses();
 
   // ─── Date Filter ───────────────────────────────────────────────────────────
   const todayStr = new Date().toISOString().split("T")[0];
@@ -93,7 +95,6 @@ export function useDashboard() {
   const [expenseCategory, setExpenseCategory] = useState<ExpenseCategory>("OPEX");
 
   // ─── Derived Values ────────────────────────────────────────────────────────
-  // ─── Derived Values ────────────────────────────────────────────────────────
   const CASH_LIMIT = 10000.0; // Hardcoded for now or fetch from settings
   const isHighRisk = !isHistorical && stats.cashInDrawer > CASH_LIMIT;
 
@@ -102,22 +103,14 @@ export function useDashboard() {
     new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
   );
 
-  // Update time every minute
-  if (typeof window !== "undefined") {
-    // Basic implementation for client-side
-    // In a real app, use useEffect
-  }
-  
   // ─── Handlers ──────────────────────────────────────────────────────────────
-  const handleAddExpense = (e: FormEvent) => {
+  const handleAddExpense = async (e: FormEvent) => {
     e.preventDefault();
     if (!expenseAmount || !expenseReason || isHistorical) return;
 
     const amount = parseFloat(expenseAmount);
+    const categoryMapped = expenseCategory === "REMIT" ? "REMITTANCE" : expenseCategory;
 
-    // Note: Local state update for stats is removed because stats are now fetched from server.
-    // Recording an expense should ideally call an API and invalidate the dashboard-stats query.
-    
     const newActivity: ActivityItem = {
       id: Date.now(),
       type: expenseCategory,
@@ -130,6 +123,17 @@ export function useDashboard() {
     setIsExpenseModalOpen(false);
     setExpenseAmount("");
     setExpenseReason("");
+
+    try {
+      await addExpense({
+        amount,
+        notes: expenseReason,
+        cashout_type: categoryMapped,
+        transaction_date: selectedDate || todayStr,
+      });
+    } catch (err) {
+      console.error("Failed to add expense from dashboard:", err);
+    }
   };
   
   const handleManualRefresh = () => {

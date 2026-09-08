@@ -34,14 +34,21 @@ export function VitalsGrid({
   isFetching,
   lastUpdatedAt,
 }: VitalsGridProps) {
+  const isStatsOptimistic = (stats as any)._optimistic || isFetching;
+
   return (
     <div className="space-y-3 mb-5">
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
-           <div className={`w-2 h-2 rounded-full ${isFetching ? 'bg-primary animate-pulse' : 'bg-emerald-500'}`}></div>
+           <div className={`w-2 h-2 rounded-full ${isStatsOptimistic ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></div>
            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">
              Vitals & Cash Position
            </p>
+           {isStatsOptimistic && (
+             <span className="text-[9px] font-bold tracking-wider text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20 animate-pulse uppercase">
+               syncing
+             </span>
+           )}
         </div>
         {lastUpdatedAt && lastUpdatedAt > 0 && (
           <p className="text-[10px] text-muted-foreground italic">
@@ -65,13 +72,22 @@ export function VitalsGrid({
                 <TrendingUp size={16} />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-foreground mb-2">
-              ₱{stats.netSales.toLocaleString()}
-            </h3>
+            <div className="flex items-baseline justify-between mb-2">
+              <h3 className={`text-2xl font-bold transition-colors duration-300 ${
+                isStatsOptimistic ? "text-amber-500 dark:text-amber-400" : "text-foreground"
+              }`}>
+                ₱{stats.netSales.toLocaleString()}
+              </h3>
+              {isStatsOptimistic && (
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Syncing..." />
+              )}
+            </div>
             <div className="mt-auto space-y-1 bg-muted/50 p-2 rounded-lg border border-border">
               <div className="flex justify-between text-[10px] text-muted-foreground">
                 <span>Gross Sales:</span>
-                <span className="font-medium text-foreground">
+                <span className={`font-medium transition-colors duration-300 ${
+                  isStatsOptimistic ? "text-amber-500 dark:text-amber-400" : "text-foreground"
+                }`}>
                   ₱{stats.grossSales.toLocaleString()}
                 </span>
               </div>
@@ -93,28 +109,45 @@ export function VitalsGrid({
         backContent={
           isMultiDrawer && categorySales.length > 0 ? (
             <div className="absolute inset-0 w-full h-full backface-hidden transform-[rotateY(180deg)] bg-card border border-border p-4 rounded-xl shadow-inner flex flex-col">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="p-1.5 bg-emerald-500/10 rounded-md text-emerald-500">
-                  <TrendingUp size={14} />
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-emerald-500/10 rounded-md text-emerald-500">
+                    <TrendingUp size={14} />
+                  </div>
+                  <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
+                    Sales by Category
+                  </h4>
                 </div>
-                <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
-                  Sales by Category
-                </h4>
+                {isStatsOptimistic && (
+                  <span className="text-[8px] font-bold uppercase tracking-wider text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 animate-pulse">
+                    syncing
+                  </span>
+                )}
               </div>
               <div className="flex-1 overflow-y-auto space-y-1.5 min-h-0">
-                {categorySales.map((entry) => (
-                  <div
-                    key={entry.category}
-                    className="flex items-center justify-between text-[11px] bg-muted/40 px-2.5 py-1.5 rounded-lg"
-                  >
-                    <span className="text-muted-foreground font-medium truncate mr-2">
-                      {entry.category}
-                    </span>
-                    <span className="font-mono font-semibold text-foreground whitespace-nowrap">
-                      ₱{entry.cash_in.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                ))}
+                {categorySales.map((entry: any) => {
+                  const isEntryOptimistic = entry._optimistic || isStatsOptimistic;
+                  return (
+                    <div
+                      key={entry.category}
+                      className="flex items-center justify-between text-[11px] bg-muted/40 px-2.5 py-1.5 rounded-lg transition-colors"
+                    >
+                      <span className="text-muted-foreground font-medium truncate mr-2">
+                        {entry.category}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`font-mono font-semibold whitespace-nowrap transition-colors duration-300 ${
+                          isEntryOptimistic ? "text-amber-500 dark:text-amber-400 font-bold" : "text-foreground"
+                        }`}>
+                          ₱{entry.cash_in.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </span>
+                        {isEntryOptimistic && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" title="Syncing..." />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
               <p className="text-[9px] text-muted-foreground mt-2 font-medium tracking-wide uppercase text-center shrink-0">
                 Click to flip back
@@ -154,23 +187,40 @@ export function VitalsGrid({
                 <TrendingUp size={16} />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-foreground mb-2">
-              ₱{stats.netProfit.toLocaleString()}
-            </h3>
+            <div className="flex items-baseline justify-between mb-2">
+              <h3 className={`text-2xl font-bold transition-colors duration-300 ${
+                isStatsOptimistic ? "text-amber-500 dark:text-amber-400" : "text-foreground"
+              }`}>
+                ₱{stats.netProfit.toLocaleString()}
+              </h3>
+              {isStatsOptimistic && (
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Syncing..." />
+              )}
+            </div>
             <div className="mt-auto space-y-1 bg-muted/50 p-2 rounded-lg border border-border">
               <div className="flex justify-between text-[10px] text-muted-foreground">
                 <span>Net Sales:</span>
-                <span className="font-medium text-foreground">
+                <span className={`font-medium transition-colors duration-300 ${
+                  isStatsOptimistic ? "text-amber-500 dark:text-amber-400" : "text-foreground"
+                }`}>
                   ₱{stats.netSales.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between text-[10px] text-red-500/90">
                 <span>- COGS:</span>
-                <span>₱{stats.cashout.cogs.toLocaleString()}</span>
+                <span className={`font-medium transition-colors duration-300 ${
+                  isStatsOptimistic ? "text-amber-500 dark:text-amber-400" : "text-red-500/90"
+                }`}>
+                  ₱{stats.cashout.cogs.toLocaleString()}
+                </span>
               </div>
               <div className="flex justify-between text-[10px] text-red-500/90">
                 <span>- OPEX:</span>
-                <span>₱{stats.cashout.opex.toLocaleString()}</span>
+                <span className={`font-medium transition-colors duration-300 ${
+                  isStatsOptimistic ? "text-amber-500 dark:text-amber-400" : "text-red-500/90"
+                }`}>
+                  ₱{stats.cashout.opex.toLocaleString()}
+                </span>
               </div>
             </div>
           </div>
@@ -201,7 +251,9 @@ export function VitalsGrid({
         frontContent={
           <div
             className={`w-full h-full backface-hidden p-4 rounded-xl border shadow-sm transition-all duration-300 flex flex-col justify-between hover:shadow-md ${
-              isHighRisk
+              stats.cashInDrawer < 0
+                ? "bg-red-500/10 border-red-500/50 text-red-600 animate-pulse"
+                : isHighRisk
                 ? "bg-amber-500/10 border-amber-500/50 ring-1 ring-amber-500/20"
                 : "bg-card border-border hover:border-blue-500/50"
             }`}
@@ -210,77 +262,121 @@ export function VitalsGrid({
               <div className="flex items-center gap-2">
                 <p
                   className={`${
-                    isHighRisk ? "text-amber-500" : "text-muted-foreground"
+                    stats.cashInDrawer < 0 
+                      ? "text-red-500" 
+                      : isHighRisk 
+                      ? "text-amber-500" 
+                      : "text-muted-foreground"
                   } text-xs font-semibold uppercase tracking-wider`}
                 >
                   Cash in Drawer
                 </p>
-                {isHighRisk && (
+                {stats.cashInDrawer < 0 ? (
+                  <span className="flex items-center gap-1 text-[9px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded-sm animate-bounce">
+                    NEGATIVE BALANCE
+                  </span>
+                ) : isHighRisk ? (
                   <span className="text-[9px] font-bold text-amber-600 bg-amber-500/20 px-1.5 py-0.5 rounded animate-pulse">
                     REMIT NOW
                   </span>
-                )}
+                ) : null}
               </div>
               <div
                 className={`p-1.5 rounded-md ${
-                  isHighRisk
+                  stats.cashInDrawer < 0
+                    ? "bg-red-100 text-red-600"
+                    : isHighRisk
                     ? "bg-amber-500/10 text-amber-500"
                     : "bg-muted text-muted-foreground"
                 }`}
               >
-                {isHighRisk ? (
+                {stats.cashInDrawer < 0 || isHighRisk ? (
                   <AlertTriangle size={16} />
                 ) : (
                   <Wallet size={16} />
                 )}
               </div>
             </div>
-            <h3
-              className={`text-2xl font-bold ${
-                isHighRisk ? "text-amber-500 text-shadow-sm" : "text-foreground"
-              }`}
-            >
-              ₱{stats.cashInDrawer.toLocaleString()}
-            </h3>
+            <div className="flex items-baseline justify-between mb-2">
+              <h3
+                className={`text-2xl font-bold transition-colors duration-300 ${
+                  stats.cashInDrawer < 0
+                    ? "text-red-600"
+                    : isHighRisk
+                    ? "text-amber-500 text-shadow-sm"
+                    : isStatsOptimistic
+                    ? "text-amber-500 dark:text-amber-400"
+                    : "text-foreground"
+                }`}
+              >
+                ₱{stats.cashInDrawer.toLocaleString()}
+              </h3>
+              {isStatsOptimistic && (
+                <span className="text-[9px] font-bold tracking-wider text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20 animate-pulse uppercase">
+                  syncing
+                </span>
+              )}
+            </div>
             <p
               className={`text-[10px] mt-auto ${
-                isHighRisk ? "text-amber-500/80" : "text-muted-foreground"
+                stats.cashInDrawer < 0 
+                  ? "text-red-500 font-semibold" 
+                  : isHighRisk 
+                  ? "text-amber-500/80" 
+                  : "text-muted-foreground"
               }`}
             >
-              Physical cash currently at the register.
+              {isMultiDrawer && categorySales.length > 0 ? "Click to see drawer breakdown" : "Physical cash currently at the register."}
             </p>
           </div>
         }
         backContent={
           isMultiDrawer && categorySales.length > 0 ? (
             <div className="absolute inset-0 w-full h-full backface-hidden transform-[rotateY(180deg)] bg-card border border-border p-4 rounded-xl shadow-inner flex flex-col">
-              <div className="flex items-center gap-2 mb-3">
-                <div className={`p-1.5 rounded-md ${isHighRisk ? "bg-amber-500/10 text-amber-500" : "bg-muted text-muted-foreground"}`}>
-                  <Wallet size={14} />
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className={`p-1.5 rounded-md ${isHighRisk ? "bg-amber-500/10 text-amber-500" : "bg-muted text-muted-foreground"}`}>
+                    <Wallet size={14} />
+                  </div>
+                  <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
+                    Cash per Category
+                  </h4>
                 </div>
-                <h4 className="font-bold text-foreground text-xs uppercase tracking-wider">
-                  Cash per Category
-                </h4>
+                {isStatsOptimistic && (
+                  <span className="text-[8px] font-bold uppercase tracking-wider text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 animate-pulse">
+                    syncing
+                  </span>
+                )}
               </div>
               <div className="flex-1 overflow-y-auto space-y-1.5 min-h-0">
-                {categorySales.map((entry) => (
-                  <div
-                    key={entry.category}
-                    className="flex items-center justify-between text-[11px] bg-muted/40 px-2.5 py-1.5 rounded-lg"
-                  >
-                    <div className="flex flex-col mr-2 truncate">
-                      <span className="text-muted-foreground font-medium truncate">
-                        {entry.category}
-                      </span>
-                      <span className="text-[9px] text-muted-foreground/70">
-                        Sales: ₱{entry.cash_in.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </span>
+                {categorySales.map((entry: any) => {
+                  const isEntryOptimistic = entry._optimistic || isStatsOptimistic;
+                  return (
+                    <div
+                      key={entry.category}
+                      className="flex items-center justify-between text-[11px] bg-muted/40 px-2.5 py-1.5 rounded-lg transition-colors"
+                    >
+                      <div className="flex flex-col mr-2 truncate">
+                        <span className="text-muted-foreground font-medium truncate">
+                          {entry.category}
+                        </span>
+                        <span className="text-[9px] text-muted-foreground/70">
+                          Sales: ₱{entry.cash_in.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`font-mono font-semibold whitespace-nowrap transition-colors duration-300 ${
+                          isEntryOptimistic ? "text-amber-500 dark:text-amber-400 font-bold" : "text-foreground"
+                        }`}>
+                          ₱{entry.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </span>
+                        {isEntryOptimistic && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" title="Syncing..." />
+                        )}
+                      </div>
                     </div>
-                    <span className="font-mono font-semibold text-foreground whitespace-nowrap">
-                      ₱{entry.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <p className="text-[9px] text-muted-foreground mt-2 font-medium tracking-wide uppercase text-center shrink-0">
                 Click to flip back
@@ -328,16 +424,27 @@ export function VitalsGrid({
                 <ArrowDownLeft size={16} />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-red-500 mb-2">
-              -₱{stats.cashout.total.toLocaleString()}
-            </h3>
+            <div className="flex items-baseline justify-between mb-2">
+              <h3 className={`text-2xl font-bold transition-colors duration-300 ${
+                isStatsOptimistic ? "text-amber-500 dark:text-amber-400" : "text-red-500"
+              }`}>
+                -₱{stats.cashout.total.toLocaleString()}
+              </h3>
+              {isStatsOptimistic && (
+                <span className="text-[9px] font-bold tracking-wider text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20 animate-pulse uppercase">
+                  syncing
+                </span>
+              )}
+            </div>
             <div className="mt-auto space-y-1.5">
               <div className="flex items-center justify-between text-[10px]">
                 <span className="text-muted-foreground flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
                   COGS (Suppliers):
                 </span>
-                <span className="font-medium text-foreground">
+                <span className={`font-medium transition-colors duration-300 ${
+                  isStatsOptimistic ? "text-amber-500 dark:text-amber-400" : "text-foreground"
+                }`}>
                   ₱{stats.cashout.cogs.toLocaleString()}
                 </span>
               </div>
@@ -346,7 +453,9 @@ export function VitalsGrid({
                   <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
                   OPEX (Operations):
                 </span>
-                <span className="font-medium text-foreground">
+                <span className={`font-medium transition-colors duration-300 ${
+                  isStatsOptimistic ? "text-amber-500 dark:text-amber-400" : "text-foreground"
+                }`}>
                   ₱{stats.cashout.opex.toLocaleString()}
                 </span>
               </div>
@@ -355,7 +464,9 @@ export function VitalsGrid({
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
                   Remittance/Owner:
                 </span>
-                <span className="font-medium text-foreground">
+                <span className={`font-medium transition-colors duration-300 ${
+                  isStatsOptimistic ? "text-amber-500 dark:text-amber-400" : "text-foreground"
+                }`}>
                   ₱{stats.cashout.remittance.toLocaleString()}
                 </span>
               </div>

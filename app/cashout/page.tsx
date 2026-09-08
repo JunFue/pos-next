@@ -67,7 +67,7 @@ function CashoutContent() {
       isSubmitting
   } = useExpensesInfinite(20, dateRange);
 
-  const { can_manage_expenses } = usePermissions();
+  const { can_manage_expenses, can_backdate } = usePermissions();
   const { summary, isFetching: isFetchingSummary } = useExpensesSummary(dateRange);
   const { balance, isFetching: isFetchingBalance } = useCurrentBalance(dateRange.start);
 
@@ -108,8 +108,8 @@ function CashoutContent() {
   }, [editExpense]);
 
   const tableColumns = useMemo(() => 
-    getColumns(removeExpense, handleEditExpense, can_manage_expenses, isMultiDrawer), 
-    [removeExpense, handleEditExpense, can_manage_expenses, isMultiDrawer]
+    getColumns(removeExpense, handleEditExpense, can_manage_expenses, isMultiDrawer, can_backdate), 
+    [removeExpense, handleEditExpense, can_manage_expenses, isMultiDrawer, can_backdate]
   );
 
   if (!isMounted) {

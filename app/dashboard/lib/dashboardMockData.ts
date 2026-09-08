@@ -15,6 +15,7 @@ export interface DashboardStats {
     remittance: number;
   };
   netProfit: number;
+  _optimistic?: boolean;
 }
 
 export interface LowStockItem {

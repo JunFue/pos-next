@@ -18,7 +18,8 @@ export const getColumns = (
   onDelete?: (id: string) => void,
   onEdit?: (record: CashoutRecord) => void,
   canManage: boolean = false,
-  isMultiDrawer: boolean = false
+  isMultiDrawer: boolean = false,
+  canBackdate: boolean = false
 ): ColumnDef<CashoutRecord>[] => [
   {
     accessorKey: "date",
@@ -38,16 +39,20 @@ export const getColumns = (
       const isEditing = meta?.editingRowId === row.original.id;
 
       if (isEditing) {
+        if (!canBackdate) {
+          return (
+            <div className="flex flex-col">
+              <span className="font-medium text-foreground text-xs opacity-75">{row.original.date}</span>
+              <span className="text-[10px] text-muted-foreground italic">Server Locked</span>
+            </div>
+          );
+        }
+
         return (
           <input
             type="date"
             defaultValue={row.original.date}
             className="w-full bg-muted border border-border rounded px-2 py-1 text-xs text-foreground focus:ring-1 focus:ring-primary outline-none"
-            onChange={(e) => {
-               // We'll handle save via the Save button, but we need to track values. 
-               // For simplicity in this common react-table pattern, we can use a local state in the row or just query the DOM on save.
-               // Let's use name attributes and handle in Save.
-            }}
             name="date"
           />
         );

@@ -12,6 +12,7 @@ import {
   CashoutInput,
   CashoutRecord,
   CashoutPermissions,
+  CashoutType,
 } from "../lib/cashout.api";
 
 export interface DateRange {
@@ -75,6 +76,39 @@ const updateDrawerBreakdownCache = (
   });
 };
 
+// Helper: Optimistically update dashboard stats in cache
+const updateDashboardStatsCache = (
+  queryClient: QueryClient,
+  amountDelta: number, // positive when cashout increases (money leaves drawer), negative when cashout decreases (reversals/edits)
+  category?: CashoutType
+) => {
+  queryClient.setQueriesData<any>({ queryKey: ["dashboard-stats"] }, (old: any) => {
+    if (!old) return old;
+    
+    const isCogs = category === "COGS";
+    const isOpex = category === "OPEX";
+    const isRemit = category === "REMITTANCE";
+
+    const cogsDelta = isCogs ? amountDelta : 0;
+    const opexDelta = isOpex ? amountDelta : 0;
+    const remitDelta = isRemit ? amountDelta : 0;
+    const profitDelta = (isCogs || isOpex) ? -amountDelta : 0;
+
+    return {
+      ...old,
+      cashInDrawer: (old.cashInDrawer || 0) - amountDelta,
+      cashout: {
+        total: (old.cashout?.total || 0) + amountDelta,
+        cogs: (old.cashout?.cogs || 0) + cogsDelta,
+        opex: (old.cashout?.opex || 0) + opexDelta,
+        remittance: (old.cashout?.remittance || 0) + remitDelta,
+      },
+      netProfit: (old.netProfit || 0) + profitDelta,
+      _optimistic: true,
+    };
+  });
+};
+
 // Helper: Invalidate all cashflow/inventory queries after mutation settles
 const invalidateCashoutQueries = async (queryClient: QueryClient) => {
   await Promise.all([
@@ -126,6 +160,9 @@ export function useExpenses(dateRange?: DateRange) {
 
       // 3. Update Drawer Breakdown Cache (Instant Backside update)
       updateDrawerBreakdownCache(queryClient, -data.amount, data.category_id);
+
+      // 4. Update Dashboard Stats Cache (Instant Dashboard vitals update)
+      updateDashboardStatsCache(queryClient, data.amount, data.cashout_type);
 
       try {
         await createExpense(data);
@@ -183,6 +220,9 @@ export function useExpenses(dateRange?: DateRange) {
       // 3. Update Drawer Breakdown
       updateDrawerBreakdownCache(queryClient, -amountDiff, data.category_id);
 
+      // 4. Update Dashboard Stats
+      updateDashboardStatsCache(queryClient, amountDiff, data.cashout_type);
+
       try {
         await updateExpense(id, data);
         await invalidateCashoutQueries(queryClient);
@@ -203,6 +243,7 @@ export function useExpenses(dateRange?: DateRange) {
       
       let originalAmount = originalRecord?.amount;
       let categoryId = originalRecord?.categoryId;
+      let originalCategory = originalRecord?.category;
       if (originalAmount === undefined) {
         const infiniteData = queryClient.getQueryData<InfiniteData<CashoutPage>>([
           EXPENSES_KEY,
@@ -214,6 +255,7 @@ export function useExpenses(dateRange?: DateRange) {
         const found = infiniteData?.pages.flatMap((p) => p.data).find((e) => e.id === id);
         originalAmount = found?.amount || 0;
         categoryId = found?.categoryId;
+        originalCategory = found?.category;
       }
 
       // 1. Update Summary
@@ -237,6 +279,9 @@ export function useExpenses(dateRange?: DateRange) {
 
       // 3. Update Drawer Breakdown
       updateDrawerBreakdownCache(queryClient, originalAmount, categoryId);
+
+      // 4. Update Dashboard Stats
+      updateDashboardStatsCache(queryClient, -originalAmount, originalCategory);
 
       try {
         await deleteExpense(id);
@@ -368,6 +413,9 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
       // 4. Update Drawer Breakdown Cache (Instant Drawer Balance calculation)
       updateDrawerBreakdownCache(queryClient, -input.amount, input.category_id, resolvedDrawer?.category);
 
+      // 5. Update Dashboard Stats Cache (Instant Dashboard vitals update)
+      updateDashboardStatsCache(queryClient, input.amount, input.cashout_type);
+
       try {
         await createExpense(input);
         await invalidateCashoutQueries(queryClient);
@@ -448,6 +496,9 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
       // 4. Update Drawer Breakdown
       updateDrawerBreakdownCache(queryClient, -amountDiff, input.category_id);
 
+      // 5. Update Dashboard Stats
+      updateDashboardStatsCache(queryClient, amountDiff, input.cashout_type);
+
       try {
         await updateExpense(id, input);
         await invalidateCashoutQueries(queryClient);
@@ -470,6 +521,7 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
       const originalRecord = pages?.flatMap((p) => p.data).find((e) => e.id === id);
       const originalAmount = originalRecord?.amount || 0;
       const categoryId = originalRecord?.categoryId;
+      const originalCategory = originalRecord?.category;
 
       // 1. Update Infinite Query
       queryClient.setQueriesData<InfiniteData<CashoutPage>>({ queryKey: [EXPENSES_KEY, "infinite"] }, (old) => {
@@ -502,6 +554,9 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
 
       // 4. Update Drawer Breakdown
       updateDrawerBreakdownCache(queryClient, originalAmount, categoryId);
+
+      // 5. Update Dashboard Stats
+      updateDashboardStatsCache(queryClient, -originalAmount, originalCategory);
 
       try {
         await deleteExpense(id);
