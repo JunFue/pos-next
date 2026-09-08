@@ -20,6 +20,7 @@ import { CartItem } from "../terminal-cart/types";
 import { handleAddToCart, handleClear, handleDone } from "../buttons/handlers";
 import { TransactionResult } from "../buttons/handlers/done";
 import { useTransactionStore } from "@/app/settings/backdating/stores/useTransactionStore";
+import { broadcastStoreEvent } from "@/lib/realtimeBroadcast";
 
 interface UsePosFormReturn {
   methods: UseFormReturn<PosFormValues>;
@@ -320,6 +321,12 @@ export const usePosForm = (): UsePosFormReturn => {
         setIsSubmitting(false);
         // [OPTIMISTIC] Update with real data
         setSuccessData(result);
+
+        // Broadcast to other computers (e.g. Dashboard) instantly over Realtime WebSocket
+        broadcastStoreEvent("TRANSACTION_COMPLETED", {
+          grand_total: result.grand_total,
+          amount_rendered: result.amount_rendered,
+        });
 
         // [OPTIMISTIC DASHBOARD UPDATE] If the transaction queued offline
         if (result.isOffline) {

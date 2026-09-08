@@ -48,13 +48,14 @@ export function useDashboard() {
     staleTime: 1000 * 60 * 5,
   });
 
-  // ─── Realtime Database Listener for Live Instant Updates (Approach A) ────
+  // ─── Realtime Database & Broadcast Listener for Instant Cross-Computer Sync ────
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
 
-    const handleDatabaseEvent = () => {
+    const handleSyncEvent = (source: string) => {
+      console.log(`[Dashboard Realtime] ⚡ Sync event received via ${source} -> Refreshing metrics`);
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
@@ -67,23 +68,34 @@ export function useDashboard() {
     };
 
     const channel = supabase
-      .channel(`dashboard-live-${selectedDate}`)
+      .channel("store-live-events")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "expenses" },
-        handleDatabaseEvent
+        () => handleSyncEvent("postgres:expenses")
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "payments" },
-        handleDatabaseEvent
+        () => handleSyncEvent("postgres:payments")
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "transactions" },
-        handleDatabaseEvent
+        () => handleSyncEvent("postgres:transactions")
       )
-      .subscribe();
+      .on("broadcast", { event: "TRANSACTION_COMPLETED" }, () =>
+        handleSyncEvent("broadcast:TRANSACTION_COMPLETED")
+      )
+      .on("broadcast", { event: "CASHOUT_COMPLETED" }, () =>
+        handleSyncEvent("broadcast:CASHOUT_COMPLETED")
+      )
+      .on("broadcast", { event: "DRAWER_UPDATED" }, () =>
+        handleSyncEvent("broadcast:DRAWER_UPDATED")
+      )
+      .subscribe((status: string, err?: any) => {
+        console.log(`[Dashboard Realtime] Channel status: ${status}`, err || "");
+      });
 
     return () => {
       if (debounceRef.current) {

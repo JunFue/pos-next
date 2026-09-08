@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient, useInfiniteQuery, keepPreviousData, InfiniteData, QueryClient } from "@tanstack/react-query";
 import { useState, useCallback, useMemo } from "react";
 import dayjs from "dayjs";
+import { broadcastStoreEvent } from "@/lib/realtimeBroadcast";
 import {
   fetchExpenses,
   fetchExpensesPaginated,
@@ -441,6 +442,9 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
       // 5. Update Dashboard Stats Cache (Instant Dashboard vitals update)
       updateDashboardStatsCache(queryClient, input.amount, input.cashout_type, input.transaction_date);
 
+      // Broadcast across all open computers/tablets immediately
+      broadcastStoreEvent("CASHOUT_COMPLETED", { amount: input.amount, type: input.cashout_type });
+
       try {
         await createExpense(input);
         await invalidateCashoutQueries(queryClient);
@@ -524,6 +528,9 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
       // 5. Update Dashboard Stats
       updateDashboardStatsCache(queryClient, amountDiff, input.cashout_type, input.transaction_date);
 
+      // Broadcast across all open computers/tablets immediately
+      broadcastStoreEvent("CASHOUT_COMPLETED", { amount: input.amount, type: input.cashout_type });
+
       try {
         await updateExpense(id, input);
         await invalidateCashoutQueries(queryClient);
@@ -582,6 +589,9 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
 
       // 5. Update Dashboard Stats
       updateDashboardStatsCache(queryClient, -originalAmount, originalCategory, originalRecord?.date);
+
+      // Broadcast across all open computers/tablets immediately
+      broadcastStoreEvent("CASHOUT_COMPLETED", { amount: -originalAmount, type: originalCategory });
 
       try {
         await deleteExpense(id);
