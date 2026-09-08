@@ -7,7 +7,8 @@ import dayjs from "dayjs";
 // Import the actual fetchers
 import { fetchDashboardStats, fetchDrawerMode, fetchLatestCategorySales } from "@/app/dashboard/lib/dashboard.api";
 import { fetchItems } from "@/app/inventory/components/item-registration/lib/item.api";
-import { fetchExpenses, fetchExpensesSummary } from "@/app/cashout/lib/cashout.api";
+import { fetchExpensesSummary, fetchCurrentBalance, fetchExpensesPaginated } from "@/app/cashout/lib/cashout.api";
+import { fetchFlowCategories, fetchCashFlowLedger } from "@/app/cashout/lib/cashflow.api";
 import { fetchCustomerFeatureData } from "@/app/customers/lib/customer.api";
 
 export function usePrefetchAll() {
@@ -17,6 +18,10 @@ export function usePrefetchAll() {
   const prefetchAll = useCallback(async () => {
     setProgress(0);
     const todayStr = dayjs().format("YYYY-MM-DD");
+    const monthStart = dayjs().startOf("month").format("YYYY-MM-DD");
+    const monthEnd = dayjs().endOf("month").format("YYYY-MM-DD");
+    const todayRange = { start: todayStr, end: todayStr };
+    const monthRange = { start: monthStart, end: monthEnd };
 
     const tasks = [
       // 1. Dashboard Stats
@@ -39,16 +44,33 @@ export function usePrefetchAll() {
         key: ["items"],
         fn: () => fetchItems(),
       },
-      // 5. Expenses / Cashouts
+      // 5. Expenses / Cashouts (aligned with useFilterStore default { start: today, end: today })
       {
-        key: ["expenses", "list", undefined, undefined],
-        fn: () => fetchExpenses(undefined, undefined),
+        key: ["expenses", "summary", todayStr, todayStr],
+        fn: () => fetchExpensesSummary(todayStr, todayStr),
       },
       {
-        key: ["expenses", "summary", undefined, undefined],
-        fn: () => fetchExpensesSummary(undefined, undefined),
+        key: ["expenses", "balance", todayStr],
+        fn: () => fetchCurrentBalance(todayStr),
       },
-      // 6. Customers list
+      {
+        key: ["expenses", "infinite", 20, todayRange],
+        fn: () => fetchExpensesPaginated(1, 20, todayStr, todayStr).then(res => ({
+          pages: [{ data: res.data, count: res.count, nextPage: res.data.length === 20 ? 2 : undefined }],
+          pageParams: [1]
+        })),
+        isInfinite: true,
+      },
+      // 6. Flow Categories & Cash Flow Modal Ledger
+      {
+        key: ["flow-categories"],
+        fn: () => fetchFlowCategories(),
+      },
+      {
+        key: ["cash-flow-modal-ledger", "Overall", monthRange],
+        fn: () => fetchCashFlowLedger("Overall", monthRange),
+      },
+      // 7. Customers list
       {
         key: ["customer-feature-data", todayStr, todayStr, false],
         fn: () => fetchCustomerFeatureData(todayStr, todayStr),
@@ -62,11 +84,16 @@ export function usePrefetchAll() {
     await Promise.allSettled(
       tasks.map(async (task) => {
         try {
-          await queryClient.prefetchQuery({
-            queryKey: task.key,
-            queryFn: task.fn,
-            staleTime: 1000 * 60 * 60 * 24, // Keep it fresh for 24 hours while offline
-          });
+          if ((task as any).isInfinite) {
+            const data = await task.fn();
+            queryClient.setQueryData(task.key, data);
+          } else {
+            await queryClient.prefetchQuery({
+              queryKey: task.key,
+              queryFn: task.fn,
+              staleTime: 1000 * 60 * 60 * 24, // Keep it fresh for 24 hours while offline
+            });
+          }
         } catch (error) {
           console.error(`[Offline Prefetch] Failed to fetch ${task.key}:`, error);
         } finally {

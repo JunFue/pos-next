@@ -9,15 +9,12 @@ import {
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchDashboardStats, fetchDrawerMode, fetchLatestCategorySales } from "../lib/dashboard.api";
-import { useRealtimeCashflow } from "@/app/cashout/hooks/useRealtimeCashflow";
 import { useExpenses } from "@/app/cashout/hooks/useExpenses";
 
 export type FlipCardKey = "sales" | "profit" | "cash" | "cashout";
 export type ExpenseCategory = "COGS" | "OPEX" | "REMIT";
 
 export function useDashboard() {
-  // Subscribe to real-time sales, payments, and expenses
-  useRealtimeCashflow();
   const { addExpense } = useExpenses();
 
   // ─── Date Filter ───────────────────────────────────────────────────────────
@@ -29,8 +26,7 @@ export function useDashboard() {
   const { data: serverStats, isLoading, isFetching: isFetchingStats, refetch: refetchStats, dataUpdatedAt: statsUpdatedAt } = useQuery({
     queryKey: ["dashboard-stats", selectedDate],
     queryFn: () => fetchDashboardStats(selectedDate),
-    staleTime: 1000 * 10, // 10 seconds
-    refetchInterval: isHistorical ? false : 1000 * 15, // Auto-refresh every 15s when not in history mode
+    staleTime: 1000 * 60 * 5, // 5 minutes (invalidated immediately on Supabase Realtime changes by GlobalCashflowSync)
   });
 
   // ─── Drawer Mode ───────────────────────────────────────────────────────────
@@ -47,8 +43,7 @@ export function useDashboard() {
     queryKey: ["daily-category-sales", selectedDate],
     queryFn: () => fetchLatestCategorySales(selectedDate),
     enabled: isMultiDrawer,
-    staleTime: 1000 * 10,
-    refetchInterval: isHistorical ? false : 1000 * 15,
+    staleTime: 1000 * 60 * 5,
   });
 
   // Zeroed out stats as default instead of mock data

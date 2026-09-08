@@ -5,7 +5,6 @@ import { DollarSign, Filter, Wallet } from 'lucide-react';
 import { CashOutTable } from "./components/cashout-table/CashOutTable";
 import { getColumns } from './components/cashout-table/columns';
 import { useExpensesInfinite, useExpensesSummary, useCurrentBalance } from './hooks/useExpenses';
-import { useRealtimeCashflow } from './hooks/useRealtimeCashflow';
 import { usePermissions } from '@/app/hooks/usePermissions';
 import { useFilterStore } from '@/store/useFilterStore';
 import dynamic_next from 'next/dynamic';
@@ -27,9 +26,6 @@ function CashoutContent() {
   const [editingRecord, setEditingRecord] = useState<CashoutRecord | null>(null);
   const { dateRange, setDateRange } = useFilterStore();
 
-  // Real-time synchronization for payments, sales transactions, and expenses
-  useRealtimeCashflow();
-
   const handleDateChange = useCallback((date: string) => {
     setDateRange({ start: date, end: date });
   }, [setDateRange]);
@@ -47,8 +43,7 @@ function CashoutContent() {
     queryKey: ["daily-category-sales", dateRange.start],
     queryFn: () => fetchLatestCategorySales(dateRange.start),
     enabled: isMultiDrawer && !!dateRange.start,
-    staleTime: 1000 * 10,
-    refetchInterval: 1000 * 15,
+    staleTime: 1000 * 60 * 5,
   });
 
   useEffect(() => {

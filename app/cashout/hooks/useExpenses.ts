@@ -612,8 +612,7 @@ export function useExpensesSummary(dateRange?: DateRange) {
   const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey,
     queryFn: () => fetchExpensesSummary(dateRange?.start, dateRange?.end),
-    staleTime: 1000 * 10, // 10 seconds
-    refetchInterval: 1000 * 15, // 15 seconds auto-refresh fallback
+    staleTime: 1000 * 60 * 5, // 5 minutes (invalidated immediately via Supabase Realtime in GlobalCashflowSync)
   });
 
   return {
@@ -631,8 +630,7 @@ export function useCurrentBalance(date?: string) {
   const { data: balance = 0, isLoading, isFetching, refetch } = useQuery({
     queryKey: [EXPENSES_KEY, "balance", date],
     queryFn: () => fetchCurrentBalance(date),
-    staleTime: 1000 * 10, // 10 seconds
-    refetchInterval: 1000 * 15, // 15 seconds auto-refresh fallback
+    staleTime: 1000 * 60 * 5, // 5 minutes (invalidated immediately via Supabase Realtime in GlobalCashflowSync)
   });
 
   return {

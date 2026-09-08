@@ -11,6 +11,7 @@ import { OfflineSyncManager } from "@/components/reusables/OfflineSyncManager";
 import { OfflineIndicator } from "@/components/reusables/OfflineIndicator";
 import { SplashScreen } from "@/components/reusables/SplashScreen";
 import { SWRegistration } from "@/components/reusables/SWRegistration";
+import { GlobalCashflowSync } from "@/components/reusables/GlobalCashflowSync";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -82,6 +83,7 @@ export default function RootLayout({
               <SWRegistration />
               <OfflineSyncManager />
               <OfflineIndicator />
+              <GlobalCashflowSync />
               <MainWindow>{children}</MainWindow>
             </QueryProvider>
           </AuthInit>

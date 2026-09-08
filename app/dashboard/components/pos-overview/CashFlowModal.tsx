@@ -40,6 +40,7 @@ export function CashFlowModal({ isOpen, onClose, isMultiDrawer = false }: CashFl
     queryKey: ["flow-categories"],
     queryFn: fetchFlowCategories,
     enabled: isOpen && isMultiDrawer,
+    staleTime: 1000 * 60 * 30, // 30 minutes
   });
 
   // --- Derived State ---
@@ -61,8 +62,7 @@ export function CashFlowModal({ isOpen, onClose, isMultiDrawer = false }: CashFl
       return data;
     },
     enabled: isOpen && !!activeCategory,
-    staleTime: 0, // Ensure fresh data on every fetch
-    refetchOnWindowFocus: true,
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
   });
 
   // --- 3. Table Column Definitions ---
