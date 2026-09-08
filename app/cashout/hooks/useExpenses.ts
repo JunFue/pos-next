@@ -82,8 +82,24 @@ const updateDashboardStatsCache = (
   amountDelta: number, // positive when cashout increases (money leaves drawer), negative when cashout decreases (reversals/edits)
   category?: CashoutType
 ) => {
+  const defaultStats = {
+    grossSales: 0,
+    salesDiscount: 0,
+    salesReturn: 0,
+    salesAllowance: 0,
+    netSales: 0,
+    cashInDrawer: 0,
+    cashout: {
+      total: 0,
+      cogs: 0,
+      opex: 0,
+      remittance: 0,
+    },
+    netProfit: 0,
+  };
+
   queryClient.setQueriesData<any>({ queryKey: ["dashboard-stats"] }, (old: any) => {
-    if (!old) return old;
+    const base = old || defaultStats;
     
     const isCogs = category === "COGS";
     const isOpex = category === "OPEX";
@@ -95,15 +111,15 @@ const updateDashboardStatsCache = (
     const profitDelta = (isCogs || isOpex) ? -amountDelta : 0;
 
     return {
-      ...old,
-      cashInDrawer: (old.cashInDrawer || 0) - amountDelta,
+      ...base,
+      cashInDrawer: (base.cashInDrawer || 0) - amountDelta,
       cashout: {
-        total: (old.cashout?.total || 0) + amountDelta,
-        cogs: (old.cashout?.cogs || 0) + cogsDelta,
-        opex: (old.cashout?.opex || 0) + opexDelta,
-        remittance: (old.cashout?.remittance || 0) + remitDelta,
+        total: (base.cashout?.total || 0) + amountDelta,
+        cogs: (base.cashout?.cogs || 0) + cogsDelta,
+        opex: (base.cashout?.opex || 0) + opexDelta,
+        remittance: (base.cashout?.remittance || 0) + remitDelta,
       },
-      netProfit: (old.netProfit || 0) + profitDelta,
+      netProfit: (base.netProfit || 0) + profitDelta,
       _optimistic: true,
     };
   });

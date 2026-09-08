@@ -144,7 +144,7 @@ export const fetchDashboardStats = async (
   const supabase = await getSupabase();
   const storeId = await getStoreId();
   
-  // 1. Fetch pre-calculated stats from daily_store_stats
+  // 1. Fetch pre-calculated sales stats from daily_store_stats
   const { data: statsData, error: statsError } = await supabase
     .from("daily_store_stats")
     .select("*")
@@ -157,7 +157,36 @@ export const fetchDashboardStats = async (
     throw new Error(statsError.message);
   }
 
-  // 2. Fetch live cash in drawer balance from overall_cash_flow
+  // 2. Fetch live expenses directly from expenses table (source of truth)
+  const { data: expensesData, error: expensesError } = await supabase
+    .from("expenses")
+    .select("amount, cashout_type")
+    .eq("store_id", storeId)
+    .eq("transaction_date", date);
+
+  if (expensesError) {
+    console.error("Error fetching live expenses for dashboard:", expensesError);
+  }
+
+  const liveExpenses = expensesData || [];
+  let totalCogs = 0;
+  let totalOpex = 0;
+  let totalRemittance = 0;
+  let totalCashout = 0;
+
+  for (const exp of liveExpenses) {
+    const amount = Number(exp.amount) || 0;
+    totalCashout += amount;
+    if (exp.cashout_type === "COGS") {
+      totalCogs += amount;
+    } else if (exp.cashout_type === "OPEX") {
+      totalOpex += amount;
+    } else if (exp.cashout_type === "REMITTANCE") {
+      totalRemittance += amount;
+    }
+  }
+
+  // 3. Fetch live cash in drawer balance from overall_cash_flow
   const { data: cashData, error: cashError } = await supabase
     .from("overall_cash_flow")
     .select("balance")
@@ -171,26 +200,25 @@ export const fetchDashboardStats = async (
     console.error("Error fetching live cash in drawer:", cashError);
   }
 
-  if (!statsData && !cashData) {
-    return null;
-  }
-
+  const grossSales = Number(statsData?.total_gross_sales || 0);
+  const netSales = Number(statsData?.total_net_sales || 0);
   const cashInDrawer = cashData ? Number(cashData.balance) : (statsData ? Number(statsData.cash_remaining) : 0);
+  const netProfit = netSales - totalCogs - totalOpex;
 
   return {
-    grossSales: Number(statsData?.total_gross_sales || 0),
+    grossSales,
     salesDiscount: 0, 
     salesReturn: 0,
     salesAllowance: 0,
-    netSales: Number(statsData?.total_net_sales || 0),
-    cashInDrawer: cashInDrawer,
+    netSales,
+    cashInDrawer,
     cashout: {
-      total: Number(statsData?.total_cashout || 0),
-      cogs: Number(statsData?.total_cogs || 0),
-      opex: Number(statsData?.total_opex || 0),
-      remittance: Number(statsData?.total_remittance || 0),
+      total: totalCashout,
+      cogs: totalCogs,
+      opex: totalOpex,
+      remittance: totalRemittance,
     },
-    netProfit: Number(statsData?.net_profit || 0),
+    netProfit,
   };
 };
 
