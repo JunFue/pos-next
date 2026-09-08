@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, useEffect, useRef, FormEvent } from "react";
 import {
   type DashboardStats,
   type InventoryStatsData,
@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { fetchDashboardStats, fetchDrawerMode, fetchLatestCategorySales } from "../lib/dashboard.api";
 import { useExpenses } from "@/app/cashout/hooks/useExpenses";
+import { createClient } from "@/utils/supabase/client";
 
 export type FlipCardKey = "sales" | "profit" | "cash" | "cashout";
 export type ExpenseCategory = "COGS" | "OPEX" | "REMIT";
@@ -27,7 +28,7 @@ export function useDashboard() {
   const { data: serverStats, isLoading, isFetching: isFetchingStats, refetch: refetchStats, dataUpdatedAt: statsUpdatedAt } = useQuery({
     queryKey: ["dashboard-stats", selectedDate],
     queryFn: () => fetchDashboardStats(selectedDate),
-    staleTime: 1000 * 60 * 5, // 5 minutes (invalidated immediately on Supabase Realtime changes by GlobalCashflowSync)
+    staleTime: 1000 * 60 * 5, // 5 minutes (invalidated immediately on Supabase Realtime changes)
   });
 
   // ─── Drawer Mode ───────────────────────────────────────────────────────────
@@ -46,6 +47,51 @@ export function useDashboard() {
     enabled: isMultiDrawer,
     staleTime: 1000 * 60 * 5,
   });
+
+  // ─── Realtime Database Listener for Live Instant Updates (Approach A) ────
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    const handleDatabaseEvent = () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      debounceRef.current = setTimeout(() => {
+        refetchStats();
+        if (isMultiDrawer) {
+          refetchCategorySales();
+        }
+      }, 50);
+    };
+
+    const channel = supabase
+      .channel(`dashboard-live-${selectedDate}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "expenses" },
+        handleDatabaseEvent
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "payments" },
+        handleDatabaseEvent
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "transactions" },
+        handleDatabaseEvent
+      )
+      .subscribe();
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      supabase.removeChannel(channel);
+    };
+  }, [selectedDate, refetchStats, isMultiDrawer, refetchCategorySales]);
 
   // Zeroed out stats as default instead of mock data
   const emptyStats: DashboardStats = {
