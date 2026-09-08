@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import dayjs from 'dayjs';
 
 export interface DateRange {
   start: string;
@@ -11,7 +12,7 @@ interface FilterState {
   resetDateRange: () => void;
 }
 
-const getToday = () => new Date().toISOString().split('T')[0];
+const getToday = () => dayjs().format('YYYY-MM-DD');
 
 export const useFilterStore = create<FilterState>((set) => ({
   dateRange: {

@@ -8,6 +8,7 @@ import {
 } from "../lib/dashboardMockData";
 
 import { useQuery } from "@tanstack/react-query";
+import dayjs from "dayjs";
 import { fetchDashboardStats, fetchDrawerMode, fetchLatestCategorySales } from "../lib/dashboard.api";
 import { useExpenses } from "@/app/cashout/hooks/useExpenses";
 
@@ -18,7 +19,7 @@ export function useDashboard() {
   const { addExpense } = useExpenses();
 
   // ─── Date Filter ───────────────────────────────────────────────────────────
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = dayjs().format("YYYY-MM-DD");
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const isHistorical = selectedDate !== todayStr;
 

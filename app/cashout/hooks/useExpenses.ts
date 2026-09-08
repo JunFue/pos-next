@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient, useInfiniteQuery, keepPreviousData, InfiniteData, QueryClient } from "@tanstack/react-query";
 import { useState, useCallback, useMemo } from "react";
+import dayjs from "dayjs";
 import {
   fetchExpenses,
   fetchExpensesPaginated,
@@ -80,8 +81,11 @@ const updateDrawerBreakdownCache = (
 const updateDashboardStatsCache = (
   queryClient: QueryClient,
   amountDelta: number, // positive when cashout increases (money leaves drawer), negative when cashout decreases (reversals/edits)
-  category?: CashoutType
+  category?: CashoutType,
+  transactionDate?: string
 ) => {
+  const targetDate = transactionDate || dayjs().format("YYYY-MM-DD");
+
   const defaultStats = {
     grossSales: 0,
     salesDiscount: 0,
@@ -98,18 +102,17 @@ const updateDashboardStatsCache = (
     netProfit: 0,
   };
 
-  queryClient.setQueriesData<any>({ queryKey: ["dashboard-stats"] }, (old: any) => {
+  const isCogs = category === "COGS";
+  const isOpex = category === "OPEX";
+  const isRemit = category === "REMITTANCE";
+
+  const cogsDelta = isCogs ? amountDelta : 0;
+  const opexDelta = isOpex ? amountDelta : 0;
+  const remitDelta = isRemit ? amountDelta : 0;
+  const profitDelta = (isCogs || isOpex) ? -amountDelta : 0;
+
+  const calculateNewStats = (old: any) => {
     const base = old || defaultStats;
-    
-    const isCogs = category === "COGS";
-    const isOpex = category === "OPEX";
-    const isRemit = category === "REMITTANCE";
-
-    const cogsDelta = isCogs ? amountDelta : 0;
-    const opexDelta = isOpex ? amountDelta : 0;
-    const remitDelta = isRemit ? amountDelta : 0;
-    const profitDelta = (isCogs || isOpex) ? -amountDelta : 0;
-
     return {
       ...base,
       cashInDrawer: (base.cashInDrawer || 0) - amountDelta,
@@ -122,7 +125,13 @@ const updateDashboardStatsCache = (
       netProfit: (base.netProfit || 0) + profitDelta,
       _optimistic: true,
     };
-  });
+  };
+
+  // 1. Update any existing active queries matching ["dashboard-stats"]
+  queryClient.setQueriesData<any>({ queryKey: ["dashboard-stats"] }, calculateNewStats);
+
+  // 2. Explicitly ensure targetDate query key exists in cache
+  queryClient.setQueryData<any>(["dashboard-stats", targetDate], calculateNewStats);
 };
 
 // Helper: Invalidate all cashflow/inventory queries after mutation settles
@@ -178,7 +187,7 @@ export function useExpenses(dateRange?: DateRange) {
       updateDrawerBreakdownCache(queryClient, -data.amount, data.category_id);
 
       // 4. Update Dashboard Stats Cache (Instant Dashboard vitals update)
-      updateDashboardStatsCache(queryClient, data.amount, data.cashout_type);
+      updateDashboardStatsCache(queryClient, data.amount, data.cashout_type, data.transaction_date);
 
       try {
         await createExpense(data);
@@ -237,7 +246,7 @@ export function useExpenses(dateRange?: DateRange) {
       updateDrawerBreakdownCache(queryClient, -amountDiff, data.category_id);
 
       // 4. Update Dashboard Stats
-      updateDashboardStatsCache(queryClient, amountDiff, data.cashout_type);
+      updateDashboardStatsCache(queryClient, amountDiff, data.cashout_type, data.transaction_date);
 
       try {
         await updateExpense(id, data);
@@ -297,7 +306,7 @@ export function useExpenses(dateRange?: DateRange) {
       updateDrawerBreakdownCache(queryClient, originalAmount, categoryId);
 
       // 4. Update Dashboard Stats
-      updateDashboardStatsCache(queryClient, -originalAmount, originalCategory);
+      updateDashboardStatsCache(queryClient, -originalAmount, originalCategory, originalRecord?.date);
 
       try {
         await deleteExpense(id);
@@ -430,7 +439,7 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
       updateDrawerBreakdownCache(queryClient, -input.amount, input.category_id, resolvedDrawer?.category);
 
       // 5. Update Dashboard Stats Cache (Instant Dashboard vitals update)
-      updateDashboardStatsCache(queryClient, input.amount, input.cashout_type);
+      updateDashboardStatsCache(queryClient, input.amount, input.cashout_type, input.transaction_date);
 
       try {
         await createExpense(input);
@@ -513,7 +522,7 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
       updateDrawerBreakdownCache(queryClient, -amountDiff, input.category_id);
 
       // 5. Update Dashboard Stats
-      updateDashboardStatsCache(queryClient, amountDiff, input.cashout_type);
+      updateDashboardStatsCache(queryClient, amountDiff, input.cashout_type, input.transaction_date);
 
       try {
         await updateExpense(id, input);
@@ -572,7 +581,7 @@ export function useExpensesInfinite(pageSize: number = 30, dateRange?: DateRange
       updateDrawerBreakdownCache(queryClient, originalAmount, categoryId);
 
       // 5. Update Dashboard Stats
-      updateDashboardStatsCache(queryClient, -originalAmount, originalCategory);
+      updateDashboardStatsCache(queryClient, -originalAmount, originalCategory, originalRecord?.date);
 
       try {
         await deleteExpense(id);
